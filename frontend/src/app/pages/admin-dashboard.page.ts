@@ -33,7 +33,7 @@ import { STATUS_LABEL } from '../shared/status';
         <section class="panel">
           <h3>Running low</h3>
           @for (item of dash.lowStock; track item.id) {
-            <p class="summary-row"><span>{{ item.emoji }} {{ item.name }}</span><strong>{{ item.stock }} {{ item.unit }}</strong></p>
+            <p class="summary-row"><span>{{ item.emoji }} {{ item.name }}</span><strong>{{ item.stock }} left</strong></p>
           }
           <h3 class="mt-4">Status mix</h3>
           @for (row of dash.ordersByStatus; track row.status) {
