@@ -1,0 +1,11 @@
+{
+  "name": "zapbasket",
+  "private": true,
+  "description": "ZapBasket grocery delivery store, admin desk, and rider app.",
+  "scripts": {
+    "dev:api": "npm run dev --prefix backend",
+    "dev:web": "npm start --prefix frontend",
+    "seed": "npm run seed --prefix backend",
+    "test": "npm test --prefix backend"
+  }
+}

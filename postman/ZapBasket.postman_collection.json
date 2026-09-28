@@ -1,0 +1,261 @@
+{
+  "info": {
+    "name": "ZapBasket",
+    "description": "Grocery delivery API. Run Login first. The test script stores accessToken and refreshToken. Demo accounts: admin@zapbasket.dev / Admin@12345, aisha@zapbasket.dev / Customer@123, ravi@zapbasket.dev / Delivery@123.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:43110/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "addressId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "couponId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Neel Sharma\",\n  \"email\": \"neel@zapbasket.dev\",\n  \"phone\": \"9876543210\",\n  \"password\": \"Shopper@123\"\n}" }
+          }
+        },
+        {
+          "name": "Login customer",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.success) {", "  pm.collectionVariables.set('accessToken', body.data.accessToken);", "  pm.collectionVariables.set('refreshToken', body.data.refreshToken);", "}"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"aisha@zapbasket.dev\",\n  \"password\": \"Customer@123\"\n}" }
+          }
+        },
+        {
+          "name": "Login admin",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.success) {", "  pm.collectionVariables.set('accessToken', body.data.accessToken);", "  pm.collectionVariables.set('refreshToken', body.data.refreshToken);", "}"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@zapbasket.dev\",\n  \"password\": \"Admin@12345\"\n}" }
+          }
+        },
+        {
+          "name": "Login delivery",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.success) {", "  pm.collectionVariables.set('accessToken', body.data.accessToken);", "  pm.collectionVariables.set('refreshToken', body.data.refreshToken);", "}"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ravi@zapbasket.dev\",\n  \"password\": \"Delivery@123\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.success) {", "  pm.collectionVariables.set('accessToken', body.data.accessToken);", "  pm.collectionVariables.set('refreshToken', body.data.refreshToken);", "}"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/logout",
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "Categories",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.data && body.data[0]) pm.collectionVariables.set('categoryId', body.data[0].id);"] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/categories" }
+        },
+        {
+          "name": "Search products",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.data && body.data.items && body.data.items[0]) pm.collectionVariables.set('productId', body.data.items[0].id);"] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/products?search=banana&sort=price_asc" }
+        },
+        {
+          "name": "Product by slug",
+          "request": { "method": "GET", "url": "{{baseUrl}}/products/robusta-banana" }
+        }
+      ]
+    },
+    {
+      "name": "Cart and checkout",
+      "item": [
+        {
+          "name": "Add to cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/cart/items",
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"quantity\": 2\n}" }
+          }
+        },
+        {
+          "name": "Get cart",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/cart" }
+        },
+        {
+          "name": "Apply coupon",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/cart/coupon",
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"WELCOME50\"\n}" }
+          }
+        },
+        {
+          "name": "Active coupons",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/coupons/active" }
+        },
+        {
+          "name": "Addresses",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.data && body.data[0]) pm.collectionVariables.set('addressId', body.data[0].id);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/addresses" }
+        },
+        {
+          "name": "Place COD order",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.success) pm.collectionVariables.set('orderId', body.data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/orders",
+            "body": { "mode": "raw", "raw": "{\n  \"addressId\": \"{{addressId}}\",\n  \"paymentMethod\": \"cod\",\n  \"notes\": \"Leave at the door\"\n}" }
+          }
+        },
+        {
+          "name": "Create Razorpay order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/payments/razorpay/order",
+            "body": { "mode": "raw", "raw": "{\n  \"orderId\": \"{{orderId}}\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders and delivery",
+      "item": [
+        {
+          "name": "My orders",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/orders" }
+        },
+        {
+          "name": "Order detail",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/orders/{{orderId}}" }
+        },
+        {
+          "name": "Confirm order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/orders/{{orderId}}/status",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"confirmed\"\n}" }
+          }
+        },
+        {
+          "name": "Available deliveries",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/orders?scope=available" }
+        },
+        {
+          "name": "Accept delivery",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/orders/{{orderId}}/accept" }
+        },
+        {
+          "name": "Out for delivery",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/orders/{{orderId}}/status",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"out_for_delivery\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/admin/dashboard" }
+        },
+        {
+          "name": "Report",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/admin/reports" }
+        },
+        {
+          "name": "Users",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.data && body.data.items && body.data.items[0]) pm.collectionVariables.set('userId', body.data.items[0].id);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/admin/users?role=delivery" }
+        },
+        {
+          "name": "Coupons",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const body = pm.response.json();", "if (body.data && body.data[0]) pm.collectionVariables.set('couponId', body.data[0].id);"] } }],
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/admin/coupons" }
+        },
+        {
+          "name": "Create product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/admin/products",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Mint Coriander\",\n  \"categoryId\": \"{{categoryId}}\",\n  \"price\": 15,\n  \"mrp\": 20,\n  \"unit\": \"100 g\",\n  \"stock\": 40,\n  \"emoji\": \"🌿\",\n  \"tint\": \"#E5F6D8\",\n  \"description\": \"A small bunch for the tadka.\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications" }
+        },
+        {
+          "name": "Mark all read",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/notifications/read-all" }
+        }
+      ]
+    }
+  ]
+}

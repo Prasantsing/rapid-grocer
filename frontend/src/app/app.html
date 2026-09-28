@@ -1,0 +1,6 @@
+<div class="toaster">
+  @for (toast of toasts.messages(); track toast.id) {
+    <div class="toast-note" [class.bad]="toast.kind === 'bad'" role="status">{{ toast.text }}</div>
+  }
+</div>
+<router-outlet />
