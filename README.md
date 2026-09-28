@@ -1,3 +1,4 @@
+use this to clone in u r device :  git clone https://github.com/Prasantsing/rapid-grocer.git
 # ZapBasket
 
 ZapBasket is a quick-commerce grocery app: customers shop a dark-store catalog, admins run the desk, and delivery partners move orders from packed to delivered. The promise on the shelf is about 12 minutes.
