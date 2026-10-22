@@ -393,10 +393,12 @@ import { InrPipe } from '../shared/inr.pipe';
           <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
             <div>
               <h4 class="mb-1 d-flex align-items-center gap-2">
-                <span>✨ AI Studio Photo Comparison</span>
-                <span class="badge bg-success-subtle text-success border border-success-subtle small">Studio Ready</span>
+                <span>✨ AI Studio Photo Lab</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle small">1:1 Catalog Standard</span>
               </h4>
-              <p class="text-muted small mb-0">Compare the raw photo with the AI studio-enhanced catalog shot</p>
+              <p class="text-muted small mb-0">
+                Primary item focused & isolated from background clutter with softbox studio lighting
+              </p>
             </div>
             <button type="button" class="btn-close" aria-label="Close" (click)="keepOriginal()"></button>
           </div>
@@ -405,52 +407,90 @@ import { InrPipe } from '../shared/inr.pipe';
             <!-- Before -->
             <div class="comparison-card">
               <div class="card-header-badge before-badge">
-                <span>Before (Original Shot)</span>
-                <span class="text-muted small">Raw upload</span>
+                <span>Before (Raw Capture)</span>
+                <span class="text-muted small">Original Shot</span>
               </div>
-              <div class="comparison-stage">
-                <img [src]="originalImage()" alt="Before enhancement" />
+              <div class="comparison-stage position-relative overflow-hidden">
+                <div class="position-relative d-inline-block">
+                  <img [src]="originalImage()" alt="Raw photo capture" class="img-fluid" />
+                  @if (detectedBox()) {
+                    <div
+                      class="detected-box-overlay"
+                      [style.top.%]="detectedBox()![0] / 10"
+                      [style.left.%]="detectedBox()![1] / 10"
+                      [style.height.%]="(detectedBox()![2] - detectedBox()![0]) / 10"
+                      [style.width.%]="(detectedBox()![3] - detectedBox()![1]) / 10"
+                    >
+                      <span class="detected-box-tag">
+                        <i class="bi bi-bullseye"></i> {{ detectedSubject() }}
+                      </span>
+                    </div>
+                  }
+                </div>
               </div>
-              <div class="card-features">
-                Original lighting & raw surface
+              <div class="card-features d-flex justify-content-between align-items-center">
+                <span>Raw background, uneven ambient light</span>
+                @if (detectedSubject()) {
+                  <span class="badge bg-light text-dark border small">🎯 {{ detectedSubject() }}</span>
+                }
               </div>
             </div>
 
             <!-- After -->
             <div class="comparison-card border-success">
               <div class="card-header-badge after-badge">
-                <span>After (AI Studio Enhanced)</span>
-                <span class="badge bg-success text-white small">Studio Lighting</span>
+                <span>After (AI Studio Catalog Shot)</span>
+                <span class="badge bg-success text-white small">✨ 1:1 Studio</span>
               </div>
-              <div class="comparison-stage studio-stage">
-                <img [src]="enhancedImage()" alt="After enhancement" />
+              <div class="comparison-stage studio-stage square-stage position-relative">
+                <img [src]="enhancedImage()" alt="AI Studio Enhanced 1:1 catalog shot" class="studio-product-preview shadow-sm" />
+                <span class="badge bg-dark bg-opacity-75 position-absolute bottom-0 end-0 m-2">1:1 Square</span>
               </div>
-              <div class="card-features text-success">
-                ✓ Balanced softbox exposure, clean backdrop & soft shadow
+              <div class="card-features">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <span class="text-success small fw-semibold">
+                    <i class="bi bi-check-circle-fill me-1"></i> Clean Cyclorama Backdrop & Soft Drop-Shadow
+                  </span>
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="small text-muted" style="font-size: 0.7rem;">Margin:</span>
+                    <div class="crop-margin-btn-group">
+                      <button type="button" [class.active]="cropMarginMode() === 'tight'" (click)="changeCropMargin('tight')" title="Tight framing with minimal margin">Tight</button>
+                      <button type="button" [class.active]="cropMarginMode() === 'balanced'" (click)="changeCropMargin('balanced')" title="Standard e-commerce catalog padding">Balanced</button>
+                      <button type="button" [class.active]="cropMarginMode() === 'wide'" (click)="changeCropMargin('wide')" title="Wider padding for large products">Wide</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="d-flex flex-wrap gap-2 justify-content-end pt-2 border-top">
-            <button type="button" class="btn btn-outline-secondary" (click)="keepOriginal()">
-              Keep Original
-            </button>
-            <button
-              type="button"
-              class="btn btn-outline-dark d-inline-flex align-items-center gap-1"
-              [disabled]="isEnhancing()"
-              (click)="enhanceWithAi()"
-            >
-              🔄 Re-enhance
-            </button>
-            <button
-              type="button"
-              class="btn btn-dark d-inline-flex align-items-center gap-1"
-              style="background: #0e6b4f; border-color: #0e6b4f"
-              (click)="applyAiEnhanced()"
-            >
-              ✓ Apply AI Enhanced Photo
-            </button>
+          <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center pt-2 border-top">
+            <div class="small text-muted">
+              @if (detectedSummary()) {
+                <i class="bi bi-info-circle me-1 text-primary"></i> {{ detectedSummary() }}
+              }
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary" (click)="keepOriginal()">
+                Keep Original
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-dark d-inline-flex align-items-center gap-1"
+                [disabled]="isEnhancing()"
+                (click)="enhanceWithAi()"
+              >
+                🔄 Re-enhance
+              </button>
+              <button
+                type="button"
+                class="btn btn-dark d-inline-flex align-items-center gap-1"
+                style="background: #0e6b4f; border-color: #0e6b4f"
+                (click)="applyAiEnhanced()"
+              >
+                ✓ Apply AI Studio Shot (1:1)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -550,6 +590,11 @@ export class AdminProductsPage {
   readonly originalImage = signal<string>('');
   readonly enhancedImage = signal<string>('');
   readonly enhancedStyle = signal<string>('');
+  readonly detectedSubject = signal<string>('Product');
+  readonly detectedConfidence = signal<string>('High');
+  readonly detectedBox = signal<number[] | null>(null);
+  readonly detectedSummary = signal<string>('');
+  readonly cropMarginMode = signal<'tight' | 'balanced' | 'wide'>('balanced');
 
   // AI Auto-Fill & Camera state
   readonly isExtractingDetails = signal<boolean>(false);
@@ -675,7 +720,7 @@ export class AdminProductsPage {
     if (!ctx) return;
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
     this.closeCamera();
 
@@ -683,7 +728,7 @@ export class AdminProductsPage {
       this.open();
     }
 
-    void this.runAiAutoFill(dataUrl);
+    void this.autoEnhanceAndReview(dataUrl);
   }
 
   closeCamera() {
@@ -708,7 +753,7 @@ export class AdminProductsPage {
         if (!this.openForm()) {
           this.open();
         }
-        await this.runAiAutoFill(dataUrl);
+        await this.autoEnhanceAndReview(dataUrl);
       } catch (err) {
         this.toasts.error('Failed to read image file');
       }
@@ -816,11 +861,7 @@ export class AdminProductsPage {
       this.isAiEnhanced.set(false);
       this.form.controls.imageUrl.setValue(dataUrl);
 
-      // If creating a new product and name is empty or default, automatically run AI auto-fill
-      const currentName = this.form.controls.name.value?.trim() || '';
-      if (!this.editing() && (!currentName || currentName === 'Fresh Grocery Item')) {
-        await this.runAiAutoFill(dataUrl);
-      }
+      await this.autoEnhanceAndReview(dataUrl);
     } catch (err) {
       this.toasts.error('Failed to process image file.');
     }
@@ -861,28 +902,173 @@ export class AdminProductsPage {
     });
   }
 
+  private getMarginPercent(): number {
+    const mode = this.cropMarginMode();
+    return mode === 'tight' ? 0.07 : mode === 'wide' ? 0.23 : 0.14;
+  }
+
+  async changeCropMargin(mode: 'tight' | 'balanced' | 'wide') {
+    this.cropMarginMode.set(mode);
+    const raw = this.originalImage();
+    if (raw) {
+      const margin = this.getMarginPercent();
+      const reRendered = await this.renderStudioSquareCanvas(raw, this.detectedBox(), margin);
+      this.enhancedImage.set(reRendered);
+    }
+  }
+
+  async autoEnhanceAndReview(dataUrl: string) {
+    this.originalImage.set(dataUrl);
+    this.previewImage.set(dataUrl);
+    this.isEnhancing.set(true);
+
+    const currentName = this.form.controls.name.value?.trim() || 'Product';
+    const catId = this.form.controls.categoryId.value;
+    const cat = this.categories().find((c) => c.id === catId)?.name || 'General';
+
+    try {
+      // 1. Run AI Subject Focus & Studio Analysis
+      const result = await this.admin.aiEnhanceProductImage({
+        image: dataUrl,
+        name: currentName,
+        category: cat,
+      });
+
+      this.detectedSubject.set(result.detectedProduct || 'Product');
+      this.detectedConfidence.set(result.confidence || 'High');
+      this.detectedBox.set(result.box_2d || null);
+      this.detectedSummary.set(result.summary || 'Product isolated and centered onto 1:1 studio backdrop');
+      this.enhancedStyle.set(result.style || 'AI Studio Focus');
+
+      // 2. Render crisp 1:1 square canvas
+      const margin = this.getMarginPercent();
+      const studio1x1 = await this.renderStudioSquareCanvas(dataUrl, result.box_2d, margin);
+      this.enhancedImage.set(studio1x1 || result.enhancedImage);
+
+      // Open side-by-side review
+      this.showComparison.set(true);
+
+      // 3. Auto-fill form details if new product or default title
+      if (!this.editing() || !this.form.controls.name.value) {
+        void this.runAiAutoFill(dataUrl);
+      }
+    } catch (err) {
+      console.warn('Auto enhance notice:', err);
+      // Fallback: render default 1:1 canvas
+      const fallback1x1 = await this.renderStudioSquareCanvas(dataUrl, null, 0.14);
+      this.enhancedImage.set(fallback1x1);
+      this.showComparison.set(true);
+    } finally {
+      this.isEnhancing.set(false);
+    }
+  }
+
+  renderStudioSquareCanvas(
+    rawImageSrc: string,
+    box_2d?: number[] | null,
+    marginPercent = 0.14
+  ): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const nw = img.naturalWidth || 800;
+        const nh = img.naturalHeight || 800;
+
+        let ymin = 100;
+        let xmin = 100;
+        let ymax = 900;
+        let xmax = 900;
+        if (Array.isArray(box_2d) && box_2d.length === 4) {
+          ymin = Math.max(0, Math.min(1000, Number(box_2d[0]) || 100));
+          xmin = Math.max(0, Math.min(1000, Number(box_2d[1]) || 100));
+          ymax = Math.max(ymin + 40, Math.min(1000, Number(box_2d[2]) || 900));
+          xmax = Math.max(xmin + 40, Math.min(1000, Number(box_2d[3]) || 900));
+        }
+
+        const rawX = (xmin / 1000) * nw;
+        const rawY = (ymin / 1000) * nh;
+        const rawW = Math.max(20, ((xmax - xmin) / 1000) * nw);
+        const rawH = Math.max(20, ((ymax - ymin) / 1000) * nh);
+
+        // Add breathing padding margin
+        const pad = Math.max(rawW, rawH) * marginPercent;
+        const cropX = Math.max(0, rawX - pad);
+        const cropY = Math.max(0, rawY - pad);
+        const cropW = Math.min(nw - cropX, rawW + 2 * pad);
+        const cropH = Math.min(nh - cropY, rawH + 2 * pad);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1000;
+        canvas.height = 1000;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(rawImageSrc);
+          return;
+        }
+
+        // 1. Studio Seamless Cyclorama Background
+        const grad = ctx.createRadialGradient(500, 420, 60, 500, 500, 750);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.58, '#f8fafc');
+        grad.addColorStop(1, '#e9eef5');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1000, 1000);
+
+        // 2. Calculate Centered 1:1 Dimensions inside 1000x1000
+        const maxDim = Math.max(cropW, cropH);
+        const scale = 780 / maxDim;
+        const destW = Math.round(cropW * scale);
+        const destH = Math.round(cropH * scale);
+        const destX = Math.round((1000 - destW) / 2);
+        const destY = Math.round(480 - destH / 2);
+
+        // 3. Ground Softbox Contact Drop Shadows
+        const shadowY = Math.min(910, destY + destH - 10);
+        const shadowRx = Math.min(360, destW * 0.44);
+
+        ctx.save();
+        ctx.filter = 'blur(16px)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.16)';
+        ctx.beginPath();
+        ctx.ellipse(500, shadowY, shadowRx, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.filter = 'blur(5px)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.24)';
+        ctx.beginPath();
+        ctx.ellipse(500, shadowY, shadowRx * 0.72, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 4. Draw Isolated Product with Soft Rounded Clip & Color Polish
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(destX, destY, destW, destH, 18);
+        ctx.clip();
+        ctx.filter = 'contrast(1.05) brightness(1.02) saturate(1.04)';
+        ctx.drawImage(img, cropX, cropY, cropW, cropH, destX, destY, destW, destH);
+        ctx.restore();
+
+        // 5. Subtle crisp perimeter border
+        ctx.strokeStyle = 'rgba(15, 23, 42, 0.05)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, 998, 998);
+
+        resolve(canvas.toDataURL('image/jpeg', 0.94));
+      };
+      img.onerror = () => resolve(rawImageSrc);
+      img.src = rawImageSrc;
+    });
+  }
+
   async enhanceWithAi() {
-    const image = this.previewImage();
+    const image = this.originalImage() || this.previewImage();
     if (!image) {
       this.toasts.error('Please upload or enter an image URL first');
       return;
     }
-    const name = this.form.controls.name.value || 'Product';
-    const catId = this.form.controls.categoryId.value;
-    const cat = this.categories().find((c) => c.id === catId)?.name || 'Grocery';
-
-    this.isEnhancing.set(true);
-    try {
-      const result = await this.admin.aiEnhanceProductImage({ image, name, category: cat });
-      this.originalImage.set(image);
-      this.enhancedImage.set(result.enhancedImage);
-      this.enhancedStyle.set(result.style);
-      this.showComparison.set(true);
-    } catch (err) {
-      this.toasts.error(errorMessage(err) || 'AI enhancement failed. Please try again.');
-    } finally {
-      this.isEnhancing.set(false);
-    }
+    await this.autoEnhanceAndReview(image);
   }
 
   applyAiEnhanced() {
@@ -892,11 +1078,18 @@ export class AdminProductsPage {
       this.previewImage.set(enhanced);
       this.isAiEnhanced.set(true);
       this.showComparison.set(false);
-      this.toasts.show('✨ Applied AI Studio photo to product!');
+      this.toasts.show('✨ Applied 1:1 Studio Catalog photo to product!');
     }
   }
 
   keepOriginal() {
+    const raw = this.originalImage();
+    if (raw) {
+      this.previewImage.set(raw);
+      this.form.controls.imageUrl.setValue(raw);
+      this.isAiEnhanced.set(false);
+      this.toasts.show('Kept original raw photo.');
+    }
     this.showComparison.set(false);
   }
 

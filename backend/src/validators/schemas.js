@@ -107,6 +107,7 @@ const aiEnhanceImageSchema = z.object({
     image: z.string().min(10, 'Image data or URL is required'),
     name: z.string().trim().max(120).optional(),
     category: z.string().trim().max(80).optional(),
+    box_2d: z.array(z.number()).optional(),
   }),
 });
 const idParamsSchema = z.object({

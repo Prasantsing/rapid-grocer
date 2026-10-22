@@ -50,12 +50,20 @@ export class AdminService {
     return this.unwrap(this.http.delete<ApiResponse<{ archived: boolean }>>(`/api/v1/admin/products/${id}`));
   }
 
-  aiEnhanceProductImage(payload: { image: string; name?: string; category?: string }) {
+  aiEnhanceProductImage(payload: { image: string; name?: string; category?: string; box_2d?: number[] }) {
     return this.unwrap(
-      this.http.post<ApiResponse<{ enhancedImage: string; provider: string; style: string }>>(
-        '/api/v1/admin/products/ai-enhance-image',
-        payload
-      )
+      this.http.post<
+        ApiResponse<{
+          enhancedImage: string;
+          provider: string;
+          style: string;
+          detectedProduct?: string;
+          category?: string;
+          box_2d?: number[];
+          confidence?: string;
+          summary?: string;
+        }>
+      >('/api/v1/admin/products/ai-enhance-image', payload)
     );
   }
 

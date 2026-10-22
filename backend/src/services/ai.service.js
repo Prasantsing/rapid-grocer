@@ -63,47 +63,116 @@ async function parseImageInput(input) {
 }
 
 /**
- * Generate a professional studio-framed SVG backdrop with the product centered and soft shadows
- * as a reliable, zero-latency fallback whenever external API quota or key is not configured.
+ * Generate a professional studio-framed SVG backdrop with the isolated product centered,
+ * clean cyclorama lighting, and soft ground contact shadow.
  */
-function generateStudioFramedFallback(base64Data, mimeType, name) {
+function generateStudioFramedFallback(base64Data, mimeType, name, box_2d) {
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  
+  let ymin = 80, xmin = 80, ymax = 920, xmax = 920;
+  if (Array.isArray(box_2d) && box_2d.length === 4) {
+    ymin = Math.max(0, Math.min(1000, Number(box_2d[0]) || 80));
+    xmin = Math.max(0, Math.min(1000, Number(box_2d[1]) || 80));
+    ymax = Math.max(ymin + 50, Math.min(1000, Number(box_2d[2]) || 920));
+    xmax = Math.max(xmin + 50, Math.min(1000, Number(box_2d[3]) || 920));
+  }
+
+  const sw = Math.max(50, xmax - xmin);
+  const sh = Math.max(50, ymax - ymin);
+  const cx = (xmin + xmax) / 2;
+  const cy = (ymin + ymax) / 2;
+
+  // Scale so the detected subject occupies ~72% of the 1000x1000 square canvas
+  const maxSpan = Math.max(sw, sh);
+  const scale = Math.min(3.5, Math.max(1.0, 720 / maxSpan));
+  const imgW = 1000 * scale;
+  const imgH = 1000 * scale;
+  const imgX = 500 - (cx / 1000) * imgW;
+  const imgY = 480 - (cy / 1000) * imgH;
+
+  // Mask frame around the subject with soft rounded corners
+  const cropW = Math.min(840, Math.max(380, (sw / 1000) * imgW + 28));
+  const cropH = Math.min(840, Math.max(380, (sh / 1000) * imgH + 28));
+  const cropX = 500 - cropW / 2;
+  const cropY = 480 - cropH / 2;
+  const shadowY = Math.min(880, cropY + cropH - 12);
+  const shadowRx = Math.min(340, cropW * 0.42);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
     <defs>
-      <radialGradient id="studioLight" cx="50%" cy="42%" r="65%">
+      <!-- Seamless Studio Cyclorama Background -->
+      <radialGradient id="studioCyclorama" cx="50%" cy="40%" r="68%">
         <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="55%" stop-color="#f8fafc"/>
-        <stop offset="100%" stop-color="#e2e8f0"/>
+        <stop offset="60%" stop-color="#f8fafc"/>
+        <stop offset="100%" stop-color="#edf2f7"/>
       </radialGradient>
-      <filter id="softContactShadow" x="-20%" y="-20%" width="140%" height="150%">
-        <feDropShadow dx="0" dy="24" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.14"/>
-        <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/>
+      <!-- Ground Ambient Shadow Filter -->
+      <filter id="studioContactShadow" x="-30%" y="-30%" width="160%" height="180%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="16"/>
+        <feOffset dx="0" dy="24" result="offsetblur"/>
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.14"/>
+        </feComponentTransfer>
+        <feMerge> 
+          <feMergeNode/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
       </filter>
+      <!-- Tight Base Contact Shadow -->
+      <filter id="baseOcclusion" x="-20%" y="-20%" width="140%" height="150%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+        <feOffset dx="0" dy="6" result="offsetblur"/>
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0.22"/>
+        </feComponentTransfer>
+        <feMerge> 
+          <feMergeNode/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+      <!-- Focused Subject Clip Path -->
+      <clipPath id="subjectCropClip">
+        <rect x="${Math.round(cropX)}" y="${Math.round(cropY)}" width="${Math.round(cropW)}" height="${Math.round(cropH)}" rx="20"/>
+      </clipPath>
     </defs>
-    <!-- Seamless Studio Cyclorama Background -->
-    <rect width="800" height="800" fill="url(#studioLight)"/>
-    <!-- Subtle ground horizon reflection -->
-    <ellipse cx="400" cy="620" rx="260" ry="24" fill="#0f172a" opacity="0.06"/>
-    <!-- Product Object with Studio Contact Shadow -->
-    <g filter="url(#softContactShadow)">
-      <image href="${dataUrl}" x="120" y="120" width="560" height="520" preserveAspectRatio="xMidYMid meet"/>
+
+    <!-- Cyclorama Seamless Backdrop -->
+    <rect width="1000" height="1000" fill="url(#studioCyclorama)"/>
+
+    <!-- Studio Floor Contact Shadow -->
+    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx)}" ry="22" fill="#0f172a" opacity="0.18" filter="url(#studioContactShadow)"/>
+    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx * 0.7)}" ry="9" fill="#090d16" opacity="0.25" filter="url(#baseOcclusion)"/>
+
+    <!-- Isolated Focused Subject -->
+    <g clip-path="url(#subjectCropClip)">
+      <image href="${dataUrl}" x="${Math.round(imgX)}" y="${Math.round(imgY)}" width="${Math.round(imgW)}" height="${Math.round(imgH)}" preserveAspectRatio="none"/>
     </g>
+
+    <!-- Soft Vignette Outer Frame -->
+    <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="rgba(15,23,42,0.06)" stroke-width="2"/>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 const aiService = {
-  async enhanceProductImage({ image, name = 'Product', category = 'Grocery' }) {
+  async enhanceProductImage({ image, name = 'Product', category = 'Grocery', box_2d }) {
     if (!image) throw new Error('Image is required for enhancement');
 
     const { mimeType, base64Data } = await parseImageInput(image);
     const ai = getAiClient();
 
+    let detectedProduct = name;
+    let detectedCategory = category;
+    let detectedBox = box_2d || null;
+    let confidence = 'High';
+    let summary = 'Focused on primary product with studio backdrop and soft drop shadow';
+
+    // Step 1: Detect subject & bounding box using Gemini Vision
     if (ai) {
       try {
-        console.log(`[AI Studio] Enhancing photo for: "${name}" using Gemini...`);
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite-image',
+        console.log(`[AI Studio Lab] Analyzing photo & detecting product subject for "${name}"...`);
+        const visionResponse = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
           contents: {
             parts: [
               {
@@ -113,37 +182,72 @@ const aiService = {
                 },
               },
               {
-                text: `Transform this user photo of ${name} (${category}) into a pristine, high-end commercial e-commerce catalog photograph. Place the item cleanly centered in a professional photo studio with balanced softbox studio lighting, clean neutral off-white background (#F8F9FA), natural soft contact drop-shadow underneath, crisp edge clarity, true-to-life colors, award-winning grocery packshot photography.`,
+                text: `You are an expert commercial catalog photographer for an e-commerce platform.
+Analyze this photo taken of a product (for example: laptop, gadget, beverage bottle, packaged snack, grocery item, cosmetics, clothing, electronics).
+The user wants to cleanly isolate and focus ONLY on the primary product item being showcased, eliminating background clutter (such as hands, desk, bed, table, room walls, and floor).
+
+Tasks:
+1. Identify the primary commercial product item being showcased (e.g., "Apple MacBook Air", "Lays Potato Chips", "Amul Butter", "Logitech Wireless Mouse").
+2. Detect its exact 2D bounding box coordinates [ymin, xmin, ymax, xmax] normalized on a 0 to 1000 scale. Ensure the box tightly wraps the complete product without cutting off logos or edges.
+3. Return the best category (e.g. "Electronics & Gadgets", "Snacks & Munchies", "Dairy & Breakfast", "Pantry & Groceries", "Personal Care").
+4. Provide a brief 1-sentence summary of the subject focus.`,
               },
             ],
           },
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                detectedProduct: { type: Type.STRING },
+                category: { type: Type.STRING },
+                box_2d: {
+                  type: Type.ARRAY,
+                  items: { type: Type.INTEGER },
+                  description: '[ymin, xmin, ymax, xmax] normalized 0 to 1000',
+                },
+                confidence: { type: Type.STRING },
+                summary: { type: Type.STRING },
+              },
+              required: ['detectedProduct', 'box_2d'],
+            },
+          },
         });
 
-        if (response.candidates?.[0]?.content?.parts) {
-          for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData?.data) {
-              const resMime = part.inlineData.mimeType || 'image/png';
-              console.log('[AI Studio] Gemini studio photo enhancement successful!');
-              return {
-                enhancedImage: `data:${resMime};base64,${part.inlineData.data}`,
-                provider: 'gemini-3.1-flash-lite-image',
-                style: 'Studio Lighting & Clean Backdrop',
-              };
-            }
+        const text = visionResponse.text ? visionResponse.text.trim() : '';
+        if (text) {
+          const parsed = JSON.parse(text);
+          if (parsed.detectedProduct) detectedProduct = parsed.detectedProduct;
+          if (parsed.category) detectedCategory = parsed.category;
+          if (!box_2d && Array.isArray(parsed.box_2d) && parsed.box_2d.length === 4) {
+            detectedBox = parsed.box_2d;
           }
+          if (parsed.confidence) confidence = parsed.confidence;
+          if (parsed.summary) summary = parsed.summary;
+          console.log(`[AI Studio Lab] Detected subject: "${detectedProduct}" at [${detectedBox ? detectedBox.join(', ') : 'auto'}]`);
         }
       } catch (err) {
-        console.warn('[AI Studio] Gemini direct image editing notice:', err.message);
+        console.warn('[AI Studio Lab] Gemini subject detection notice:', err.message);
       }
     }
 
-    // Fallback: Studio Light & Contact Shadow compositor
-    console.log('[AI Studio] Using high-fidelity Studio Lighting treatment');
-    const studioEnhanced = generateStudioFramedFallback(base64Data, mimeType, name);
+    // Default box if none detected
+    if (!detectedBox || !Array.isArray(detectedBox) || detectedBox.length !== 4) {
+      detectedBox = [120, 120, 880, 880];
+    }
+
+    // Step 2: Generate 1:1 Studio Framed Shot
+    const studioEnhanced = generateStudioFramedFallback(base64Data, mimeType, detectedProduct, detectedBox);
+
     return {
       enhancedImage: studioEnhanced,
-      provider: 'studio-compositor',
-      style: 'Studio Lighting with Neutral Cyclorama & Soft Drop-Shadow',
+      detectedProduct,
+      category: detectedCategory,
+      box_2d: detectedBox,
+      confidence,
+      summary,
+      provider: ai ? 'gemini-3.8-flash-studio-lab' : 'studio-compositor',
+      style: 'AI Subject Focus & 1:1 Cyclorama Backdrop',
     };
   },
 
