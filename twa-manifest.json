@@ -1,0 +1,48 @@
+{
+  "packageId": "com.zapbasket.twa",
+  "host": "zapbasket.app",
+  "name": "ZapBasket · 12-Minute Grocery Delivery",
+  "launcherName": "ZapBasket",
+  "display": "standalone",
+  "themeColor": "#0e6b4f",
+  "themeColorDark": "#0e6b4f",
+  "navigationColor": "#1c1915",
+  "navigationColorDark": "#1c1915",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#f3efe4",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://zapbasket.app/icon-512.png",
+  "maskableIconUrl": "https://zapbasket.app/icon-maskable-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "View Cart",
+      "shortName": "Cart",
+      "url": "https://zapbasket.app/cart",
+      "chosenIconUrl": "https://zapbasket.app/icon-192.png"
+    },
+    {
+      "name": "Track Orders",
+      "shortName": "Orders",
+      "url": "https://zapbasket.app/orders",
+      "chosenIconUrl": "https://zapbasket.app/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://zapbasket.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

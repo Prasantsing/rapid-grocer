@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Build Outputs
+dist/
+*/dist/
+.angular/
+.output/
+build/
+coverage/
+
+# Environment and Secrets (CRITICAL: Never commit secrets)
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/local.properties
+android/captures/
+.externalNativeBuild
+.cxx/
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# AI Studio artifacts / caches
+.aistudio/artifacts/

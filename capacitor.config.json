@@ -1,0 +1,14 @@
+{
+  "appId": "com.zapbasket.app",
+  "appName": "ZapBasket",
+  "webDir": "frontend/dist/frontend/browser",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

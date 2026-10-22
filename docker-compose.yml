@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - zapbasket_mongo:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 43110
+      MONGODB_URI: mongodb://mongo:27017/zapbasket
+      SEED_ON_BOOT: "true"
+      JWT_ACCESS_SECRET: docker-dev-access-secret-change-me
+      JWT_REFRESH_SECRET: docker-dev-refresh-secret-change-me
+      CLIENT_ORIGIN: http://127.0.0.1:43121,http://localhost:43121
+      COOKIE_SECURE: "false"
+      RAZORPAY_KEY_ID: ""
+      RAZORPAY_KEY_SECRET: ""
+    ports:
+      - "43110:43110"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "43121:80"
+
+volumes:
+  zapbasket_mongo:

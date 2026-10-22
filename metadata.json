@@ -1,0 +1,7 @@
+{
+  "name": "ZapBasket · 12-Minute Grocery Delivery",
+  "description": "Order farm-fresh produce, dairy, bakery, beverages, and daily groceries delivered to your doorstep in 12 minutes with ZapBasket.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

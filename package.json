@@ -1,0 +1,29 @@
+{
+  "name": "zapbasket",
+  "private": true,
+  "description": "ZapBasket grocery delivery store, admin desk, and rider app.",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build:frontend": "npm run build --prefix frontend",
+    "build": "npm run build:frontend",
+    "dev:api": "npm run dev --prefix backend",
+    "dev:web": "npm start --prefix frontend",
+    "dev": "node server.ts",
+    "start": "node server.ts",
+    "seed": "npm run seed --prefix backend",
+    "test": "npm test --prefix backend",
+    "cap:sync": "npm run build && npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:build": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug",
+    "git:push": "bash scripts/push-to-github.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@google/genai": "^2.30.0"
+  }
+}
