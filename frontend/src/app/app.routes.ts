@@ -14,6 +14,7 @@ import { AddressesPage } from './pages/addresses.page';
 import { AuthPage } from './pages/auth.page';
 import { NotificationsPage } from './pages/notifications.page';
 import { AccountPage } from './pages/account.page';
+import { LegalPage } from './pages/legal.page';
 import { AdminDashboardPage } from './pages/admin-dashboard.page';
 import { AdminProductsPage } from './pages/admin-products.page';
 import { AdminCategoriesPage } from './pages/admin-categories.page';
@@ -44,6 +45,13 @@ export const routes: Routes = [
       { path: 'addresses', component: AddressesPage, canActivate: [authGuard] },
       { path: 'notifications', component: NotificationsPage, canActivate: [authGuard] },
       { path: 'account', component: AccountPage },
+      { path: 'legal', redirectTo: 'legal/terms', pathMatch: 'full' },
+      { path: 'legal/:tab', component: LegalPage },
+      { path: 'terms', redirectTo: 'legal/terms' },
+      { path: 'privacy', redirectTo: 'legal/privacy' },
+      { path: 'refund-policy', redirectTo: 'legal/refunds' },
+      { path: 'refunds', redirectTo: 'legal/refunds' },
+      { path: 'contact', redirectTo: 'legal/contact' },
     ],
   },
   {

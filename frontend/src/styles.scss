@@ -1167,4 +1167,14 @@ table.plain td { padding: 0.7rem 0.55rem; border-top: 1px solid var(--line); ver
   font-weight: 600;
 }
 
+.store-footer {
+  background: var(--card, #fffdf8);
+  border-color: var(--line, #e4dccb) !important;
+
+  @media (max-width: 768px) {
+    padding-bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 6.5rem)) !important;
+  }
+}
+
+
 

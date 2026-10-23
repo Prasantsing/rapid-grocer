@@ -79,6 +79,91 @@ import { InrPipe } from '../shared/inr.pipe';
       <router-outlet />
     </main>
 
+    <!-- Storefront Customer & Legal Footer -->
+    <footer class="store-footer mt-5 pt-5 pb-4 border-top">
+      <div class="container">
+        <div class="row g-4 mb-4">
+          <!-- Col 1: Brand & FSSAI / GST -->
+          <div class="col-lg-4 col-md-6">
+            <a class="brand d-inline-flex align-items-center gap-2 mb-3 text-decoration-none text-dark" routerLink="/">
+              <span class="brand-mark bg-warning text-dark"><i class="bi bi-lightning-charge-fill"></i></span>
+              <span class="brand-word fs-4 fw-bold">ZapBasket</span>
+            </a>
+            <p class="text-muted small mb-3 leading-relaxed">
+              Hyperlocal rapid grocery delivery across Bengaluru. Fresh farm produce, daily essentials, and cold-pressed staples delivered to your doorstep in 12 minutes.
+            </p>
+            <div class="d-flex flex-column gap-1 text-muted small" style="font-size: 0.78rem;">
+              <div><b>FSSAI Lic. No:</b> 11224333000542</div>
+              <div><b>GSTIN:</b> 29AABCZ9101F1Z8</div>
+              <div><b>Operating Hub:</b> Koramangala 4th Block, Bengaluru 560034</div>
+            </div>
+          </div>
+
+          <!-- Col 2: Quick Links & Categories -->
+          <div class="col-lg-2 col-md-6 col-6">
+            <h6 class="fw-bold text-dark mb-3">Categories</h6>
+            <ul class="list-unstyled d-flex flex-column gap-2 small">
+              <li><a routerLink="/c/fresh-produce" class="text-secondary text-decoration-none">Fresh Veggies & Fruits</a></li>
+              <li><a routerLink="/c/dairy-bread" class="text-secondary text-decoration-none">Dairy, Bread & Eggs</a></li>
+              <li><a routerLink="/c/snacks-munchies" class="text-secondary text-decoration-none">Snacks & Beverages</a></li>
+              <li><a routerLink="/c/staples" class="text-secondary text-decoration-none">Atta, Rice & Dal</a></li>
+              <li><a routerLink="/c/instant-food" class="text-secondary text-decoration-none">Instant Foods & Noodles</a></li>
+            </ul>
+          </div>
+
+          <!-- Col 3: Customer Care & Support -->
+          <div class="col-lg-3 col-md-6 col-6">
+            <h6 class="fw-bold text-dark mb-3">Customer Desk</h6>
+            <ul class="list-unstyled d-flex flex-column gap-2 small">
+              <li><a routerLink="/orders" class="text-secondary text-decoration-none">Track Orders</a></li>
+              <li><a routerLink="/addresses" class="text-secondary text-decoration-none">Saved Addresses</a></li>
+              <li><a routerLink="/account" class="text-secondary text-decoration-none">Account Profile</a></li>
+              <li>
+                <a href="tel:+919101516662" class="text-secondary text-decoration-none">
+                  <i class="bi bi-telephone me-1 text-success"></i> +91 9101516662
+                </a>
+              </li>
+              <li>
+                <a href="https://wa.me/919101516662?text=Hi%20ZapBasket%20Support" target="_blank" rel="noopener" class="text-secondary text-decoration-none">
+                  <i class="bi bi-whatsapp me-1 text-success"></i> WhatsApp Chat Desk
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Col 4: Legal & Gateway Compliance -->
+          <div class="col-lg-3 col-md-6">
+            <h6 class="fw-bold text-dark mb-3">Legal & Compliance</h6>
+            <ul class="list-unstyled d-flex flex-column gap-2 small">
+              <li><a routerLink="/terms" class="text-secondary text-decoration-none">Terms of Service</a></li>
+              <li><a routerLink="/privacy" class="text-secondary text-decoration-none">Privacy Policy (DPDP 2023)</a></li>
+              <li><a routerLink="/refund-policy" class="text-secondary text-decoration-none">Refund & Cancellation SLA</a></li>
+              <li><a routerLink="/legal/fssai" class="text-secondary text-decoration-none">Food Safety & Licensing</a></li>
+              <li><a routerLink="/contact" class="text-secondary text-decoration-none">Grievance Redressal</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Sub-footer & Payment Trust Icons -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top text-muted small" style="font-size: 0.78rem;">
+          <div>
+            © 2026 ZapBasket Rapid Retail LLP · All rights reserved.
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted"><i class="bi bi-shield-check text-success me-1"></i>100% Secure Payments</span>
+            <span aria-hidden="true">·</span>
+            <span>UPI</span>
+            <span aria-hidden="true">·</span>
+            <span>RuPay</span>
+            <span aria-hidden="true">·</span>
+            <span>Cards</span>
+            <span aria-hidden="true">·</span>
+            <span>NetBanking</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
     <!-- Floating Cart Quick Action Pill (Mobile Viewports) -->
     @if ((shop.cart()?.itemCount || 0) > 0 && !isCartOrCheckout()) {
       <aside class="floating-cart-bar" aria-label="Quick View Cart">
