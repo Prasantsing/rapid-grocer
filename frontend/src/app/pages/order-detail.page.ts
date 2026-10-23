@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Order, UpiPaymentDetails } from '../core/models';
 import { AuthService } from '../core/auth.service';
@@ -33,22 +33,114 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
 
       <div class="split">
         <div class="panel">
-          <h3 class="mb-3">Items in basket ({{ current.items.length }})</h3>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">Items in basket ({{ current.items.length }})</h3>
+            <span class="badge bg-light text-muted border small">Direct Dark Store Dispatch</span>
+          </div>
+
           @for (item of current.items; track item.productId) {
             <div class="line-item">
               <div class="d-flex gap-3 align-items-center">
                 <div class="line-art" [style.background]="item.tint">{{ item.emoji }}</div>
-                <div>{{ item.name }}<div class="muted">{{ item.quantity }} × {{ item.unit }}</div></div>
+                <div>
+                  <div class="fw-medium">{{ item.name }}</div>
+                  <div class="muted small">{{ item.quantity }} × {{ item.unit }}</div>
+                  @if (!item.isReturnable) {
+                    <span class="badge bg-light text-secondary border mt-1" style="font-size: 0.65rem;">
+                      <i class="bi bi-shield-x text-danger me-1"></i> Non-returnable grocery
+                    </span>
+                  }
+                </div>
               </div>
               <strong>{{ item.lineTotal | inr }}</strong>
             </div>
           }
+
+          <!-- Non-Returnable Grocery Policy Disclosures -->
+          <div class="mt-4 p-3 rounded-3 bg-light border text-muted small">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi bi-shield-exclamation text-warning fs-5 flex-shrink-0 mt-1"></i>
+              <div>
+                <div class="fw-bold text-dark mb-1">Return & Replacement Policy</div>
+                <p class="mb-1 text-secondary" style="font-size: 0.8rem;">
+                  {{ shop.storeConfig()?.nonReturnableNotice || 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered as per food safety standards.' }}
+                </p>
+                <div class="small">
+                  Damaged, defective, or missing item? <a routerLink="/contact" class="text-primary text-decoration-underline">Contact 24x7 Support</a> or review our <a routerLink="/refund-policy" class="text-primary text-decoration-underline">Refund Guidelines</a>.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
         <aside class="panel">
           <h3>Drop</h3>
           <p class="mb-1"><strong>{{ current.address.fullName }}</strong></p>
-          <p class="muted">{{ current.address.line1 }}<br>{{ current.address.city }} {{ current.address.pincode }}<br>{{ current.address.phone }}</p>
-          @if (partnerName(current)) { <p>Rider: {{ partnerName(current) }}</p> }
+          <p class="muted mb-2">{{ current.address.line1 }}<br>{{ current.address.city }} {{ current.address.pincode }}<br>{{ current.address.phone }}</p>
+
+          <!-- Live Delivery Rider Contact Hub -->
+          @if (partnerName(current)) {
+            @if (shop.storeConfig()?.allowDirectRiderContact !== false) {
+              <div class="card border border-primary-subtle bg-primary-subtle bg-opacity-10 rounded-3 p-3 mt-2 mb-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                      <i class="bi bi-bicycle fs-5"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold small">{{ partnerName(current) }}</div>
+                      <div class="text-success small d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;"></span>
+                        Assigned Delivery Rider
+                      </div>
+                    </div>
+                  </div>
+                  @if (partnerPhone(current)) {
+                    <span class="badge bg-white text-secondary border small font-monospace">{{ partnerPhone(current) }}</span>
+                  }
+                </div>
+
+                <div class="row g-2 mt-1">
+                  <div class="col-6">
+                    <a class="btn btn-sm btn-outline-primary w-100 d-inline-flex align-items-center justify-content-center gap-1"
+                       [href]="partnerCallLink(current)">
+                      <i class="bi bi-telephone-fill"></i> Call Rider
+                    </a>
+                  </div>
+                  <div class="col-6">
+                    <a class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center gap-1"
+                       target="_blank"
+                       rel="noopener"
+                       [href]="partnerWhatsAppLink(current)">
+                      <i class="bi bi-whatsapp"></i> WhatsApp
+                    </a>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <!-- When admin disabled direct rider contact for privacy/safety -->
+              <div class="card border bg-light rounded-3 p-3 mt-2 mb-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    <i class="bi bi-person-badge fs-5"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold small">Rider: {{ partnerName(current) }}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">Direct calling disabled by store policy. Connect with ZapBasket Desk.</div>
+                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <a class="btn btn-sm btn-outline-dark flex-grow-1" [href]="'tel:' + (shop.storeConfig()?.supportPhone || '+919101516662')">
+                    <i class="bi bi-telephone-outbound me-1"></i> Call Support
+                  </a>
+                  <a class="btn btn-sm btn-outline-success flex-grow-1" target="_blank" rel="noopener" [href]="supportWhatsAppLink(current)">
+                    <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                  </a>
+                </div>
+              </div>
+            }
+          }
+
           <p class="summary-row"><span>Payment</span><span [class]="'status-pill ' + current.paymentStatus">{{ label(current.paymentStatus) }}</span></p>
           <p class="summary-row"><span>Items</span><span>{{ current.subtotal | inr }}</span></p>
           <p class="summary-row"><span>Discount</span><span>− {{ current.discount | inr }}</span></p>
@@ -95,8 +187,58 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
             <i class="bi bi-download"></i> Download Tax Invoice (GST)
           </button>
 
-          @if (canCancel(current)) {
-            <button class="btn btn-outline-danger w-100 mt-2" type="button" (click)="cancel(current)">Cancel order</button>
+          <!-- Customer Self-Cancellation & Dynamic Grace Window -->
+          @if (current.status === 'cancelled') {
+            <div class="alert alert-danger py-2 px-3 mt-2 mb-0 rounded-3 small">
+              <i class="bi bi-x-octagon-fill me-1"></i>
+              <strong>Order Cancelled</strong>
+              <div class="mt-1 text-muted" style="font-size: 0.75rem;">
+                {{ noteFor(current, 'cancelled') || 'This order was cancelled. Any online payment will be refunded to source.' }}
+              </div>
+            </div>
+          } @else if (auth.user()?.role === 'customer') {
+            @if (shop.storeConfig()?.allowCustomerCancellation === false) {
+              <div class="p-2 mt-2 rounded-3 bg-light border text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                Customer self-cancellation is paused by store. Contact support desk for urgent changes.
+              </div>
+            } @else if (current.status === 'placed') {
+              @if (remainingSeconds() > 0) {
+                @if (!showCancelPrompt()) {
+                  <button class="btn btn-outline-danger w-100 mt-2 d-flex align-items-center justify-content-center gap-2" type="button" (click)="showCancelPrompt.set(true)">
+                    <i class="bi bi-x-circle"></i>
+                    <span>Cancel Order</span>
+                    <span class="badge bg-danger text-white rounded-pill ms-1 font-monospace">{{ formatCountdown(remainingSeconds()) }}</span>
+                  </button>
+                  <div class="text-center text-muted mt-1" style="font-size: 0.72rem;">
+                    Grace cancellation window: {{ shop.storeConfig()?.cancellationWindowMinutes || 3 }} mins
+                  </div>
+                } @else {
+                  <div class="card border-danger-subtle bg-danger-subtle bg-opacity-10 rounded-3 p-3 mt-2 text-start">
+                    <div class="fw-bold small text-danger mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Cancel this order?</div>
+                    <div class="small text-muted mb-2">Packing has not started yet. Any online payment will be refunded to your account.</div>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-sm btn-danger flex-grow-1" type="button" [disabled]="cancelling()" (click)="cancel(current)">
+                        @if (cancelling()) { <span class="spinner-border spinner-border-sm me-1"></span> Cancelling… } @else { Confirm Cancel }
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary" type="button" [disabled]="cancelling()" (click)="showCancelPrompt.set(false)">
+                        Keep Order
+                      </button>
+                    </div>
+                  </div>
+                }
+              } @else {
+                <div class="p-2 mt-2 rounded-3 bg-light border text-muted small">
+                  <i class="bi bi-lock-fill text-secondary me-1"></i>
+                  Cancellation grace window ({{ shop.storeConfig()?.cancellationWindowMinutes || 3 }}m) expired. Order packing is underway.
+                </div>
+              }
+            } @else if (['confirmed', 'packed', 'out_for_delivery'].includes(current.status)) {
+              <div class="p-2 mt-2 rounded-3 bg-light border text-muted small">
+                <i class="bi bi-shield-lock text-primary me-1"></i>
+                Order is packed & in transit. Self-cancellation locked.
+              </div>
+            }
           }
         </aside>
       </div>
@@ -120,8 +262,8 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
     }
   `,
 })
-export class OrderDetailPage {
-  private readonly shop = inject(ShopService);
+export class OrderDetailPage implements OnDestroy {
+  readonly shop = inject(ShopService);
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastService);
   readonly auth = inject(AuthService);
@@ -130,14 +272,63 @@ export class OrderDetailPage {
   readonly steps = ORDER_STEPS;
   readonly upiDetails = signal<UpiPaymentDetails | null>(null);
 
+  readonly remainingSeconds = signal(0);
+  readonly showCancelPrompt = signal(false);
+  readonly cancelling = signal(false);
+  private timerHandle: any = null;
+
   constructor() {
+    void this.shop.loadStoreConfig();
     this.route.paramMap.subscribe((params) => {
       const id = params.get('id') || '';
       this.loading.set(true);
-      this.shop.order(id).then((order) => this.order.set(order))
+      this.shop
+        .order(id)
+        .then((order) => {
+          this.order.set(order);
+          this.startCountdown(order);
+        })
         .catch((error) => this.toasts.error(errorMessage(error)))
         .finally(() => this.loading.set(false));
     });
+  }
+
+  ngOnDestroy() {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+      this.timerHandle = null;
+    }
+  }
+
+  startCountdown(order: Order) {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+      this.timerHandle = null;
+    }
+    const update = () => {
+      if (order.status !== 'placed') {
+        this.remainingSeconds.set(0);
+        return;
+      }
+      const windowMinutes = this.shop.storeConfig()?.cancellationWindowMinutes ?? 3;
+      const windowMs = windowMinutes * 60 * 1000;
+      const createdAt = new Date(order.createdAt).getTime();
+      const expiresAt = createdAt + windowMs;
+      const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+      this.remainingSeconds.set(diff);
+      if (diff <= 0 && this.timerHandle) {
+        clearInterval(this.timerHandle);
+        this.timerHandle = null;
+      }
+    };
+    update();
+    this.timerHandle = setInterval(update, 1000);
+  }
+
+  formatCountdown(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
 
   label(status: string) {
@@ -161,16 +352,58 @@ export class OrderDetailPage {
     return order.deliveryPartner && typeof order.deliveryPartner === 'object' ? order.deliveryPartner.name : '';
   }
 
+  partnerPhone(order: Order): string {
+    return order.deliveryPartner && typeof order.deliveryPartner === 'object' && order.deliveryPartner.phone
+      ? order.deliveryPartner.phone
+      : '';
+  }
+
+  partnerCallLink(order: Order): string {
+    const phone = this.partnerPhone(order) || this.shop.storeConfig()?.supportPhone || '+919101516662';
+    return `tel:${phone}`;
+  }
+
+  partnerWhatsAppLink(order: Order): string {
+    const raw = this.partnerPhone(order);
+    const digits = raw.replace(/\D/g, '');
+    const phone = digits.length === 10 ? `91${digits}` : (digits || '919101516662');
+    const name = this.partnerName(order) || 'Rider';
+    const text = encodeURIComponent(`Hi ${name}, regarding my ZapBasket order #${order.orderNumber}`);
+    return `https://wa.me/${phone}?text=${text}`;
+  }
+
+  supportWhatsAppLink(order: Order): string {
+    const raw = this.shop.storeConfig()?.supportPhone || '9101516662';
+    const digits = raw.replace(/\D/g, '');
+    const phone = digits.length === 10 ? `91${digits}` : (digits.length === 12 ? digits : '919101516662');
+    const text = encodeURIComponent(`Hi ZapBasket Support, I need assistance with order #${order.orderNumber}`);
+    return `https://wa.me/${phone}?text=${text}`;
+  }
+
   canCancel(order: Order) {
-    return this.auth.user()?.role === 'customer' && (order.status === 'placed' || order.status === 'confirmed');
+    if (this.auth.user()?.role !== 'customer') return false;
+    if (order.status !== 'placed') return false;
+    const config = this.shop.storeConfig();
+    if (config && config.allowCustomerCancellation === false) return false;
+    return this.remainingSeconds() > 0;
   }
 
   async cancel(order: Order) {
+    this.cancelling.set(true);
     try {
-      this.order.set(await this.shop.cancelOrder(order.id));
-      this.toasts.show('Order cancelled');
+      const updated = await this.shop.cancelOrder(order.id);
+      this.order.set(updated);
+      this.showCancelPrompt.set(false);
+      this.remainingSeconds.set(0);
+      if (this.timerHandle) {
+        clearInterval(this.timerHandle);
+        this.timerHandle = null;
+      }
+      this.toasts.show('Order cancelled successfully. Any online payment will be refunded.');
     } catch (error) {
       this.toasts.error(errorMessage(error));
+    } finally {
+      this.cancelling.set(false);
     }
   }
 

@@ -141,6 +141,7 @@ const orderService = {
         price: product.price,
         mrp: product.mrp,
         quantity: item.quantity,
+        isReturnable: Boolean(product.isReturnable),
       });
     }
 
@@ -226,6 +227,25 @@ const orderService = {
     const isOwner = ownerId(order) === String(user._id);
     if (user.role === 'customer') {
       if (!isOwner) throw new ApiError(403, 'You can only cancel your own orders');
+
+      const config = await storeConfigService.getConfig();
+      if (!config.allowCustomerCancellation) {
+        throw new ApiError(
+          403,
+          'Order self-cancellation is currently disabled by store management. Please contact our support desk at ' +
+            (config.supportPhone || '+91 9101516662') +
+            ' for assistance.'
+        );
+      }
+
+      const minutesElapsed = (Date.now() - new Date(order.createdAt).getTime()) / (60 * 1000);
+      const allowedMinutes = config.cancellationWindowMinutes || 3;
+      if (minutesElapsed > allowedMinutes) {
+        throw new ApiError(
+          400,
+          `The ${allowedMinutes}-minute cancellation window has closed. Your order is already being packed for rapid delivery.`
+        );
+      }
     } else if (user.role !== 'admin') {
       throw new ApiError(403, 'You do not have permission to cancel this order');
     }

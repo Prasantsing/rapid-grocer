@@ -75,6 +75,24 @@ const storeConfigSchema = new mongoose.Schema(
       type: String,
       default: 'support@zapbasket.store',
     },
+    allowCustomerCancellation: {
+      type: Boolean,
+      default: true,
+    },
+    cancellationWindowMinutes: {
+      type: Number,
+      default: 3,
+      min: 1,
+      max: 30,
+    },
+    allowDirectRiderContact: {
+      type: Boolean,
+      default: true,
+    },
+    nonReturnableNotice: {
+      type: String,
+      default: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+    },
   },
   {
     timestamps: true,

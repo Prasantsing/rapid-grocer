@@ -12,6 +12,7 @@ const orderItemSchema = new mongoose.Schema(
     price: Number,
     mrp: Number,
     quantity: Number,
+    isReturnable: { type: Boolean, default: false },
   },
   { _id: false }
 );

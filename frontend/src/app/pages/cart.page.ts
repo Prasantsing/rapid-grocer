@@ -112,6 +112,10 @@ import { InrPipe } from '../shared/inr.pipe';
           <p class="summary-row"><span>Delivery</span><span>{{ shop.cart()!.deliveryFee === 0 ? 'Free' : (shop.cart()!.deliveryFee | inr) }}</span></p>
           <p class="summary-row total-row"><span>To pay</span><span>{{ shop.cart()!.total | inr }}</span></p>
           <a class="btn btn-dark w-100 py-2 fw-semibold" routerLink="/checkout">Proceed to Checkout</a>
+          <div class="mt-3 p-2 rounded-2 bg-light border small text-muted text-center" style="font-size: 0.75rem;">
+            <i class="bi bi-shield-check text-success me-1"></i>
+            12-Min Dark Store Dispatch · Grace Cancellation Window
+          </div>
         </aside>
       </div>
     }

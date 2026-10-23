@@ -34,6 +34,15 @@ import { InrPipe } from '../shared/inr.pipe';
             @if (item.mrp > item.price) { <s class="ms-2 muted">{{ item.mrp | inr }}</s> }
           </p>
           <p class="muted">{{ item.stock }} left in the dark store</p>
+
+          @if (!item.isReturnable) {
+            <div class="mb-3">
+              <span class="badge bg-light text-secondary border py-1 px-2 d-inline-flex align-items-center gap-1">
+                <i class="bi bi-shield-x text-danger"></i> Non-returnable grocery
+              </span>
+            </div>
+          }
+
           @if (item.stock < 1) {
             <p class="sold">Sold out</p>
           } @else if (qty() === 0) {
@@ -43,6 +52,13 @@ import { InrPipe } from '../shared/inr.pipe';
               <button type="button" (click)="change(qty() - 1)">−</button>
               <span>{{ qty() }}</span>
               <button type="button" (click)="change(qty() + 1)">+</button>
+            </div>
+          }
+
+          @if (!item.isReturnable) {
+            <div class="p-2 mt-3 rounded-2 bg-light border small text-muted">
+              <i class="bi bi-shield-exclamation text-warning me-1"></i>
+              <strong>Food safety guarantee:</strong> Perishable groceries cannot be returned once delivered. If received damaged or missing, contact support for instant refund.
             </div>
           }
         </div>

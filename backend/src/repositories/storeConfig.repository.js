@@ -23,6 +23,10 @@ const DEFAULT_CONFIG = {
   webhookSecret: 'zb_webhook_secret_live',
   supportPhone: '+91 9101516662',
   supportEmail: 'support@zapbasket.store',
+  allowCustomerCancellation: true,
+  cancellationWindowMinutes: 3,
+  allowDirectRiderContact: true,
+  nonReturnableNotice: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
 };
 
 let inMemoryConfig = { ...DEFAULT_CONFIG };

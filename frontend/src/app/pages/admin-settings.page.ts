@@ -230,6 +230,94 @@ import { errorMessage } from '../core/http-error';
                 </div>
               </div>
             </div>
+
+            <!-- 4. Customer Cancellation & Return Policies -->
+            <div class="card border-0 shadow-sm rounded-4 mt-4">
+              <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-2 rounded-3 bg-danger-subtle text-danger">
+                    <i class="bi bi-x-octagon fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 class="fw-bold mb-0">Cancellation & Return Controls</h5>
+                    <small class="text-muted">Customer self-service cancellation window & return rules</small>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body p-4 pt-2">
+                <!-- Toggle: Allow Self-Cancellation -->
+                <div class="form-check form-switch fs-6 mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="allowCancellationSwitch"
+                    [(ngModel)]="formData.allowCustomerCancellation"
+                  />
+                  <label class="form-check-label fw-bold small ms-2" for="allowCancellationSwitch">
+                    @if (formData.allowCustomerCancellation) {
+                      <span class="text-success">Allow Customer Self-Cancellation</span>
+                    } @else {
+                      <span class="text-danger">Customer Self-Cancellation Disabled (Desk only)</span>
+                    }
+                  </label>
+                </div>
+
+                @if (formData.allowCustomerCancellation) {
+                  <div class="mb-3">
+                    <label for="cancellationWindow" class="form-label small fw-semibold">
+                      Cancellation Grace Window (minutes after placing):
+                    </label>
+                    <div class="input-group">
+                      <input
+                        id="cancellationWindow"
+                        type="number"
+                        class="form-control"
+                        min="1"
+                        max="30"
+                        [(ngModel)]="formData.cancellationWindowMinutes"
+                      />
+                      <span class="input-group-text">minutes</span>
+                    </div>
+                    <div class="form-text small">
+                      Once this window elapses or dark store packing begins, cancellation is locked automatically.
+                    </div>
+                  </div>
+                }
+
+                <!-- Toggle: Direct Rider Contact -->
+                <div class="form-check form-switch fs-6 mb-3">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id="riderContactSwitch"
+                    [(ngModel)]="formData.allowDirectRiderContact"
+                  />
+                  <label class="form-check-label fw-bold small ms-2" for="riderContactSwitch">
+                    @if (formData.allowDirectRiderContact) {
+                      <span class="text-success">Direct Rider Call & WhatsApp Enabled</span>
+                    } @else {
+                      <span class="text-secondary">Route Customer Inquiries to Central Support</span>
+                    }
+                  </label>
+                </div>
+
+                <!-- Non-Returnable Policy Notice -->
+                <div class="mb-2">
+                  <label for="returnNotice" class="form-label small fw-semibold">
+                    Non-Returnable Grocery Notice (shown on orders):
+                  </label>
+                  <textarea
+                    id="returnNotice"
+                    class="form-control small"
+                    rows="2"
+                    [(ngModel)]="formData.nonReturnableNotice"
+                    placeholder="Perishable groceries cannot be returned once delivered."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Right Column: Delivery Geofence & UPI Gateway -->
@@ -434,6 +522,10 @@ export class AdminSettingsPage implements OnInit {
     minOrderAmount: 99,
     freeDeliveryThreshold: 299,
     deliveryFee: 25,
+    allowCustomerCancellation: true,
+    cancellationWindowMinutes: 3,
+    allowDirectRiderContact: true,
+    nonReturnableNotice: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
     upiVpa: '9101516662@ybl',
     payeeName: 'ZapBasket',
     webhookSecret: 'zb_webhook_secret_live',
@@ -467,6 +559,12 @@ export class AdminSettingsPage implements OnInit {
         minOrderAmount: data.minOrderAmount ?? 99,
         freeDeliveryThreshold: data.freeDeliveryThreshold ?? 299,
         deliveryFee: data.deliveryFee ?? 25,
+        allowCustomerCancellation: data.allowCustomerCancellation ?? true,
+        cancellationWindowMinutes: data.cancellationWindowMinutes ?? 3,
+        allowDirectRiderContact: data.allowDirectRiderContact ?? true,
+        nonReturnableNotice:
+          data.nonReturnableNotice ||
+          'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
         upiVpa: data.upiVpa || '9101516662@ybl',
         payeeName: data.payeeName || 'ZapBasket',
         webhookSecret: data.webhookSecret || 'zb_webhook_secret_live',

@@ -79,6 +79,10 @@ const storeConfigService = {
       payeeName: config.payeeName || 'ZapBasket',
       supportPhone: config.supportPhone,
       supportEmail: config.supportEmail,
+      allowCustomerCancellation: config.allowCustomerCancellation !== false,
+      cancellationWindowMinutes: config.cancellationWindowMinutes || 3,
+      allowDirectRiderContact: config.allowDirectRiderContact !== false,
+      nonReturnableNotice: config.nonReturnableNotice || 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
       updatedAt: config.updatedAt || new Date(),
     };
   },
@@ -109,6 +113,10 @@ const storeConfigService = {
       'webhookSecret',
       'supportPhone',
       'supportEmail',
+      'allowCustomerCancellation',
+      'cancellationWindowMinutes',
+      'allowDirectRiderContact',
+      'nonReturnableNotice',
     ];
 
     const cleanPatch = {};
@@ -116,6 +124,10 @@ const storeConfigService = {
       if (patch[key] !== undefined) {
         cleanPatch[key] = patch[key];
       }
+    }
+
+    if (cleanPatch.cancellationWindowMinutes !== undefined) {
+      cleanPatch.cancellationWindowMinutes = Math.max(1, Math.min(30, Number(cleanPatch.cancellationWindowMinutes)));
     }
 
     if (cleanPatch.deliveryRadiusKm !== undefined) {

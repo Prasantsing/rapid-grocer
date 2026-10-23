@@ -16,6 +16,7 @@ const productSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     tags: { type: [String], default: [] },
     isActive: { type: Boolean, default: true },
+    isReturnable: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

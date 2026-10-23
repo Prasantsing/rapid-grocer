@@ -390,6 +390,10 @@ const updateStoreConfigSchema = z.object({
     supportPhone: z.string().trim().max(30).optional(),
     supportEmail: z.string().trim().email().optional(),
     webhookSecret: z.string().trim().min(6).max(80).optional(),
+    allowCustomerCancellation: z.boolean().optional(),
+    cancellationWindowMinutes: z.coerce.number().min(1).max(30).optional(),
+    allowDirectRiderContact: z.boolean().optional(),
+    nonReturnableNotice: z.string().trim().max(300).optional(),
     storeLocation: z.object({
       lat: z.coerce.number().optional(),
       lng: z.coerce.number().optional(),

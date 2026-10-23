@@ -64,6 +64,7 @@ export interface Product {
   imageUrl?: string;
   tags: string[];
   isActive: boolean;
+  isReturnable?: boolean;
   discountPercent: number;
 }
 
@@ -78,6 +79,7 @@ export interface CartItem {
   emoji: string;
   tint: string;
   quantity: number;
+  isReturnable?: boolean;
   lineTotal: number;
 }
 
@@ -153,6 +155,7 @@ export interface OrderItem {
   price: number;
   mrp: number;
   quantity: number;
+  isReturnable?: boolean;
   lineTotal: number;
 }
 
@@ -274,6 +277,10 @@ export interface StoreConfig {
   payeeName: string;
   supportPhone?: string;
   supportEmail?: string;
+  allowCustomerCancellation?: boolean;
+  cancellationWindowMinutes?: number;
+  allowDirectRiderContact?: boolean;
+  nonReturnableNotice?: string;
   webhookSecret?: string;
   updatedAt?: string;
 }

@@ -49,6 +49,7 @@ function presentProduct(product) {
     imageUrl: json.imageUrl || '',
     tags: json.tags || [],
     isActive: json.isActive,
+    isReturnable: Boolean(json.isReturnable),
     discountPercent: discountPercent(json.price, json.mrp),
   };
 }
@@ -114,6 +115,7 @@ function presentOrder(order, viewerRole) {
       price: item.price,
       mrp: item.mrp,
       quantity: item.quantity,
+      isReturnable: Boolean(item.isReturnable),
       lineTotal: Math.round(item.price * item.quantity * 100) / 100,
     })),
     address: json.address,
