@@ -139,7 +139,7 @@ import { InrPipe } from './inr.pipe';
                   <button type="button" class="switch-aisle-btn" (click)="resetCategory()">Search all aisles</button>
                 </p>
               } @else {
-                <p class="empty-hint">Try searching for banana, milk, chips, chocolate, or oats.</p>
+                <p class="empty-hint">Try searching for "doodh", "aloo", "tamatar", "pyaaz", "dahi", or "bread".</p>
               }
             </div>
           }
@@ -537,9 +537,9 @@ export class SearchBarComponent implements OnInit, OnDestroy {
 
   readonly inputPlaceholder = computed(() => {
     const slug = this.selectedCategory();
-    if (!slug) return 'Search banana, milk, oats…';
+    if (!slug) return 'Search "doodh", "aloo", "tamatar", "chips"…';
     const found = this.categories().find((c) => c.slug === slug);
-    return found ? `Search in ${found.name}…` : 'Search banana, milk, oats…';
+    return found ? `Search in ${found.name}…` : 'Search "doodh", "aloo", "tamatar", "chips"…';
   });
 
   ngOnInit() {

@@ -148,6 +148,19 @@ const inMemoryStore = {
       const reg = new RegExp(filter.name.$regex, filter.name.$options || 'i');
       items = items.filter((p) => reg.test(p.name) || reg.test(p.brand) || reg.test(p.description));
     }
+    if (Array.isArray(filter.$or) && filter.$or.length > 0) {
+      items = items.filter((p) => {
+        const text = `${p.name} ${p.brand || ''} ${p.description || ''} ${(p.tags || []).join(' ')}`.toLowerCase();
+        return filter.$or.some((cond) => {
+          for (const key of ['name', 'brand', 'tags', 'description']) {
+            if (cond[key] && cond[key].test) {
+              return cond[key].test(text);
+            }
+          }
+          return false;
+        });
+      });
+    }
     if (sort === 'price_asc') items.sort((a, b) => a.price - b.price);
     else if (sort === 'price_desc') items.sort((a, b) => b.price - a.price);
     else if (sort === 'name') items.sort((a, b) => a.name.localeCompare(b.name));

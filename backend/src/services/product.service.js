@@ -4,6 +4,7 @@ const aiService = require('./ai.service');
 const { presentProduct } = require('../utils/presenters');
 const { pageMeta } = require('../utils/pagination');
 const { slugify, escapeRegex } = require('../utils/slug');
+const { expandSearchTerms } = require('../utils/hinglishAliases');
 const ApiError = require('../utils/ApiError');
 
 async function uniqueSlug(name, currentId) {
@@ -44,8 +45,18 @@ const productService = {
     }
 
     if (query.search) {
-      const pattern = new RegExp(escapeRegex(query.search), 'i');
-      filter.$or = [{ name: pattern }, { brand: pattern }, { tags: pattern }, { description: pattern }];
+      const terms = expandSearchTerms(query.search);
+      const orConditions = [];
+      for (const term of terms) {
+        const pattern = new RegExp(escapeRegex(term), 'i');
+        orConditions.push(
+          { name: pattern },
+          { brand: pattern },
+          { tags: pattern },
+          { description: pattern }
+        );
+      }
+      filter.$or = orConditions;
     }
 
     const { items, total } = await productRepository.search({
