@@ -43,7 +43,8 @@ import { InrPipe } from '../shared/inr.pipe';
       </div>
     </form>
 
-    <div class="panel table-wrap">
+    <!-- Desktop Table View -->
+    <div class="panel table-wrap d-none d-md-block">
       <table class="plain">
         <thead>
           <tr>
@@ -94,6 +95,54 @@ import { InrPipe } from '../shared/inr.pipe';
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile Stacked Touch Cards (< 768px) -->
+    <div class="d-md-none mobile-card-list">
+      @for (product of products(); track product.id) {
+        <div class="admin-touch-card">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="admin-card-visual flex-shrink-0">
+              @if (product.imageUrl) {
+                <img [src]="product.imageUrl" [alt]="product.name" class="admin-table-thumb-lg" />
+              } @else {
+                <span class="fs-1">{{ product.emoji }}</span>
+              }
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex justify-content-between align-items-start gap-1">
+                <strong class="admin-card-title text-truncate">{{ product.name }}</strong>
+                <span class="status-pill flex-shrink-0" [class.cancelled]="!product.isActive">
+                  {{ product.isActive ? 'Live' : 'Archived' }}
+                </span>
+              </div>
+              <div class="muted small mb-1">{{ product.brand || 'No brand' }} · {{ product.unit }}</div>
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                <span class="badge bg-light text-dark border">{{ categoryName(product) }}</span>
+                <strong class="text-dark">{{ product.price | inr }}</strong>
+                @if (product.mrp > product.price) {
+                  <span class="text-muted small"><s>{{ product.mrp | inr }}</s></span>
+                }
+              </div>
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <span [class.text-danger]="product.stock < 5" [class.fw-bold]="product.stock < 5" class="small">
+                  <i class="bi bi-box-seam me-1"></i>Stock: <b>{{ product.stock }} units</b>
+                </span>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-dark px-3 py-1" type="button" (click)="open(product)">
+                    <i class="bi bi-pencil-square me-1"></i>Edit
+                  </button>
+                  @if (product.isActive) {
+                    <button class="btn btn-sm btn-outline-danger px-2 py-1" type="button" (click)="archive(product)">
+                      <i class="bi bi-archive"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Product Drawer Form -->

@@ -4,12 +4,12 @@ import { AuthService } from '../core/auth.service';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
 import { SearchBarComponent } from '../shared/search-bar.component';
-
 import { PwaInstallComponent } from '../shared/pwa-install.component';
+import { InrPipe } from '../shared/inr.pipe';
 
 @Component({
   selector: 'app-store-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SearchBarComponent, PwaInstallComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, SearchBarComponent, PwaInstallComponent, InrPipe],
   template: `
     <header class="store-header">
       <div class="container py-2 d-flex align-items-center gap-2 gap-md-3">
@@ -53,10 +53,44 @@ import { PwaInstallComponent } from '../shared/pwa-install.component';
           <a class="location-chip d-none d-md-inline-flex" routerLink="/login">Log in</a>
         }
       </div>
+
+      <!-- Mobile Location & Speed Sub-bar -->
+      <div class="mobile-subbar d-flex d-md-none align-items-center justify-content-between px-3 py-1 border-top">
+        <a class="mobile-loc-pill text-decoration-none d-flex align-items-center gap-1 text-truncate" routerLink="/addresses">
+          <i class="bi bi-geo-alt-fill text-warning"></i>
+          <span class="loc-text text-truncate">{{ place() }}</span>
+          <i class="bi bi-chevron-down text-muted small flex-shrink-0"></i>
+        </a>
+        <span class="delivery-time-badge flex-shrink-0">
+          <i class="bi bi-lightning-charge-fill text-warning"></i> 12 Mins
+        </span>
+      </div>
     </header>
+
     <main class="container page">
       <router-outlet />
     </main>
+
+    <!-- Floating Cart Quick Action Pill (Mobile Viewports) -->
+    @if ((shop.cart()?.itemCount || 0) > 0 && !isCartOrCheckout()) {
+      <aside class="floating-cart-bar" aria-label="Quick View Cart">
+        <a routerLink="/cart" class="floating-cart-inner">
+          <div class="d-flex align-items-center gap-2">
+            <div class="floating-cart-badge">
+              <i class="bi bi-basket2-fill"></i>
+              <span>{{ shop.cart()?.itemCount }} {{ shop.cart()?.itemCount === 1 ? 'item' : 'items' }}</span>
+            </div>
+            <span class="floating-cart-divider">·</span>
+            <strong class="floating-cart-total">{{ (shop.cart()?.total || 0) | inr }}</strong>
+          </div>
+          <div class="floating-cart-cta">
+            <span>View Cart</span>
+            <i class="bi bi-arrow-right"></i>
+          </div>
+        </a>
+      </aside>
+    }
+
     <nav class="mobile-nav" role="navigation" aria-label="Mobile Navigation">
       <a routerLink="/" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">
         <i class="bi bi-house"></i>
@@ -91,6 +125,11 @@ export class StoreShell {
     const address = this.shop.addresses().find((item) => item.isDefault) ?? this.shop.addresses()[0];
     if (!address) return 'Add address';
     return `${address.label} · ${address.city}`;
+  });
+
+  readonly isCartOrCheckout = computed(() => {
+    const url = this.router.url;
+    return url.includes('/cart') || url.includes('/checkout');
   });
 
   constructor() {

@@ -325,7 +325,142 @@ button, a, input, select, textarea { font-family: inherit; }
   border: 2px solid var(--ink);
 }
 
-.page { padding-bottom: 5.5rem; }
+.page { padding-bottom: 6rem; }
+
+/* Floating Cart Quick Action Bar (Mobile Viewports) */
+.floating-cart-bar {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: calc(max(0.65rem, env(safe-area-inset-bottom)) + 64px);
+  z-index: 44;
+  animation: floatUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes floatUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.floating-cart-inner {
+  background: #0e6b4f;
+  color: white;
+  border-radius: 999px;
+  padding: 0.65rem 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(14, 107, 79, 0.42), 0 2px 6px rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    color: white;
+    background: #0b563f;
+  }
+
+  &:active {
+    transform: scale(0.98);
+    background: #094734;
+  }
+}
+
+.floating-cart-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  i {
+    font-size: 1.05rem;
+  }
+}
+
+.floating-cart-divider {
+  opacity: 0.6;
+}
+
+.floating-cart-total {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.floating-cart-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  color: white;
+}
+
+/* Mobile Subbar & Location Pill */
+.mobile-subbar {
+  background: #fdfbf7;
+  border-color: var(--line) !important;
+  font-size: 0.78rem;
+  min-height: 34px;
+}
+.mobile-loc-pill {
+  color: var(--ink);
+  max-width: 68%;
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.delivery-time-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #1c1915;
+  color: #f6f1e4;
+  padding: 2px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Mobile Stacked Touch Cards & Admin Touch UI */
+.mobile-card-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-touch-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.15s ease;
+}
+
+.admin-table-thumb-lg {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 3px;
+}
+
+.admin-card-title {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
 .desk { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
 .desk-nav { background: #10241c; color: #efe7d6; padding: 1.1rem; }
 .desk-nav a { display: flex; gap: 0.55rem; color: #d7cbb6; text-decoration: none; padding: 0.55rem 0.7rem; border-radius: 12px; }
@@ -386,12 +521,119 @@ table.plain td { padding: 0.7rem 0.55rem; border-top: 1px solid var(--line); ver
 }
 @media (max-width: 991px) {
   .hero, .auth-wrap, .desk, .stat-grid { grid-template-columns: 1fr; }
-  .desk-nav { display: flex; gap: 0.3rem; overflow-x: auto; }
-  .desk-nav a { white-space: nowrap; }
+  .desk-nav {
+    padding: 0.6rem 0.8rem;
+    position: sticky;
+    top: 48px;
+    z-index: 30;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .desk-nav-scroll-wrap {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    &::-webkit-scrollbar { display: none; }
+    a {
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.82rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      &.on {
+        background: var(--zest);
+        color: var(--ink);
+        font-weight: 700;
+      }
+    }
+  }
+  .desk-main { padding: 0.9rem 0.8rem 4rem; }
   .auth-story { display: none; }
 }
 @media (min-width: 992px) {
   .mobile-nav { display: none; }
+  .floating-cart-bar { display: none; }
+  .desk-nav-scroll-wrap { display: flex; flex-direction: column; gap: 0.2rem; }
+}
+
+/* Mobile-First Bottom Sheet & Modal Transformations (< 768px) */
+@media (max-width: 767px) {
+  .modal-sheet {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .sheet {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    max-height: 90vh;
+    padding: 1.25rem 1rem max(1.25rem, env(safe-area-inset-bottom));
+    animation: sheetSlideUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
+
+/* Mobile Screen Refinements (< 576px) */
+@media (max-width: 576px) {
+  .brand-word {
+    font-size: 1.05rem;
+    small { display: none; }
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .search-form input {
+    padding: 0.55rem 0.75rem 0.55rem 2.2rem;
+    font-size: 0.86rem;
+  }
+  .icon-btn {
+    min-height: 36px;
+    width: 36px;
+  }
+  .product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.6rem !important;
+  }
+  .tile {
+    padding: 0.6rem !important;
+    border-radius: 16px !important;
+  }
+  .tile-art {
+    height: 125px !important;
+    border-radius: 12px !important;
+  }
+  .product-thumb {
+    max-height: 96px !important;
+  }
+  .tile-body a {
+    font-size: 0.85rem !important;
+    min-height: 2.4em !important;
+    line-height: 1.22 !important;
+  }
+  .tile-body .price-row strong {
+    font-size: 0.95rem !important;
+  }
+  .add-btn {
+    min-height: 34px !important;
+    padding: 0 0.75rem !important;
+    font-size: 0.76rem !important;
+  }
+  .stepper button {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.92rem !important;
+  }
+  .choice {
+    padding: 0.7rem 0.75rem;
+    border-radius: 14px;
+  }
 }
 
 /* ==========================================================================
@@ -616,6 +858,14 @@ table.plain td { padding: 0.7rem 0.55rem; border-top: 1px solid var(--line); ver
       max-height: 200px;
       object-fit: contain;
       filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.1));
+    }
+
+    @media (max-width: 640px) {
+      height: 175px;
+      padding: 0.5rem;
+      img {
+        max-height: 155px;
+      }
     }
   }
 

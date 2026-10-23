@@ -129,121 +129,191 @@ import { InrPipe } from '../shared/inr.pipe';
           <button class="btn btn-sm btn-dark" type="button" (click)="resetFilters()">Show All Products</button>
         </div>
       } @else {
-        <table class="plain">
-          <thead>
-            <tr>
-              <th style="width: 50px">Visual</th>
-              <th>Product & SKU</th>
-              <th>Category / HSN</th>
-              <th>Price</th>
-              <th style="width: 170px">Stock Level</th>
-              <th>Valuation</th>
-              <th>Status</th>
-              <th class="text-end" style="min-width: 220px">Quick Restock</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of items(); track item.id) {
-              <tr [class.table-danger]="item.stock === 0" [class.table-warning]="item.stock > 0 && item.stock <= 10">
-                <td>
-                  @if (item.imageUrl) {
-                    <img [src]="item.imageUrl" [alt]="item.name" class="admin-table-thumb" />
-                  } @else {
-                    <span class="fs-4">{{ item.emoji }}</span>
-                  }
-                </td>
-                <td>
-                  <strong>{{ item.name }}</strong>
-                  <div class="muted small">{{ item.brand || 'Store Brand' }} · {{ item.unit }}</div>
-                </td>
-                <td>
-                  <div>{{ categoryName(item) }}</div>
-                  <small class="text-muted font-monospace">HSN: {{ item.hsn }} ({{ item.gstRate }}% GST)</small>
-                </td>
-                <td>
-                  <strong>{{ item.price | inr }}</strong>
-                  @if (item.mrp > item.price) {
-                    <div class="muted small"><s>{{ item.mrp | inr }}</s></div>
-                  }
-                </td>
-                <td>
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold font-monospace fs-6" [class.text-danger]="item.stock === 0" [class.text-warning-emphasis]="item.stock > 0 && item.stock <= 10">
-                      {{ item.stock }} units
-                    </span>
-                    <small class="muted">{{ item.stockPercent }}% of target</small>
-                  </div>
-                  <div class="progress" style="height: 6px;">
-                    <div
-                      class="progress-bar"
-                      [class.bg-danger]="item.stock === 0"
-                      [class.bg-warning]="item.stock > 0 && item.stock <= 10"
-                      [class.bg-success]="item.stock > 10"
-                      role="progressbar"
-                      [style.width.%]="item.stockPercent"
-                      [attr.aria-valuenow]="item.stockPercent"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    ></div>
-                  </div>
-                </td>
-                <td>
-                  <span class="font-monospace fw-semibold">{{ item.valuation | inr }}</span>
-                </td>
-                <td>
-                  <span
-                    class="badge"
-                    [class.bg-danger]="item.stockHealth === 'out_of_stock'"
-                    [class.bg-warning]="item.stockHealth === 'low_stock'"
-                    [class.text-dark]="item.stockHealth === 'low_stock'"
-                    [class.bg-success]="item.stockHealth === 'healthy'"
-                  >
-                    {{ item.stockHealthLabel }}
-                  </span>
-                </td>
-                <td class="text-end">
-                  <div class="btn-group btn-group-sm" role="group">
-                    <button
-                      type="button"
-                      class="btn btn-outline-dark"
-                      [disabled]="restockingId() === item.id"
-                      (click)="quickRestock(item, 10)"
-                      title="Add 10 units"
-                    >
-                      +10
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-outline-dark"
-                      [disabled]="restockingId() === item.id"
-                      (click)="quickRestock(item, 25)"
-                      title="Add 25 units"
-                    >
-                      +25
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-outline-dark"
-                      [disabled]="restockingId() === item.id"
-                      (click)="quickRestock(item, 50)"
-                      title="Add 50 units"
-                    >
-                      +50
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-dark"
-                      [disabled]="restockingId() === item.id"
-                      (click)="openCustomRestock(item)"
-                    >
-                      Custom…
-                    </button>
-                  </div>
-                </td>
+        <!-- Desktop Table View -->
+        <div class="d-none d-md-block">
+          <table class="plain">
+            <thead>
+              <tr>
+                <th style="width: 50px">Visual</th>
+                <th>Product & SKU</th>
+                <th>Category / HSN</th>
+                <th>Price</th>
+                <th style="width: 170px">Stock Level</th>
+                <th>Valuation</th>
+                <th>Status</th>
+                <th class="text-end" style="min-width: 220px">Quick Restock</th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (item of items(); track item.id) {
+                <tr [class.table-danger]="item.stock === 0" [class.table-warning]="item.stock > 0 && item.stock <= 10">
+                  <td>
+                    @if (item.imageUrl) {
+                      <img [src]="item.imageUrl" [alt]="item.name" class="admin-table-thumb" />
+                    } @else {
+                      <span class="fs-4">{{ item.emoji }}</span>
+                    }
+                  </td>
+                  <td>
+                    <strong>{{ item.name }}</strong>
+                    <div class="muted small">{{ item.brand || 'Store Brand' }} · {{ item.unit }}</div>
+                  </td>
+                  <td>
+                    <div>{{ categoryName(item) }}</div>
+                    <small class="text-muted font-monospace">HSN: {{ item.hsn }} ({{ item.gstRate }}% GST)</small>
+                  </td>
+                  <td>
+                    <strong>{{ item.price | inr }}</strong>
+                    @if (item.mrp > item.price) {
+                      <div class="muted small"><s>{{ item.mrp | inr }}</s></div>
+                    }
+                  </td>
+                  <td>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="fw-bold font-monospace fs-6" [class.text-danger]="item.stock === 0" [class.text-warning-emphasis]="item.stock > 0 && item.stock <= 10">
+                        {{ item.stock }} units
+                      </span>
+                      <small class="muted">{{ item.stockPercent }}% of target</small>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div
+                        class="progress-bar"
+                        [class.bg-danger]="item.stock === 0"
+                        [class.bg-warning]="item.stock > 0 && item.stock <= 10"
+                        [class.bg-success]="item.stock > 10"
+                        role="progressbar"
+                        [style.width.%]="item.stockPercent"
+                        [attr.aria-valuenow]="item.stockPercent"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      ></div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="font-monospace fw-semibold">{{ item.valuation | inr }}</span>
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.bg-danger]="item.stockHealth === 'out_of_stock'"
+                      [class.bg-warning]="item.stockHealth === 'low_stock'"
+                      [class.text-dark]="item.stockHealth === 'low_stock'"
+                      [class.bg-success]="item.stockHealth === 'healthy'"
+                    >
+                      {{ item.stockHealthLabel }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button
+                        type="button"
+                        class="btn btn-outline-dark"
+                        [disabled]="restockingId() === item.id"
+                        (click)="quickRestock(item, 10)"
+                        title="Add 10 units"
+                      >
+                        +10
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-dark"
+                        [disabled]="restockingId() === item.id"
+                        (click)="quickRestock(item, 25)"
+                        title="Add 25 units"
+                      >
+                        +25
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-dark"
+                        [disabled]="restockingId() === item.id"
+                        (click)="quickRestock(item, 50)"
+                        title="Add 50 units"
+                      >
+                        +50
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-dark"
+                        [disabled]="restockingId() === item.id"
+                        (click)="openCustomRestock(item)"
+                      >
+                        Custom…
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Stacked Touch Cards (< 768px) -->
+        <div class="d-md-none mobile-card-list">
+          @for (item of items(); track item.id) {
+            <div class="admin-touch-card" [class.border-danger]="item.stock === 0" [class.border-warning]="item.stock > 0 && item.stock <= 10">
+              <div class="d-flex gap-3 align-items-start mb-2">
+                <div class="admin-card-visual flex-shrink-0">
+                  @if (item.imageUrl) {
+                    <img [src]="item.imageUrl" [alt]="item.name" class="admin-table-thumb-lg" />
+                  } @else {
+                    <span class="fs-1">{{ item.emoji }}</span>
+                  }
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="d-flex justify-content-between align-items-start gap-1">
+                    <strong class="admin-card-title text-truncate">{{ item.name }}</strong>
+                    <span
+                      class="badge flex-shrink-0"
+                      [class.bg-danger]="item.stockHealth === 'out_of_stock'"
+                      [class.bg-warning]="item.stockHealth === 'low_stock'"
+                      [class.text-dark]="item.stockHealth === 'low_stock'"
+                      [class.bg-success]="item.stockHealth === 'healthy'"
+                    >
+                      {{ item.stockHealthLabel }}
+                    </span>
+                  </div>
+                  <div class="muted small">{{ item.brand || 'Store Brand' }} · {{ item.unit }}</div>
+                  <div class="d-flex align-items-center gap-2 mt-1">
+                    <strong class="text-dark">{{ item.price | inr }}</strong>
+                    <small class="text-muted">Valuation: {{ item.valuation | inr }}</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stock Level Progress Bar -->
+              <div class="mb-2">
+                <div class="d-flex justify-content-between align-items-center small mb-1">
+                  <span class="fw-bold font-monospace" [class.text-danger]="item.stock === 0" [class.text-warning-emphasis]="item.stock > 0 && item.stock <= 10">
+                    <i class="bi bi-box-seam me-1"></i>{{ item.stock }} units in stock
+                  </span>
+                  <span class="text-muted small">{{ item.stockPercent }}% of target</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                  <div
+                    class="progress-bar"
+                    [class.bg-danger]="item.stock === 0"
+                    [class.bg-warning]="item.stock > 0 && item.stock <= 10"
+                    [class.bg-success]="item.stock > 10"
+                    role="progressbar"
+                    [style.width.%]="item.stockPercent"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Quick Restock Actions -->
+              <div class="d-flex justify-content-between align-items-center pt-2 border-top gap-2 flex-wrap">
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-dark" [disabled]="restockingId() === item.id" (click)="quickRestock(item, 10)">+10</button>
+                  <button type="button" class="btn btn-outline-dark" [disabled]="restockingId() === item.id" (click)="quickRestock(item, 25)">+25</button>
+                </div>
+                <button type="button" class="btn btn-sm btn-dark px-3" [disabled]="restockingId() === item.id" (click)="openCustomRestock(item)">
+                  <i class="bi bi-box-arrow-in-down me-1"></i>Restock…
+                </button>
+              </div>
+            </div>
+          }
+        </div>
       }
     </div>
 

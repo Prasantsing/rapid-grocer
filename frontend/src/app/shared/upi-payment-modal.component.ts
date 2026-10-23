@@ -922,6 +922,28 @@ import { InrPipe } from './inr.pipe';
       align-items: center;
       justify-content: center;
     }
+
+    @media (max-width: 576px) {
+      .upi-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+      .upi-dialog {
+        border-radius: 22px 22px 0 0;
+        max-width: 100%;
+        width: 100%;
+        max-height: 92vh;
+        margin: 0;
+        animation: upiSlideBottom 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .upi-body {
+        padding: 1.15rem 1rem max(1.25rem, env(safe-area-inset-bottom));
+      }
+      @keyframes upiSlideBottom {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+    }
   `],
 })
 export class UpiPaymentModalComponent implements OnInit, OnDestroy {

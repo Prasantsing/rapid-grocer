@@ -21,7 +21,7 @@ import { errorMessage } from '../core/http-error';
         <option value="admin">Admins</option>
       </select>
     </div>
-    <div class="panel table-wrap">
+    <div class="panel table-wrap d-none d-md-block">
       <table class="plain">
         <thead><tr><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
         <tbody>
@@ -35,6 +35,27 @@ import { errorMessage } from '../core/http-error';
           }
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile Stacked Touch Cards (< 768px) -->
+    <div class="d-md-none mobile-card-list">
+      @for (user of users(); track user.id) {
+        <div class="admin-touch-card">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+              <strong class="admin-card-title">{{ user.name }}</strong>
+              <div class="muted small">{{ user.email }}</div>
+            </div>
+            <span class="badge bg-light text-dark border text-capitalize">{{ user.role }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+            <span class="status-pill" [class.cancelled]="!user.isActive">{{ user.isActive ? 'Active' : 'Disabled' }}</span>
+            <button class="btn btn-sm btn-outline-dark px-3 py-1" type="button" (click)="edit(user)">
+              <i class="bi bi-shield-lock me-1"></i>Access
+            </button>
+          </div>
+        </div>
+      }
     </div>
     @if (creating()) {
       <div class="modal-sheet" (click)="creating.set(false)">
