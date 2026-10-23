@@ -252,6 +252,248 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
         </aside>
       </div>
 
+      <!-- CUSTOMER ORDER FEEDBACK & DELIVERY PARTNER TIPPING SECTION -->
+      @if (current.status === 'delivered') {
+        <div class="row g-4 mt-2">
+          <!-- STORE & DELIVERY FEEDBACK -->
+          <div class="col-12 col-md-7">
+            <div class="card border rounded-3 p-4 shadow-sm bg-white h-100">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="rounded-circle bg-warning-subtle text-warning-emphasis d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="bi bi-star-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 class="mb-0 fw-bold">Rate Your Experience</h5>
+                    <small class="text-muted">How was your ZapBasket delivery?</small>
+                  </div>
+                </div>
+                @if (current.feedback) {
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="bi bi-check2-circle me-1"></i> Feedback Submitted
+                  </span>
+                }
+              </div>
+
+              @if (current.feedback) {
+                <!-- Feedback Summary View -->
+                <div class="p-3 bg-light rounded-3 border">
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <div class="text-muted small">Store & Quality</div>
+                      <div class="text-warning fw-bold fs-5 mt-1">
+                        @for (s of [1,2,3,4,5]; track s) {
+                          <i class="bi" [class.bi-star-fill]="s <= (current.feedback.storeRating || 0)" [class.bi-star]="s > (current.feedback.storeRating || 0)"></i>
+                        }
+                        <span class="text-dark small ms-1">({{ current.feedback.storeRating }}/5)</span>
+                      </div>
+                    </div>
+                    @if (current.feedback.riderRating) {
+                      <div class="col-6">
+                        <div class="text-muted small">Delivery Partner</div>
+                        <div class="text-warning fw-bold fs-5 mt-1">
+                          @for (s of [1,2,3,4,5]; track s) {
+                            <i class="bi" [class.bi-star-fill]="s <= (current.feedback.riderRating || 0)" [class.bi-star]="s > (current.feedback.riderRating || 0)"></i>
+                          }
+                          <span class="text-dark small ms-1">({{ current.feedback.riderRating }}/5)</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  @if (current.feedback.deliveryTags?.length) {
+                    <div class="mt-3">
+                      <div class="text-muted small mb-1">Highlights:</div>
+                      <div class="d-flex flex-wrap gap-1">
+                        @for (tag of current.feedback.deliveryTags; track tag) {
+                          <span class="badge bg-white text-dark border px-2 py-1">{{ tag }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (current.feedback.comments) {
+                    <div class="mt-3 p-2 bg-white rounded border small text-secondary">
+                      <i class="bi bi-chat-quote-fill text-muted me-1"></i>
+                      "{{ current.feedback.comments }}"
+                    </div>
+                  }
+                  <div class="mt-2 text-end text-muted" style="font-size: 0.72rem;">
+                    Submitted on {{ current.feedback.submittedAt | date:'mediumDate' }}
+                  </div>
+                </div>
+              } @else {
+                <!-- Interactive Feedback Form -->
+                <div class="d-flex flex-column gap-3">
+                  <div>
+                    <label class="form-label small fw-bold text-dark mb-1">Overall Store & Grocery Quality</label>
+                    <div class="d-flex align-items-center gap-2">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <button
+                          type="button"
+                          class="btn p-0 border-0 bg-transparent text-warning fs-3 lh-1 cursor-pointer"
+                          (click)="selectedStoreRating.set(star)"
+                          (mouseenter)="hoverStoreRating.set(star)"
+                          (mouseleave)="hoverStoreRating.set(0)">
+                          <i class="bi" [class.bi-star-fill]="star <= (hoverStoreRating() || selectedStoreRating())" [class.bi-star]="star > (hoverStoreRating() || selectedStoreRating())"></i>
+                        </button>
+                      }
+                      <span class="small fw-semibold ms-2 text-secondary">{{ ratingStoreLabel(selectedStoreRating()) }}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="form-label small fw-bold text-dark mb-1">Delivery Partner Behavior & Speed</label>
+                    <div class="d-flex align-items-center gap-2">
+                      @for (star of [1,2,3,4,5]; track star) {
+                        <button
+                          type="button"
+                          class="btn p-0 border-0 bg-transparent text-warning fs-3 lh-1 cursor-pointer"
+                          (click)="selectedRiderRating.set(star)"
+                          (mouseenter)="hoverRiderRating.set(star)"
+                          (mouseleave)="hoverRiderRating.set(0)">
+                          <i class="bi" [class.bi-star-fill]="star <= (hoverRiderRating() || selectedRiderRating())" [class.bi-star]="star > (hoverRiderRating() || selectedRiderRating())"></i>
+                        </button>
+                      }
+                      <span class="small fw-semibold ms-2 text-secondary">{{ ratingRiderLabel(selectedRiderRating()) }}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="form-label small fw-bold text-dark mb-1">What went great?</label>
+                    <div class="d-flex flex-wrap gap-2">
+                      @for (tag of feedbackTags; track tag) {
+                        <button
+                          type="button"
+                          class="btn btn-sm rounded-pill"
+                          [class.btn-dark]="isTagSelected(tag)"
+                          [class.btn-outline-secondary]="!isTagSelected(tag)"
+                          (click)="toggleFeedbackTag(tag)">
+                          {{ tag }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="form-label small fw-bold text-dark mb-1">Detailed comments (optional)</label>
+                    <textarea
+                      class="form-control form-control-sm"
+                      rows="2"
+                      placeholder="Tell us about the packaging, quality, or speed..."
+                      [value]="feedbackComments()"
+                      (input)="feedbackComments.set($any($event.target).value)"
+                      maxlength="500"></textarea>
+                  </div>
+
+                  <button
+                    class="btn btn-dark w-100 fw-semibold"
+                    type="button"
+                    [disabled]="submittingFeedback() || selectedStoreRating() === 0"
+                    (click)="submitFeedback(current.id)">
+                    @if (submittingFeedback()) {
+                      <span class="spinner-border spinner-border-sm me-1"></span> Submitting…
+                    } @else {
+                      <i class="bi bi-send-fill me-1"></i> Submit Review
+                    }
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- OPTIONAL UPI TIPPING STATION -->
+          <div class="col-12 col-md-5">
+            <div class="card border rounded-3 p-4 shadow-sm bg-white h-100">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                  <i class="bi bi-cash-coin fs-5"></i>
+                </div>
+                <div>
+                  <h5 class="mb-0 fw-bold">Tip Delivery Partner</h5>
+                  <small class="text-muted">100% tip goes directly to your rider</small>
+                </div>
+              </div>
+
+              @if (current.tip?.status === 'paid') {
+                <div class="p-3 bg-success-subtle bg-opacity-25 rounded-3 border border-success-subtle text-center">
+                  <div class="text-success fs-1 mb-1"><i class="bi bi-heart-fill"></i></div>
+                  <h6 class="fw-bold text-success mb-1">₹{{ current.tip?.amount }} Tip Sent!</h6>
+                  <p class="small text-muted mb-2">Thank you! Your generosity means the world to our delivery team.</p>
+                  @if (current.tip?.upiTransactionId) {
+                    <div class="badge bg-white text-secondary border font-monospace small">Ref: {{ current.tip?.upiTransactionId }}</div>
+                  }
+                </div>
+              } @else {
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                      <div class="fw-bold small">{{ partnerName(current) || 'ZapBasket Rider' }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">Delivered on-time to your doorstep</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold text-dark mb-1">Choose tip amount</label>
+                  <div class="row g-2">
+                    @for (amt of [20, 30, 50, 100]; track amt) {
+                      <div class="col-3">
+                        <button
+                          type="button"
+                          class="btn btn-sm w-100 rounded-3 fw-bold"
+                          [class.btn-success]="selectedTipAmount() === amt"
+                          [class.btn-outline-secondary]="selectedTipAmount() !== amt"
+                          (click)="setTipAmount(amt)">
+                          ₹{{ amt }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  <div class="input-group input-group-sm mt-2">
+                    <span class="input-group-text">₹</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      placeholder="Other amount"
+                      min="5"
+                      max="1000"
+                      [value]="selectedTipAmount() || ''"
+                      (input)="setTipAmount(+$any($event.target).value)" />
+                  </div>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                  <a
+                    class="btn btn-success w-100 fw-semibold d-inline-flex align-items-center justify-content-center gap-2"
+                    [href]="tipUpiDeepLink(current)"
+                    (click)="recordTip(current.id)">
+                    <i class="bi bi-wallet2"></i> Pay ₹{{ selectedTipAmount() || 30 }} via UPI
+                  </a>
+                  <button
+                    class="btn btn-outline-dark btn-sm w-100"
+                    type="button"
+                    [disabled]="submittingTip()"
+                    (click)="recordTip(current.id, true)">
+                    @if (submittingTip()) {
+                      <span class="spinner-border spinner-border-sm me-1"></span> Recording…
+                    } @else {
+                      <i class="bi bi-check-lg me-1"></i> I Have Paid via UPI / Confirm Tip
+                    }
+                  </button>
+                  <div class="text-center text-muted" style="font-size: 0.7rem;">
+                    VPA: <b>9101516662&#64;ybl</b> (ZapBasket Instant Tipping)
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- TRANSACTION RECEIPT VERIFICATION SECTION -->
       @if (current.paymentMethod === 'upi' || current.receiptVerification?.receiptImageUrl || current.receiptVerification?.manualUtr) {
         <div class="mt-4 mb-4">
@@ -285,6 +527,24 @@ export class OrderDetailPage implements OnDestroy {
   readonly showCancelPrompt = signal(false);
   readonly cancelling = signal(false);
   private timerHandle: any = null;
+
+  readonly selectedStoreRating = signal(5);
+  readonly hoverStoreRating = signal(0);
+  readonly selectedRiderRating = signal(5);
+  readonly hoverRiderRating = signal(0);
+  readonly selectedFeedbackTags = signal<string[]>(['⚡ Lightning Fast', '🥬 Fresh Quality']);
+  readonly feedbackComments = signal('');
+  readonly submittingFeedback = signal(false);
+  readonly feedbackTags = [
+    '⚡ Lightning Fast',
+    '🥬 Fresh Quality',
+    '🛵 Polite Rider',
+    '📦 Great Packaging',
+    '💰 Value for Money',
+    '🛡️ Safe & Contactless',
+  ];
+  readonly selectedTipAmount = signal(30);
+  readonly submittingTip = signal(false);
 
   constructor() {
     void this.shop.loadStoreConfig();
@@ -464,6 +724,86 @@ export class OrderDetailPage implements OnDestroy {
 
   onReceiptVerified(updatedOrder: Order) {
     this.order.set(updatedOrder);
+  }
+
+  ratingStoreLabel(rating: number): string {
+    switch (rating) {
+      case 5: return 'Excellent 🌟';
+      case 4: return 'Very Good 👍';
+      case 3: return 'Average 👌';
+      case 2: return 'Below Average 😕';
+      case 1: return 'Poor 👎';
+      default: return 'Select rating';
+    }
+  }
+
+  ratingRiderLabel(rating: number): string {
+    switch (rating) {
+      case 5: return 'Polite & Super Fast 🚀';
+      case 4: return 'Good Behavior 😊';
+      case 3: return 'Satisfactory 👍';
+      case 2: return 'Could be better 😐';
+      case 1: return 'Needs improvement 👎';
+      default: return 'Select rating';
+    }
+  }
+
+  isTagSelected(tag: string): boolean {
+    return this.selectedFeedbackTags().includes(tag);
+  }
+
+  toggleFeedbackTag(tag: string): void {
+    const current = this.selectedFeedbackTags();
+    if (current.includes(tag)) {
+      this.selectedFeedbackTags.set(current.filter((t) => t !== tag));
+    } else {
+      this.selectedFeedbackTags.set([...current, tag]);
+    }
+  }
+
+  async submitFeedback(orderId: string): Promise<void> {
+    if (this.selectedStoreRating() === 0) return;
+    this.submittingFeedback.set(true);
+    try {
+      const updated = await this.shop.submitOrderFeedback(orderId, {
+        storeRating: this.selectedStoreRating(),
+        riderRating: this.selectedRiderRating() || undefined,
+        deliveryTags: this.selectedFeedbackTags(),
+        comments: this.feedbackComments().trim() || undefined,
+      });
+      this.order.set(updated);
+      this.toasts.show('Thank you for rating ZapBasket & your delivery rider! ⭐');
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.submittingFeedback.set(false);
+    }
+  }
+
+  setTipAmount(amt: number): void {
+    this.selectedTipAmount.set(Math.max(1, amt || 0));
+  }
+
+  tipUpiDeepLink(order: Order): string {
+    const amt = this.selectedTipAmount() || 30;
+    return `upi://pay?pa=9101516662@ybl&pn=ZapBasket&am=${amt}&tn=Tip%20for%20order%20${order.orderNumber}`;
+  }
+
+  async recordTip(orderId: string, manualPrompt = false): Promise<void> {
+    const amt = this.selectedTipAmount() || 30;
+    this.submittingTip.set(true);
+    try {
+      const updated = await this.shop.submitOrderTip(orderId, {
+        amount: amt,
+        upiTransactionId: `TIP-${Date.now()}`,
+      });
+      this.order.set(updated);
+      this.toasts.show(`₹${amt} tip sent to your delivery rider! Thank you! 💚`);
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.submittingTip.set(false);
+    }
   }
 
   async downloadTaxInvoice(orderId: string) {

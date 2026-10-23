@@ -654,6 +654,124 @@ const orderService = {
     const fresh = await orderRepository.findById(order._id);
     return presentOrder(fresh, 'admin');
   },
+
+  async submitFeedback(user, orderId, { storeRating, riderRating, deliveryTags, comments }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+    if (ownerId(order) !== String(user._id) && user.role !== 'admin') {
+      throw new ApiError(403, 'You can only review your own orders');
+    }
+    if (order.status !== 'delivered') {
+      throw new ApiError(400, 'Feedback can only be submitted for delivered orders');
+    }
+
+    order.feedback = {
+      storeRating,
+      riderRating: riderRating || null,
+      deliveryTags: deliveryTags || [],
+      comments: comments || '',
+      submittedAt: new Date(),
+    };
+
+    await orderRepository.save(order);
+
+    if (riderRating && order.deliveryPartner) {
+      await notify(
+        partnerId(order),
+        '⭐ Customer Rated Your Delivery',
+        `Customer gave you ${riderRating} stars for order #${order.orderNumber}!`,
+        `/rider`
+      );
+    }
+
+    const fresh = await orderRepository.findById(orderId);
+    return presentOrder(fresh, user.role);
+  },
+
+  async submitTip(user, orderId, { amount, upiTransactionId }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+    if (ownerId(order) !== String(user._id) && user.role !== 'admin') {
+      throw new ApiError(403, 'You can only tip for your own orders');
+    }
+    if (order.status !== 'delivered') {
+      throw new ApiError(400, 'Tips can only be added for delivered orders');
+    }
+
+    order.tip = {
+      amount,
+      status: 'paid',
+      upiTransactionId: upiTransactionId || `TIP-${Date.now()}`,
+      paidAt: new Date(),
+    };
+
+    await orderRepository.save(order);
+
+    if (order.deliveryPartner) {
+      await notify(
+        partnerId(order),
+        '💰 Customer Sent You a Tip!',
+        `You received a ₹${amount} tip for order #${order.orderNumber}. Thank you for your fast delivery!`,
+        `/rider`
+      );
+    }
+
+    const fresh = await orderRepository.findById(orderId);
+    return presentOrder(fresh, user.role);
+  },
+
+  async getFeedbackSummary() {
+    const OrderModel = require('../models/Order');
+    let ordersWithFeedback = [];
+    let ordersWithTip = [];
+    try {
+      ordersWithFeedback = await OrderModel.find({ 'feedback.storeRating': { $exists: true, $ne: null } })
+        .populate([
+          { path: 'user', select: 'name email phone' },
+          { path: 'deliveryPartner', select: 'name phone' },
+        ])
+        .sort({ 'feedback.submittedAt': -1 })
+        .limit(50);
+
+      ordersWithTip = await OrderModel.find({ 'tip.status': 'paid' });
+    } catch (_) {
+      // fallback
+    }
+
+    const totalRatings = ordersWithFeedback.length;
+    const storeRatingSum = ordersWithFeedback.reduce((acc, o) => acc + (o.feedback?.storeRating || 0), 0);
+    const avgStoreRating = totalRatings > 0 ? Number((storeRatingSum / totalRatings).toFixed(1)) : 5.0;
+
+    const riderRatings = ordersWithFeedback.filter((o) => o.feedback?.riderRating);
+    const riderRatingSum = riderRatings.reduce((acc, o) => acc + (o.feedback?.riderRating || 0), 0);
+    const avgRiderRating = riderRatings.length > 0 ? Number((riderRatingSum / riderRatings.length).toFixed(1)) : 5.0;
+
+    const totalTips = ordersWithTip.reduce((acc, o) => acc + (o.tip?.amount || 0), 0);
+
+    const recentFeedback = ordersWithFeedback.slice(0, 20).map((o) => ({
+      orderId: o._id,
+      orderNumber: o.orderNumber,
+      customerName: o.user?.name || 'Customer',
+      storeRating: o.feedback.storeRating,
+      riderRating: o.feedback.riderRating,
+      deliveryTags: o.feedback.deliveryTags || [],
+      comments: o.feedback.comments || '',
+      submittedAt: o.feedback.submittedAt,
+      tipAmount: o.tip?.amount || 0,
+      riderName: o.deliveryPartner?.name || 'Unassigned',
+    }));
+
+    return {
+      summary: {
+        totalRatings,
+        avgStoreRating,
+        avgRiderRating,
+        totalTipsCollected: totalTips,
+        tipsCount: ordersWithTip.length,
+      },
+      recentFeedback,
+    };
+  },
 };
 
 module.exports = orderService;

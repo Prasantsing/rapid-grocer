@@ -52,6 +52,18 @@ const orderController = {
   invoice: asyncHandler(async (req, res) => {
     send(res, await gstService.getOrderInvoice(req.params.id));
   }),
+
+  submitFeedback: asyncHandler(async (req, res) => {
+    send(res, await orderService.submitFeedback(req.user, req.params.id, req.body));
+  }),
+
+  submitTip: asyncHandler(async (req, res) => {
+    send(res, await orderService.submitTip(req.user, req.params.id, req.body));
+  }),
+
+  feedbackSummary: asyncHandler(async (_req, res) => {
+    send(res, await orderService.getFeedbackSummary());
+  }),
 };
 
 module.exports = orderController;

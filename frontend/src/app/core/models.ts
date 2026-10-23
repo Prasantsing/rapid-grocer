@@ -191,8 +191,49 @@ export interface Order {
   timeline: { status: string; note: string; at: string }[];
   user: { id: string; name: string; phone?: string; email?: string } | string | null;
   deliveryPartner: { id: string; name: string; phone?: string } | string | null;
+  feedback?: OrderFeedback | null;
+  tip?: OrderTip | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderFeedback {
+  storeRating: number;
+  riderRating?: number | null;
+  deliveryTags?: string[];
+  comments?: string;
+  submittedAt?: string | null;
+}
+
+export interface OrderTip {
+  amount: number;
+  status: 'none' | 'pending' | 'paid';
+  upiTransactionId?: string;
+  paidAt?: string | null;
+}
+
+export interface FeedbackSummaryItem {
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  storeRating: number;
+  riderRating?: number | null;
+  deliveryTags: string[];
+  comments: string;
+  submittedAt: string;
+  tipAmount: number;
+  riderName: string;
+}
+
+export interface FeedbackSummaryResponse {
+  summary: {
+    totalRatings: number;
+    avgStoreRating: number;
+    avgRiderRating: number;
+    totalTipsCollected: number;
+    tipsCount: number;
+  };
+  recentFeedback: FeedbackSummaryItem[];
 }
 
 export interface ReceiptVerification {

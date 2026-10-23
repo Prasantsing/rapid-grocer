@@ -428,7 +428,27 @@ const coverageQuerySchema = z.object({
   }),
 });
 
+const submitFeedbackSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    storeRating: z.number().int().min(1).max(5),
+    riderRating: z.number().int().min(1).max(5).optional(),
+    deliveryTags: z.array(z.string().trim().max(50)).max(10).optional().default([]),
+    comments: z.string().trim().max(500).optional().default(''),
+  }),
+});
+
+const submitTipSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    amount: z.number().min(1).max(1000),
+    upiTransactionId: z.string().trim().max(100).optional().default(''),
+  }),
+});
+
 module.exports = {
+  submitFeedbackSchema,
+  submitTipSchema,
   registerSchema,
   loginSchema,
   refreshSchema,

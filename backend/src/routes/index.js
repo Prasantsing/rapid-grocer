@@ -169,6 +169,20 @@ router.get(
   validate(schemas.idParamsSchema),
   orderController.invoice
 );
+router.post(
+  '/orders/:id/feedback',
+  authenticate,
+  authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_MANAGE),
+  validate(schemas.submitFeedbackSchema),
+  orderController.submitFeedback
+);
+router.post(
+  '/orders/:id/tip',
+  authenticate,
+  authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_MANAGE),
+  validate(schemas.submitTipSchema),
+  orderController.submitTip
+);
 
 router.get('/store/config', storeConfigController.getPublicConfig);
 router.get('/store/coverage', validate(schemas.coverageQuerySchema), storeConfigController.checkAddressCoverage);
@@ -228,6 +242,7 @@ admin.put('/store/config', authorize(P.USERS_WRITE), validate(schemas.updateStor
 
 admin.post('/messaging/test', authorize(P.USERS_WRITE), validate(schemas.sendTestMessageSchema), messagingController.sendTestMessage);
 admin.get('/messaging/logs', authorize(P.USERS_READ), messagingController.getLogs);
+admin.get('/feedback', authorize(P.REPORTS_READ), orderController.feedbackSummary);
 
 router.use('/admin', admin);
 

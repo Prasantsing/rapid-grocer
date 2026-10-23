@@ -15,6 +15,7 @@ import {
   ReverseGeocodeResult,
   StoreConfig,
   MessageLog,
+  FeedbackSummaryResponse,
   UpiPaymentDetails,
   UpiStatusResponse,
 } from './models';
@@ -309,6 +310,18 @@ export class ShopService {
         params: new HttpParams().set('limit', String(limit)),
       })
     );
+  }
+
+  submitOrderFeedback(orderId: string, feedback: { storeRating: number; riderRating?: number; deliveryTags?: string[]; comments?: string }) {
+    return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/feedback`, feedback));
+  }
+
+  submitOrderTip(orderId: string, tip: { amount: number; upiTransactionId?: string }) {
+    return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/tip`, tip));
+  }
+
+  getFeedbackSummary() {
+    return this.unwrap(this.http.get<ApiResponse<FeedbackSummaryResponse>>('/api/v1/admin/feedback'));
   }
 
   private params(query: object) {

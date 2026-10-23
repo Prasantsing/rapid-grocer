@@ -165,6 +165,19 @@ function presentOrder(order, viewerRole) {
     })),
     user: presentPerson(json.user, userFields),
     deliveryPartner: presentPerson(json.deliveryPartner, ['phone']),
+    feedback: json.feedback && json.feedback.storeRating ? {
+      storeRating: json.feedback.storeRating,
+      riderRating: json.feedback.riderRating || null,
+      deliveryTags: json.feedback.deliveryTags || [],
+      comments: json.feedback.comments || '',
+      submittedAt: json.feedback.submittedAt || null,
+    } : null,
+    tip: json.tip && json.tip.amount > 0 ? {
+      amount: json.tip.amount,
+      status: json.tip.status || 'none',
+      upiTransactionId: json.tip.upiTransactionId || '',
+      paidAt: json.tip.paidAt || null,
+    } : null,
     createdAt: json.createdAt,
     updatedAt: json.updatedAt,
   };

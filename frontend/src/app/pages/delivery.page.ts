@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Order } from '../core/models';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
@@ -11,7 +11,22 @@ import { STATUS_LABEL } from '../shared/status';
   selector: 'app-delivery-page',
   imports: [DatePipe, InrPipe],
   template: `
-    <div class="section-head"><h2>Your runs</h2></div>
+    <div class="section-head mb-3">
+      <div>
+        <h2>Your runs</h2>
+        <p class="muted mb-0">Deliver groceries within 10-15 minutes</p>
+      </div>
+      <div class="d-flex gap-2">
+        <div class="px-3 py-1 bg-warning-subtle text-warning-emphasis rounded-3 border border-warning-subtle text-center">
+          <small class="d-block" style="font-size: 0.68rem;">RIDER RATING</small>
+          <strong class="fs-6">⭐ {{ avgRiderRating() }}/5</strong>
+        </div>
+        <div class="px-3 py-1 bg-success-subtle text-success rounded-3 border border-success-subtle text-center">
+          <small class="d-block" style="font-size: 0.68rem;">TIPS EARNED</small>
+          <strong class="fs-6">{{ totalTips() | inr }}</strong>
+        </div>
+      </div>
+    </div>
     <div class="d-flex gap-2 mb-3">
       @for (tab of tabs; track tab.id) {
         <button class="btn" type="button" [class.btn-dark]="scope() === tab.id" [class.btn-outline-dark]="scope() !== tab.id" (click)="setScope(tab.id)">{{ tab.label }}</button>
@@ -31,7 +46,24 @@ import { STATUS_LABEL } from '../shared/status';
             <p class="mb-1 mt-2">{{ order.address.fullName }} · {{ order.address.phone }}</p>
             <p class="muted">{{ order.address.line1 }}@if (order.address.landmark) {, {{ order.address.landmark }}}<br>{{ order.address.city }} {{ order.address.pincode }}</p>
             <p>{{ order.items.length }} items · {{ order.total | inr }} · {{ order.createdAt | date:'h:mm a' }}</p>
-            <div class="d-flex gap-2 flex-wrap">
+
+            @if (order.feedback?.riderRating) {
+              <div class="mt-2 py-1 px-2 rounded bg-warning-subtle text-warning-emphasis small d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-star-fill text-warning me-1"></i> Customer Rating: <b>{{ order.feedback?.riderRating }}/5</b></span>
+                @if (order.feedback?.deliveryTags?.length) {
+                  <span class="text-secondary font-monospace" style="font-size: 0.72rem;">{{ order.feedback?.deliveryTags?.join(', ') }}</span>
+                }
+              </div>
+            }
+
+            @if (order.tip && order.tip.amount > 0) {
+              <div class="mt-1 py-1 px-2 rounded bg-success-subtle text-success small d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-cash-coin me-1"></i> Customer Tip: <b>{{ order.tip.amount | inr }}</b></span>
+                <span class="badge bg-success text-white">Direct Tip</span>
+              </div>
+            }
+
+            <div class="d-flex gap-2 flex-wrap mt-3">
               @if (scope() === 'available') {
                 <button class="btn btn-dark" type="button" (click)="accept(order)">Accept run</button>
               }
@@ -59,6 +91,17 @@ export class DeliveryPage {
     { id: 'available' as const, label: 'Open' },
     { id: 'history' as const, label: 'History' },
   ];
+
+  readonly totalTips = computed(() =>
+    this.orders().reduce((sum, o) => sum + (o.tip?.amount || 0), 0)
+  );
+
+  readonly avgRiderRating = computed(() => {
+    const rated = this.orders().filter((o) => o.feedback?.riderRating);
+    if (!rated.length) return '5.0';
+    const sum = rated.reduce((s, o) => s + (o.feedback?.riderRating || 0), 0);
+    return (sum / rated.length).toFixed(1);
+  });
 
   constructor() { void this.load(); }
 

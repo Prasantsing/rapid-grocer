@@ -113,6 +113,19 @@ const orderSchema = new mongoose.Schema(
     },
     notes: { type: String, default: '', maxlength: 240 },
     timeline: { type: [timelineSchema], default: [] },
+    feedback: {
+      storeRating: { type: Number, min: 1, max: 5 },
+      riderRating: { type: Number, min: 1, max: 5 },
+      deliveryTags: [{ type: String }],
+      comments: { type: String, default: '', maxlength: 500 },
+      submittedAt: { type: Date, default: null },
+    },
+    tip: {
+      amount: { type: Number, default: 0, min: 0 },
+      status: { type: String, enum: ['none', 'pending', 'paid'], default: 'none' },
+      upiTransactionId: { type: String, default: '' },
+      paidAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 );
