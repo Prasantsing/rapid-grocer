@@ -16,6 +16,7 @@ const orderController = require('../controllers/order.controller');
 const paymentController = require('../controllers/payment.controller');
 const notificationController = require('../controllers/notification.controller');
 const adminController = require('../controllers/admin.controller');
+const storeConfigController = require('../controllers/storeConfig.controller');
 
 const router = express.Router();
 
@@ -168,6 +169,10 @@ router.get(
   orderController.invoice
 );
 
+router.get('/store/config', storeConfigController.getPublicConfig);
+router.get('/store/coverage', validate(schemas.coverageQuerySchema), storeConfigController.checkAddressCoverage);
+
+router.post('/payments/webhook', validate(schemas.upiGatewayCallbackSchema), paymentController.gatewayCallback);
 router.post('/payments/razorpay/order', authenticate, authorize(P.ORDERS_CREATE), validate(schemas.paymentOrderSchema), paymentController.create);
 router.post('/payments/razorpay/verify', authenticate, authorize(P.ORDERS_CREATE), validate(schemas.verifyPaymentSchema), paymentController.verify);
 router.get('/payments/upi/:id', authenticate, authorize(P.ORDERS_CREATE), validate(schemas.idParamsSchema), paymentController.upiDetails);
@@ -216,6 +221,9 @@ admin.patch('/coupons/:id', authorize(P.COUPONS_WRITE), validate(schemas.updateC
 admin.delete('/coupons/:id', authorize(P.COUPONS_WRITE), validate(schemas.idParamsSchema), adminController.archiveCoupon);
 
 admin.post('/orders/:id/review-receipt', authorize(P.ORDERS_MANAGE), validate(schemas.reviewReceiptSchema), adminController.reviewReceipt);
+
+admin.get('/store/config', authorize(P.USERS_READ), storeConfigController.getAdminConfig);
+admin.put('/store/config', authorize(P.USERS_WRITE), validate(schemas.updateStoreConfigSchema), storeConfigController.updateConfig);
 
 router.use('/admin', admin);
 

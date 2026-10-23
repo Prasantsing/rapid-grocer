@@ -246,7 +246,36 @@ export interface UpiPaymentDetails {
   gpayUri: string;
   phonepeUri: string;
   paytmUri: string;
+  bhimUri?: string;
   qrCodeData: string;
+}
+
+export interface StoreConfig {
+  isOpen: boolean;
+  isCurrentlyOpen: boolean;
+  inOperatingHours: boolean;
+  currentTimeIst: string;
+  closedReason: string;
+  openingTime: string;
+  closingTime: string;
+  storeLocation: {
+    lat: number;
+    lng: number;
+    address: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  };
+  deliveryRadiusKm: number;
+  minOrderAmount: number;
+  freeDeliveryThreshold: number;
+  deliveryFee: number;
+  upiVpa: string;
+  payeeName: string;
+  supportPhone?: string;
+  supportEmail?: string;
+  webhookSecret?: string;
+  updatedAt?: string;
 }
 
 export interface UpiStatusResponse {

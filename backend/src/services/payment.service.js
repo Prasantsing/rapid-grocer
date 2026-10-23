@@ -3,6 +3,7 @@ const env = require('../config/env');
 const orderRepository = require('../repositories/order.repository');
 const Order = require('../models/Order');
 const notificationService = require('./notification.service');
+const storeConfigService = require('./storeConfig.service');
 const { presentOrder } = require('../utils/presenters');
 const ApiError = require('../utils/ApiError');
 
@@ -118,8 +119,9 @@ const paymentService = {
     if (!order || !owns(order, user)) throw new ApiError(404, 'Order not found');
     if (order.status === 'cancelled') throw new ApiError(409, 'This order was cancelled');
 
-    const upiId = '9101516662@ybl';
-    const payeeName = 'ZapBasket';
+    const config = await storeConfigService.getConfig();
+    const upiId = config.upiVpa || '9101516662@ybl';
+    const payeeName = config.payeeName || 'ZapBasket';
     const amount = Number(order.total).toFixed(2);
     const note = encodeURIComponent(`ZapBasket Order ${order.orderNumber}`);
     const tr = encodeURIComponent(order.orderNumber);
@@ -129,6 +131,7 @@ const paymentService = {
     const gpayUri = `tez://upi/pay?pa=${upiId}&pn=${encName}&am=${amount}&cu=INR&tn=${note}&tr=${tr}`;
     const phonepeUri = `phonepe://pay?pa=${upiId}&pn=${encName}&am=${amount}&cu=INR&tn=${note}&tr=${tr}`;
     const paytmUri = `paytmmp://pay?pa=${upiId}&pn=${encName}&am=${amount}&cu=INR&tn=${note}&tr=${tr}`;
+    const bhimUri = `bhim://pay?pa=${upiId}&pn=${encName}&am=${amount}&cu=INR&tn=${note}&tr=${tr}`;
 
     return {
       orderId: String(order._id),
@@ -143,6 +146,7 @@ const paymentService = {
       gpayUri,
       phonepeUri,
       paytmUri,
+      bhimUri,
       qrCodeData: genericUri,
     };
   },
@@ -230,10 +234,23 @@ const paymentService = {
       };
     }
 
+    // Idempotent: if already verified and confirmed, return success immediately
+    if (order.paymentStatus === 'paid' && (order.status === 'confirmed' || order.status === 'packed' || order.status === 'out_for_delivery' || order.status === 'delivered')) {
+      const fresh = await orderRepository.findById(order._id);
+      return {
+        verified: true,
+        status: order.status,
+        gatewayTransactionId: order.gatewayVerification?.gatewayTransactionId || gwTxId,
+        utr: order.upiTransactionId || utr,
+        order: presentOrder(fresh, 'customer'),
+      };
+    }
+
     // Success: Server-side verification confirmed!
+    const config = await storeConfigService.getConfig();
     order.paymentStatus = 'paid';
     order.status = 'confirmed';
-    order.upiId = '9101516662@ybl';
+    order.upiId = config.upiVpa || '9101516662@ybl';
     order.upiTransactionId = utr;
     order.gatewayVerification = {
       verified: true,

@@ -49,15 +49,19 @@ declare global {
               <div class="d-flex justify-content-between align-items-center w-100 flex-wrap gap-2">
                 <div class="text-start">
                   <div class="d-flex align-items-center gap-2">
-                    <strong>UPI (Google Pay, PhonePe, Paytm, QR)</strong>
+                    <strong>UPI (Google Pay, PhonePe, Paytm, BHIM, QR)</strong>
                     <span class="badge bg-success" style="font-size: 0.68rem;">RECOMMENDED</span>
                   </div>
-                  <div class="muted small mt-1">Instant payment to <b>9101516662&#64;ybl</b></div>
+                  <div class="muted small mt-1">
+                    Instant payment to <b>{{ shop.storeConfig()?.upiVpa || '9101516662@ybl' }}</b>
+                    ({{ shop.storeConfig()?.payeeName || 'ZapBasket' }})
+                  </div>
                 </div>
                 <div class="d-flex align-items-center gap-1">
                   <span class="badge bg-light text-dark border" style="font-size: 0.68rem; font-weight: 600;">GPay</span>
                   <span class="badge bg-light text-dark border" style="font-size: 0.68rem; font-weight: 600;">PhonePe</span>
                   <span class="badge bg-light text-dark border" style="font-size: 0.68rem; font-weight: 600;">Paytm</span>
+                  <span class="badge bg-light text-dark border" style="font-size: 0.68rem; font-weight: 600;">BHIM</span>
                 </div>
               </div>
             </button>
@@ -88,9 +92,31 @@ declare global {
               <button class="choice mb-2" type="button" (click)="useCoupon(coupon)">{{ coupon.code }} · {{ coupon.description }}</button>
             }
           }
-          <button class="btn btn-dark w-100 mt-2 py-2" type="button" [disabled]="placing() || !selected()" (click)="place()">
+
+          <!-- Store Closed / Minimum Order Warnings -->
+          @if (shop.storeConfig() && !shop.storeConfig()?.isCurrentlyOpen) {
+            <div class="alert alert-warning py-2 px-3 small mt-2 mb-2 text-start">
+              <i class="bi bi-clock-history me-1"></i>
+              <b>Store Closed:</b> {{ shop.storeConfig()?.closedReason || 'We are currently outside operational hours.' }}
+            </div>
+          }
+          @if (isBelowMinimumOrder()) {
+            <div class="alert alert-info py-2 px-3 small mt-2 mb-2 text-start">
+              <i class="bi bi-info-circle me-1"></i>
+              Minimum order is <b>{{ shop.storeConfig()!.minOrderAmount | inr }}</b>. Add more items to proceed.
+            </div>
+          }
+
+          <button
+            class="btn btn-dark w-100 mt-2 py-2"
+            type="button"
+            [disabled]="placing() || !selected() || isCheckoutBlocked()"
+            (click)="place()"
+          >
             @if (placing()) {
               <span>Placing order…</span>
+            } @else if (isCheckoutBlocked()) {
+              <span>Checkout Unavailable</span>
             } @else if (method() === 'upi') {
               <span>Pay {{ shop.cart()!.total | inr }} with UPI</span>
             } @else if (method() === 'cod') {
@@ -144,11 +170,26 @@ export class CheckoutPage {
     return (event.target as HTMLInputElement).value;
   }
 
+  isBelowMinimumOrder(): boolean {
+    const config = this.shop.storeConfig();
+    const cart = this.shop.cart();
+    if (!config || !cart) return false;
+    return (cart.subtotal || 0) < (config.minOrderAmount || 0);
+  }
+
+  isCheckoutBlocked(): boolean {
+    const config = this.shop.storeConfig();
+    if (config && !config.isCurrentlyOpen) return true;
+    if (this.isBelowMinimumOrder()) return true;
+    return false;
+  }
+
   async boot() {
     try {
       const [addresses, coupons] = await Promise.all([
         this.shop.loadAddresses(),
         this.shop.loadCart().then(() => this.shop.activeCoupons()),
+        this.shop.loadStoreConfig(),
       ]);
       this.addresses.set(addresses);
       this.coupons.set(coupons);

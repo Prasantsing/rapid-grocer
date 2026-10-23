@@ -375,6 +375,39 @@ const aiExtractProductSchema = z.object({
   }),
 });
 
+const updateStoreConfigSchema = z.object({
+  body: z.object({
+    isOpen: z.boolean().optional(),
+    closedReason: z.string().trim().max(250).optional(),
+    openingTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Use 24-hr format HH:mm').optional(),
+    closingTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Use 24-hr format HH:mm').optional(),
+    deliveryRadiusKm: z.coerce.number().min(0.5).max(50).optional(),
+    minOrderAmount: z.coerce.number().min(0).optional(),
+    freeDeliveryThreshold: z.coerce.number().min(0).optional(),
+    deliveryFee: z.coerce.number().min(0).optional(),
+    upiVpa: z.string().trim().min(3).max(60).optional(),
+    payeeName: z.string().trim().min(2).max(80).optional(),
+    supportPhone: z.string().trim().max(30).optional(),
+    supportEmail: z.string().trim().email().optional(),
+    webhookSecret: z.string().trim().min(6).max(80).optional(),
+    storeLocation: z.object({
+      lat: z.coerce.number().optional(),
+      lng: z.coerce.number().optional(),
+      address: z.string().trim().optional(),
+      city: z.string().trim().optional(),
+      state: z.string().trim().optional(),
+      pincode: z.string().trim().optional(),
+    }).optional(),
+  }),
+});
+
+const coverageQuerySchema = z.object({
+  query: z.object({
+    lat: z.coerce.number(),
+    lng: z.coerce.number(),
+  }),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -420,4 +453,7 @@ module.exports = {
   manualUtrSchema,
   reviewReceiptSchema,
   aiExtractProductSchema,
+  updateStoreConfigSchema,
+  coverageQuerySchema,
 };
+

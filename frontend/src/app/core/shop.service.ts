@@ -13,6 +13,7 @@ import {
   PaymentPayload,
   Product,
   ReverseGeocodeResult,
+  StoreConfig,
   UpiPaymentDetails,
   UpiStatusResponse,
 } from './models';
@@ -24,6 +25,7 @@ export class ShopService {
   readonly wishlistIds = signal<string[]>([]);
   readonly unread = signal(0);
   readonly addresses = signal<Address[]>([]);
+  readonly storeConfig = signal<StoreConfig | null>(null);
 
   reset() {
     this.cart.set(null);
@@ -261,6 +263,34 @@ export class ShopService {
 
   async markRead(id: string) {
     await this.unwrap(this.http.patch<ApiResponse<NotificationItem>>(`/api/v1/notifications/${id}/read`, {}));
+  }
+
+  async loadStoreConfig() {
+    try {
+      const config = await this.unwrap(this.http.get<ApiResponse<StoreConfig>>('/api/v1/store/config'));
+      this.storeConfig.set(config);
+      return config;
+    } catch {
+      return this.storeConfig();
+    }
+  }
+
+  getAdminStoreConfig() {
+    return this.unwrap(this.http.get<ApiResponse<StoreConfig>>('/api/v1/admin/store/config'));
+  }
+
+  async updateStoreConfig(data: Partial<StoreConfig>) {
+    const updated = await this.unwrap(this.http.put<ApiResponse<StoreConfig>>('/api/v1/admin/store/config', data));
+    this.storeConfig.set(updated);
+    return updated;
+  }
+
+  checkCoverage(lat: number, lng: number) {
+    return this.unwrap(
+      this.http.get<ApiResponse<{ eligible: boolean; distanceKm: number | null; maxRadiusKm: number }>>('/api/v1/store/coverage', {
+        params: new HttpParams().set('lat', String(lat)).set('lng', String(lng)),
+      })
+    );
   }
 
   private params(query: object) {

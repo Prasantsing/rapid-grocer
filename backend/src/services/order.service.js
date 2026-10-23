@@ -7,6 +7,7 @@ const couponRepository = require('../repositories/coupon.repository');
 const userRepository = require('../repositories/user.repository');
 const couponService = require('./coupon.service');
 const notificationService = require('./notification.service');
+const storeConfigService = require('./storeConfig.service');
 const aiService = require('./ai.service');
 const { summarize } = require('../domain/pricing');
 const { STATUS_NOTES, canActorTransition } = require('../domain/orderState');
@@ -117,6 +118,9 @@ const orderService = {
 
     const address = await addressRepository.findByIdForUser(input.addressId, user._id);
     if (!address) throw new ApiError(404, 'Address not found');
+
+    // Dynamic store status & geofence validation
+    await storeConfigService.validateDeliveryEligibility(address);
 
     const lines = [];
     for (const item of cart.items) {

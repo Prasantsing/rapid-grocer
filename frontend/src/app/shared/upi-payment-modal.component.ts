@@ -307,8 +307,7 @@ import { InrPipe } from './inr.pipe';
                   [href]="details.gpayUri"
                   (click)="onAppClicked('Google Pay')"
                   class="app-btn gpay-btn"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  title="Open Google Pay"
                 >
                   <span class="app-icon gpay-icon">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -319,7 +318,7 @@ import { InrPipe } from './inr.pipe';
                       <path d="M12 7.8c.9 0 1.7.3 2.3.9l1.7-1.7C15 6 13.6 5.4 12 5.4c-2.4 0-4.4 1.2-5.4 3.1l2.2 1.7c.4-1.4 1.7-2.4 3.2-2.4z" fill="#EA4335"/>
                     </svg>
                   </span>
-                  <span class="app-name">Google Pay</span>
+                  <span class="app-name">GPay</span>
                 </a>
 
                 <!-- PhonePe -->
@@ -327,8 +326,7 @@ import { InrPipe } from './inr.pipe';
                   [href]="details.phonepeUri"
                   (click)="onAppClicked('PhonePe')"
                   class="app-btn phonepe-btn"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  title="Open PhonePe"
                 >
                   <span class="app-icon phonepe-icon">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -344,8 +342,7 @@ import { InrPipe } from './inr.pipe';
                   [href]="details.paytmUri"
                   (click)="onAppClicked('Paytm')"
                   class="app-btn paytm-btn"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  title="Open Paytm"
                 >
                   <span class="app-icon paytm-icon">
                     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -356,13 +353,30 @@ import { InrPipe } from './inr.pipe';
                   <span class="app-name">Paytm</span>
                 </a>
 
+                <!-- BHIM UPI -->
+                @if (details.bhimUri) {
+                  <a
+                    [href]="details.bhimUri"
+                    (click)="onAppClicked('BHIM UPI')"
+                    class="app-btn bhim-btn"
+                    title="Open BHIM UPI"
+                  >
+                    <span class="app-icon bhim-icon">
+                      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <rect width="24" height="24" rx="6" fill="#0288d1"/>
+                        <path d="M7 6h6a3 3 0 0 1 3 3 2.5 2.5 0 0 1-1.5 2.3A3 3 0 0 1 16 14.5a3.5 3.5 0 0 1-3.5 3.5H7V6zm3 4h3a1 1 0 0 0 0-2h-3v2zm0 6h3.5a1.5 1.5 0 0 0 0-3H10v3z" fill="#fff"/>
+                      </svg>
+                    </span>
+                    <span class="app-name">BHIM</span>
+                  </a>
+                }
+
                 <!-- Other / Generic UPI -->
                 <a
                   [href]="details.genericUri"
                   (click)="onAppClicked('UPI App')"
                   class="app-btn other-btn"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  title="Open any installed UPI app"
                 >
                   <span class="app-icon upi-icon">
                     <i class="bi bi-wallet2"></i>
@@ -753,8 +767,8 @@ import { InrPipe } from './inr.pipe';
     /* UPI Apps Grid */
     .upi-apps-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(68px, 1fr));
+      gap: 0.45rem;
     }
 
     .app-btn {

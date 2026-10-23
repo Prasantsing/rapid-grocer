@@ -23,6 +23,7 @@ import { AdminUsersPage } from './pages/admin-users.page';
 import { AdminReportsPage } from './pages/admin-reports.page';
 import { AdminInventoryPage } from './pages/admin-inventory.page';
 import { AdminGstBillingPage } from './pages/admin-gst-billing.page';
+import { AdminSettingsPage } from './pages/admin-settings.page';
 import { DeliveryPage } from './pages/delivery.page';
 
 export const routes: Routes = [
@@ -60,6 +61,7 @@ export const routes: Routes = [
       { path: 'coupons', component: AdminCouponsPage },
       { path: 'users', component: AdminUsersPage },
       { path: 'reports', component: AdminReportsPage },
+      { path: 'settings', component: AdminSettingsPage },
     ],
   },
   {
