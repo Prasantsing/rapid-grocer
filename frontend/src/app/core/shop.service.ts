@@ -14,6 +14,7 @@ import {
   Product,
   ReverseGeocodeResult,
   StoreConfig,
+  MessageLog,
   UpiPaymentDetails,
   UpiStatusResponse,
 } from './models';
@@ -289,6 +290,23 @@ export class ShopService {
     return this.unwrap(
       this.http.get<ApiResponse<{ eligible: boolean; distanceKm: number | null; maxRadiusKm: number }>>('/api/v1/store/coverage', {
         params: new HttpParams().set('lat', String(lat)).set('lng', String(lng)),
+      })
+    );
+  }
+
+  sendTestMessage(channel: 'sms' | 'whatsapp', phone: string) {
+    return this.unwrap(
+      this.http.post<ApiResponse<{ message: string; log: MessageLog }>>('/api/v1/admin/messaging/test', {
+        channel,
+        phone,
+      })
+    );
+  }
+
+  getMessageLogs(limit = 30) {
+    return this.unwrap(
+      this.http.get<ApiResponse<MessageLog[]>>('/api/v1/admin/messaging/logs', {
+        params: new HttpParams().set('limit', String(limit)),
       })
     );
   }

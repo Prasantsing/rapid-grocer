@@ -394,6 +394,15 @@ const updateStoreConfigSchema = z.object({
     cancellationWindowMinutes: z.coerce.number().min(1).max(30).optional(),
     allowDirectRiderContact: z.boolean().optional(),
     nonReturnableNotice: z.string().trim().max(300).optional(),
+    enableSmsAlerts: z.boolean().optional(),
+    enableWhatsAppAlerts: z.boolean().optional(),
+    smsProvider: z.string().trim().max(40).optional(),
+    smsSenderId: z.string().trim().max(15).optional(),
+    smsApiKey: z.string().trim().max(120).optional(),
+    whatsAppProvider: z.string().trim().max(40).optional(),
+    whatsAppApiKey: z.string().trim().max(200).optional(),
+    whatsAppPhoneNumberId: z.string().trim().max(60).optional(),
+    whatsAppFromNumber: z.string().trim().max(30).optional(),
     storeLocation: z.object({
       lat: z.coerce.number().optional(),
       lng: z.coerce.number().optional(),
@@ -402,6 +411,13 @@ const updateStoreConfigSchema = z.object({
       state: z.string().trim().optional(),
       pincode: z.string().trim().optional(),
     }).optional(),
+  }),
+});
+
+const sendTestMessageSchema = z.object({
+  body: z.object({
+    channel: z.enum(['sms', 'whatsapp']),
+    phone: z.string().trim().min(10).max(20),
   }),
 });
 
@@ -459,5 +475,6 @@ module.exports = {
   aiExtractProductSchema,
   updateStoreConfigSchema,
   coverageQuerySchema,
+  sendTestMessageSchema,
 };
 

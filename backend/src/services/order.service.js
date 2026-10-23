@@ -8,6 +8,7 @@ const userRepository = require('../repositories/user.repository');
 const couponService = require('./coupon.service');
 const notificationService = require('./notification.service');
 const storeConfigService = require('./storeConfig.service');
+const messagingService = require('./messaging.service');
 const aiService = require('./ai.service');
 const { summarize } = require('../domain/pricing');
 const { STATUS_NOTES, canActorTransition } = require('../domain/orderState');
@@ -208,6 +209,7 @@ const orderService = {
         `${order.orderNumber} is in. We will confirm it shortly.`,
         `/orders/${order._id}`
       );
+      void messagingService.dispatchOrderNotification('order_placed', order);
 
       const fresh = await orderRepository.findById(order._id);
       return presentOrder(fresh, user.role);
@@ -265,6 +267,7 @@ const orderService = {
     });
     await orderRepository.save(order);
     await notify(ownerId(order), 'Order cancelled', `${order.orderNumber} has been cancelled.`, `/orders/${order._id}`);
+    void messagingService.dispatchOrderNotification('order_cancelled', order);
     const fresh = await orderRepository.findById(order._id);
     return presentOrder(fresh, user.role);
   },
@@ -388,6 +391,18 @@ const orderService = {
       `${order.orderNumber}: ${note || STATUS_NOTES[status]}`,
       `/orders/${order._id}`
     );
+
+    const eventMap = {
+      confirmed: 'order_confirmed',
+      packed: 'order_packed',
+      out_for_delivery: 'out_for_delivery',
+      delivered: 'delivered',
+      cancelled: 'order_cancelled',
+    };
+    if (eventMap[status]) {
+      void messagingService.dispatchOrderNotification(eventMap[status], order);
+    }
+
     const fresh = await orderRepository.findById(order._id);
     return presentOrder(fresh, user.role);
   },
@@ -450,6 +465,10 @@ const orderService = {
     await orderRepository.save(order);
     await notify(partner._id, 'Delivery assigned', `${order.orderNumber} is ready for you.`, '/delivery');
     await notify(ownerId(order), 'Rider assigned', `${partner.name} will deliver ${order.orderNumber}.`, `/orders/${order._id}`);
+    void messagingService.dispatchOrderNotification('out_for_delivery', order, {
+      riderName: partner.name,
+      riderPhone: partner.phone,
+    });
     const fresh = await orderRepository.findById(order._id);
     return presentOrder(fresh, 'admin');
   },

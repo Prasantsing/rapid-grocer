@@ -83,6 +83,15 @@ const storeConfigService = {
       cancellationWindowMinutes: config.cancellationWindowMinutes || 3,
       allowDirectRiderContact: config.allowDirectRiderContact !== false,
       nonReturnableNotice: config.nonReturnableNotice || 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+      enableSmsAlerts: config.enableSmsAlerts !== false,
+      enableWhatsAppAlerts: config.enableWhatsAppAlerts !== false,
+      smsProvider: config.smsProvider || 'fast2sms',
+      smsSenderId: config.smsSenderId || 'ZAPBKT',
+      smsApiKey: config.smsApiKey || '',
+      whatsAppProvider: config.whatsAppProvider || 'meta',
+      whatsAppApiKey: config.whatsAppApiKey || '',
+      whatsAppPhoneNumberId: config.whatsAppPhoneNumberId || '',
+      whatsAppFromNumber: config.whatsAppFromNumber || '+91 9101516662',
       updatedAt: config.updatedAt || new Date(),
     };
   },
@@ -94,6 +103,8 @@ const storeConfigService = {
     return {
       ...publicData,
       webhookSecret: config.webhookSecret || 'zb_webhook_secret_live',
+      smsApiKey: config.smsApiKey || '',
+      whatsAppApiKey: config.whatsAppApiKey || '',
     };
   },
 
@@ -117,6 +128,15 @@ const storeConfigService = {
       'cancellationWindowMinutes',
       'allowDirectRiderContact',
       'nonReturnableNotice',
+      'enableSmsAlerts',
+      'enableWhatsAppAlerts',
+      'smsProvider',
+      'smsSenderId',
+      'smsApiKey',
+      'whatsAppProvider',
+      'whatsAppApiKey',
+      'whatsAppPhoneNumberId',
+      'whatsAppFromNumber',
     ];
 
     const cleanPatch = {};

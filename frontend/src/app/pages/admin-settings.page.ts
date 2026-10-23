@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
-import { StoreConfig } from '../core/models';
+import { StoreConfig, MessageLog } from '../core/models';
 import { InrPipe } from '../shared/inr.pipe';
 import { errorMessage } from '../core/http-error';
 
@@ -499,7 +499,295 @@ import { errorMessage } from '../core/http-error';
                 </div>
               </div>
             </div>
+
+            <!-- 5. Automated Customer SMS & WhatsApp Notifications -->
+            <div class="card border-0 shadow-sm rounded-4 mt-4 mb-4">
+              <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info-subtle text-info-emphasis">
+                      <i class="bi bi-chat-dots fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0">Automated Order Alerts</h5>
+                      <small class="text-muted">Real-time WhatsApp & SMS updates for customers</small>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="toggleLogs()"
+                  >
+                    <i class="bi bi-clock-history me-1"></i>
+                    {{ showLogs() ? 'Hide Audit Logs' : 'View Message Logs' }}
+                  </button>
+                </div>
+              </div>
+              <div class="card-body p-4 pt-2">
+                <!-- Master Switches -->
+                <div class="row g-3 mb-3">
+                  <div class="col-sm-6">
+                    <div class="form-check form-switch fs-6 p-2 rounded-3 bg-light border">
+                      <input
+                        class="form-check-input ms-0 me-2"
+                        type="checkbox"
+                        role="switch"
+                        id="enableWhatsAppSwitch"
+                        [(ngModel)]="formData.enableWhatsAppAlerts"
+                      />
+                      <label class="form-check-label fw-bold small" for="enableWhatsAppSwitch">
+                        <i class="bi bi-whatsapp text-success me-1"></i>
+                        WhatsApp Alerts
+                        @if (formData.enableWhatsAppAlerts) {
+                          <span class="badge bg-success text-white ms-1">Active</span>
+                        } @else {
+                          <span class="badge bg-secondary ms-1">Disabled</span>
+                        }
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="form-check form-switch fs-6 p-2 rounded-3 bg-light border">
+                      <input
+                        class="form-check-input ms-0 me-2"
+                        type="checkbox"
+                        role="switch"
+                        id="enableSmsSwitch"
+                        [(ngModel)]="formData.enableSmsAlerts"
+                      />
+                      <label class="form-check-label fw-bold small" for="enableSmsSwitch">
+                        <i class="bi bi-chat-text text-primary me-1"></i>
+                        Transactional SMS
+                        @if (formData.enableSmsAlerts) {
+                          <span class="badge bg-primary text-white ms-1">Active</span>
+                        } @else {
+                          <span class="badge bg-secondary ms-1">Disabled</span>
+                        }
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- WhatsApp Gateway Config -->
+                <div class="p-3 rounded-3 bg-light border mb-3">
+                  <div class="fw-bold small mb-2 d-flex align-items-center gap-1 text-success">
+                    <i class="bi bi-whatsapp"></i> WhatsApp Cloud API Configuration
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-sm-6">
+                      <label for="waProvider" class="form-label small fw-semibold">Provider Engine</label>
+                      <select id="waProvider" class="form-select form-select-sm" [(ngModel)]="formData.whatsAppProvider">
+                        <option value="meta">Meta Graph Cloud API (Official)</option>
+                        <option value="gupshup">Gupshup Enterprise</option>
+                        <option value="twilio">Twilio Programmable WhatsApp</option>
+                        <option value="custom_webhook">Custom Webhook Dispatch</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-6">
+                      <label for="waPhoneId" class="form-label small fw-semibold">Meta Phone Number ID</label>
+                      <input
+                        id="waPhoneId"
+                        type="text"
+                        class="form-control form-control-sm font-monospace"
+                        [(ngModel)]="formData.whatsAppPhoneNumberId"
+                        placeholder="e.g. 109849284920492"
+                      />
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <label for="waToken" class="form-label small fw-semibold">Permanent Access Token / API Key</label>
+                    <input
+                      id="waToken"
+                      type="password"
+                      class="form-control form-control-sm font-monospace"
+                      [(ngModel)]="formData.whatsAppApiKey"
+                      placeholder="EAA..."
+                    />
+                    <div class="form-text small" style="font-size: 0.72rem;">
+                      Leave empty to run in zero-cost <b>Simulated Mode</b> (writes full payload to audit log for validation).
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SMS Gateway Config -->
+                <div class="p-3 rounded-3 bg-light border mb-3">
+                  <div class="fw-bold small mb-2 d-flex align-items-center gap-1 text-primary">
+                    <i class="bi bi-chat-left-text"></i> SMS Gateway (DLT Compliant)
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-sm-6">
+                      <label for="smsProvider" class="form-label small fw-semibold">SMS Provider</label>
+                      <select id="smsProvider" class="form-select form-select-sm" [(ngModel)]="formData.smsProvider">
+                        <option value="fast2sms">Fast2SMS (Quick OTP/Transactional)</option>
+                        <option value="gupshup">Gupshup Enterprise SMS</option>
+                        <option value="twilio">Twilio Global SMS</option>
+                        <option value="custom_webhook">Custom Webhook</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-6">
+                      <label for="smsSenderId" class="form-label small fw-semibold">DLT Header / Sender ID</label>
+                      <input
+                        id="smsSenderId"
+                        type="text"
+                        class="form-control form-control-sm font-monospace"
+                        [(ngModel)]="formData.smsSenderId"
+                        placeholder="ZAPBKT"
+                        maxlength="6"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label for="smsKey" class="form-label small fw-semibold">SMS Gateway API Key</label>
+                    <input
+                      id="smsKey"
+                      type="password"
+                      class="form-control form-control-sm font-monospace"
+                      [(ngModel)]="formData.smsApiKey"
+                      placeholder="Fast2SMS authorization key"
+                    />
+                  </div>
+                </div>
+
+                <!-- Live Dispatch Test Station -->
+                <div class="p-3 rounded-3 border bg-white shadow-xs">
+                  <div class="fw-bold small mb-2 text-dark d-flex align-items-center gap-1">
+                    <i class="bi bi-broadcast text-danger"></i> Live Gateway Test Station
+                  </div>
+                  <div class="row g-2 align-items-end">
+                    <div class="col-sm-6">
+                      <label for="testPhone" class="form-label small fw-semibold">Recipient Mobile Number</label>
+                      <input
+                        id="testPhone"
+                        type="text"
+                        class="form-control form-control-sm"
+                        [(ngModel)]="testPhone"
+                        placeholder="+91 9101516662"
+                      />
+                    </div>
+                    <div class="col-sm-3">
+                      <label for="testChannel" class="form-label small fw-semibold">Channel</label>
+                      <select id="testChannel" class="form-select form-select-sm" [(ngModel)]="testChannel">
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="sms">SMS</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-3">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-dark w-100 fw-bold"
+                        [disabled]="isTestingAlert()"
+                        (click)="sendTestAlert()"
+                      >
+                        @if (isTestingAlert()) {
+                          <span class="spinner-border spinner-border-sm me-1"></span>
+                        } @else {
+                          <i class="bi bi-send me-1"></i>
+                        }
+                        Send Test
+                      </button>
+                    </div>
+                  </div>
+                  @if (testAlertResult()) {
+                    <div class="alert alert-success py-2 px-3 mt-2 mb-0 rounded-3 small">
+                      <i class="bi bi-check-circle-fill me-1"></i> {{ testAlertResult() }}
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- Full-Width Live Message Logs Drawer -->
+          @if (showLogs()) {
+            <div class="col-12 mt-4">
+              <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-secondary-subtle text-secondary">
+                      <i class="bi bi-journal-text fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0">Transactional Message Dispatch Audit Logs</h5>
+                      <small class="text-muted">Real-time delivery history across SMS and WhatsApp channels</small>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadMessageLogs()">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Logs
+                  </button>
+                </div>
+                <div class="card-body p-4 pt-2">
+                  @if (isLoadingLogs()) {
+                    <div class="text-center py-4 text-muted small">Loading message dispatch records…</div>
+                  } @else if (messageLogs().length === 0) {
+                    <div class="text-center py-4 text-muted small">
+                      No transactional messages dispatched yet. Place a test order or use the Test Station above.
+                    </div>
+                  } @else {
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.82rem;">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Time</th>
+                            <th>Channel</th>
+                            <th>Event</th>
+                            <th>Recipient</th>
+                            <th>Order</th>
+                            <th>Status</th>
+                            <th>Message Preview</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (log of messageLogs(); track log._id || log.id) {
+                            <tr>
+                              <td class="text-muted text-nowrap font-monospace" style="font-size: 0.75rem;">
+                                {{ log.createdAt | date:'d MMM, h:mm:ss a' }}
+                              </td>
+                              <td>
+                                @if (log.channel === 'whatsapp') {
+                                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                                  </span>
+                                } @else {
+                                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                    <i class="bi bi-chat-text me-1"></i> SMS
+                                  </span>
+                                }
+                              </td>
+                              <td>
+                                <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.72rem;">
+                                  {{ log.eventType }}
+                                </span>
+                              </td>
+                              <td class="font-monospace text-nowrap">{{ log.recipientPhone }}</td>
+                              <td class="font-monospace">
+                                @if (log.orderNumber) {
+                                  <b>#{{ log.orderNumber }}</b>
+                                } @else {
+                                  <span class="text-muted">—</span>
+                                }
+                              </td>
+                              <td>
+                                @if (log.status === 'sent') {
+                                  <span class="badge bg-success text-white">Sent</span>
+                                } @else if (log.status === 'simulated') {
+                                  <span class="badge bg-secondary-subtle text-secondary border">Simulated</span>
+                                } @else {
+                                  <span class="badge bg-danger text-white">Failed</span>
+                                }
+                              </td>
+                              <td class="text-truncate" style="max-width: 280px;" [title]="log.messageBody">
+                                {{ log.messageBody }}
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
         </div>
       }
     </div>
@@ -526,6 +814,15 @@ export class AdminSettingsPage implements OnInit {
     cancellationWindowMinutes: 3,
     allowDirectRiderContact: true,
     nonReturnableNotice: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+    enableSmsAlerts: true,
+    enableWhatsAppAlerts: true,
+    smsProvider: 'fast2sms',
+    smsSenderId: 'ZAPBKT',
+    smsApiKey: '',
+    whatsAppProvider: 'meta',
+    whatsAppApiKey: '',
+    whatsAppPhoneNumberId: '',
+    whatsAppFromNumber: '+91 9101516662',
     upiVpa: '9101516662@ybl',
     payeeName: 'ZapBasket',
     webhookSecret: 'zb_webhook_secret_live',
@@ -541,8 +838,59 @@ export class AdminSettingsPage implements OnInit {
   testCoords = '12.9352, 77.6245';
   readonly testResult = signal<{ distanceKm: number; eligible: boolean } | null>(null);
 
+  testPhone = '+91 9101516662';
+  testChannel: 'sms' | 'whatsapp' = 'whatsapp';
+  readonly isTestingAlert = signal(false);
+  readonly testAlertResult = signal<string | null>(null);
+
+  readonly showLogs = signal(false);
+  readonly messageLogs = signal<MessageLog[]>([]);
+  readonly isLoadingLogs = signal(false);
+
   ngOnInit() {
     void this.loadConfig();
+  }
+
+  toggleLogs() {
+    this.showLogs.update((v) => !v);
+    if (this.showLogs() && this.messageLogs().length === 0) {
+      void this.loadMessageLogs();
+    }
+  }
+
+  async loadMessageLogs() {
+    this.isLoadingLogs.set(true);
+    try {
+      const logs = await this.shop.getMessageLogs(30);
+      this.messageLogs.set(logs);
+    } catch (err) {
+      this.toasts.error(errorMessage(err, 'Could not fetch message dispatch logs'));
+    } finally {
+      this.isLoadingLogs.set(false);
+    }
+  }
+
+  async sendTestAlert() {
+    if (!this.testPhone) {
+      this.toasts.error('Please enter a recipient phone number');
+      return;
+    }
+    this.isTestingAlert.set(true);
+    this.testAlertResult.set(null);
+    try {
+      const res = await this.shop.sendTestMessage(this.testChannel, this.testPhone);
+      this.testAlertResult.set(
+        `${this.testChannel.toUpperCase()} alert triggered (${res.log?.status || 'simulated'}). Log ID: #${res.log?._id || 'ok'}`
+      );
+      this.toasts.show(`Test ${this.testChannel.toUpperCase()} dispatched successfully!`);
+      if (this.showLogs()) {
+        void this.loadMessageLogs();
+      }
+    } catch (err) {
+      this.toasts.error(errorMessage(err, 'Failed to dispatch test alert'));
+    } finally {
+      this.isTestingAlert.set(false);
+    }
   }
 
   async loadConfig() {
@@ -565,6 +913,15 @@ export class AdminSettingsPage implements OnInit {
         nonReturnableNotice:
           data.nonReturnableNotice ||
           'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+        enableSmsAlerts: data.enableSmsAlerts ?? true,
+        enableWhatsAppAlerts: data.enableWhatsAppAlerts ?? true,
+        smsProvider: data.smsProvider || 'fast2sms',
+        smsSenderId: data.smsSenderId || 'ZAPBKT',
+        smsApiKey: data.smsApiKey || '',
+        whatsAppProvider: data.whatsAppProvider || 'meta',
+        whatsAppApiKey: data.whatsAppApiKey || '',
+        whatsAppPhoneNumberId: data.whatsAppPhoneNumberId || '',
+        whatsAppFromNumber: data.whatsAppFromNumber || '+91 9101516662',
         upiVpa: data.upiVpa || '9101516662@ybl',
         payeeName: data.payeeName || 'ZapBasket',
         webhookSecret: data.webhookSecret || 'zb_webhook_secret_live',

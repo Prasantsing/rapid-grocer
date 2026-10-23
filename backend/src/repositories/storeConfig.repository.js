@@ -27,6 +27,15 @@ const DEFAULT_CONFIG = {
   cancellationWindowMinutes: 3,
   allowDirectRiderContact: true,
   nonReturnableNotice: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+  enableSmsAlerts: true,
+  enableWhatsAppAlerts: true,
+  smsProvider: 'fast2sms',
+  smsSenderId: 'ZAPBKT',
+  smsApiKey: '',
+  whatsAppProvider: 'meta',
+  whatsAppApiKey: '',
+  whatsAppPhoneNumberId: '',
+  whatsAppFromNumber: '+91 9101516662',
 };
 
 let inMemoryConfig = { ...DEFAULT_CONFIG };

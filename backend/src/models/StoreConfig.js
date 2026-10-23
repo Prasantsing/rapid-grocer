@@ -93,6 +93,42 @@ const storeConfigSchema = new mongoose.Schema(
       type: String,
       default: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
     },
+    enableSmsAlerts: {
+      type: Boolean,
+      default: true,
+    },
+    enableWhatsAppAlerts: {
+      type: Boolean,
+      default: true,
+    },
+    smsProvider: {
+      type: String,
+      default: 'fast2sms',
+    },
+    smsSenderId: {
+      type: String,
+      default: 'ZAPBKT',
+    },
+    smsApiKey: {
+      type: String,
+      default: '',
+    },
+    whatsAppProvider: {
+      type: String,
+      default: 'meta',
+    },
+    whatsAppApiKey: {
+      type: String,
+      default: '',
+    },
+    whatsAppPhoneNumberId: {
+      type: String,
+      default: '',
+    },
+    whatsAppFromNumber: {
+      type: String,
+      default: '+91 9101516662',
+    },
   },
   {
     timestamps: true,

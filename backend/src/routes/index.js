@@ -17,6 +17,7 @@ const paymentController = require('../controllers/payment.controller');
 const notificationController = require('../controllers/notification.controller');
 const adminController = require('../controllers/admin.controller');
 const storeConfigController = require('../controllers/storeConfig.controller');
+const messagingController = require('../controllers/messaging.controller');
 
 const router = express.Router();
 
@@ -224,6 +225,9 @@ admin.post('/orders/:id/review-receipt', authorize(P.ORDERS_MANAGE), validate(sc
 
 admin.get('/store/config', authorize(P.USERS_READ), storeConfigController.getAdminConfig);
 admin.put('/store/config', authorize(P.USERS_WRITE), validate(schemas.updateStoreConfigSchema), storeConfigController.updateConfig);
+
+admin.post('/messaging/test', authorize(P.USERS_WRITE), validate(schemas.sendTestMessageSchema), messagingController.sendTestMessage);
+admin.get('/messaging/logs', authorize(P.USERS_READ), messagingController.getLogs);
 
 router.use('/admin', admin);
 

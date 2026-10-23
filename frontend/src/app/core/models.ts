@@ -282,7 +282,31 @@ export interface StoreConfig {
   allowDirectRiderContact?: boolean;
   nonReturnableNotice?: string;
   webhookSecret?: string;
+  enableSmsAlerts?: boolean;
+  enableWhatsAppAlerts?: boolean;
+  smsProvider?: string;
+  smsSenderId?: string;
+  smsApiKey?: string;
+  whatsAppProvider?: string;
+  whatsAppApiKey?: string;
+  whatsAppPhoneNumberId?: string;
+  whatsAppFromNumber?: string;
   updatedAt?: string;
+}
+
+export interface MessageLog {
+  id?: string;
+  _id?: string;
+  orderId?: string | null;
+  orderNumber?: string;
+  channel: 'sms' | 'whatsapp';
+  recipientPhone: string;
+  eventType: string;
+  messageBody: string;
+  status: 'sent' | 'simulated' | 'failed';
+  provider: string;
+  error?: string;
+  createdAt: string;
 }
 
 export interface UpiStatusResponse {

@@ -187,6 +187,15 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
             <i class="bi bi-download"></i> Download Tax Invoice (GST)
           </button>
 
+          <a
+            class="btn btn-outline-success w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1"
+            target="_blank"
+            rel="noopener"
+            [href]="shareOrderWhatsAppLink(current)"
+          >
+            <i class="bi bi-whatsapp"></i> Share Tracking on WhatsApp
+          </a>
+
           <!-- Customer Self-Cancellation & Dynamic Grace Window -->
           @if (current.status === 'cancelled') {
             <div class="alert alert-danger py-2 px-3 mt-2 mb-0 rounded-3 small">
@@ -378,6 +387,13 @@ export class OrderDetailPage implements OnDestroy {
     const phone = digits.length === 10 ? `91${digits}` : (digits.length === 12 ? digits : '919101516662');
     const text = encodeURIComponent(`Hi ZapBasket Support, I need assistance with order #${order.orderNumber}`);
     return `https://wa.me/${phone}?text=${text}`;
+  }
+
+  shareOrderWhatsAppLink(order: Order): string {
+    const text = encodeURIComponent(
+      `Track my ZapBasket rapid grocery order #${order.orderNumber} (₹${order.total}): ${window.location.origin}/orders/${order.id}`
+    );
+    return `https://api.whatsapp.com/send?text=${text}`;
   }
 
   canCancel(order: Order) {
