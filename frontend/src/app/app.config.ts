@@ -1,10 +1,11 @@
-import { ApplicationConfig, provideAppInitializer, inject } from '@angular/core';
+import { ApplicationConfig, provideAppInitializer, inject, ErrorHandler } from '@angular/core';
 import { provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
 import { AuthService } from './core/auth.service';
+import { GlobalChunkErrorHandler } from './core/chunk-error.handler';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -13,5 +14,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAppInitializer(() => inject(AuthService).bootstrap()),
+    { provide: ErrorHandler, useClass: GlobalChunkErrorHandler },
   ],
 };

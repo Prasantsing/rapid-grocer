@@ -26,7 +26,7 @@ interface RouteStep {
 @Component({
   selector: 'app-rider-navigation-modal',
   standalone: true,
-  imports: [CommonModule, InrPipe],
+  imports: [CommonModule],
   template: `
     <div class="rider-modal-backdrop" (click)="closeModal()">
       <div class="rider-modal-dialog" (click)="$event.stopPropagation()">

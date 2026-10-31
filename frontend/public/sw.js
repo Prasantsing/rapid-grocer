@@ -1,7 +1,5 @@
-const CACHE_NAME = 'zapbasket-cache-v1';
+const CACHE_NAME = 'zapbasket-cache-v3';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/icon-192.png',
@@ -32,6 +30,15 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+  }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -56,15 +63,52 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation requests (HTML pages): Network-first with cache fallback
+  // Navigation requests (HTML pages): ALWAYS Network-first so the browser gets the latest script hashes
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html') || caches.match('/'))
+      fetch(event.request).catch(() => caches.match('/index.html'))
     );
     return;
   }
 
-  // Static assets (CSS, JS, Fonts, Images): Cache-first with network fallback
+  // JavaScript chunks and module scripts: Network-first to ensure newest code, validate MIME type
+  const isScript = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || url.pathname.includes('chunk-');
+  if (isScript) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const cType = networkResponse.headers.get('content-type') || '';
+            // Only cache valid javascript files; never cache HTML fallback as JS!
+            if (cType.includes('javascript')) {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) {
+            const cType = cached.headers.get('content-type') || '';
+            if (cType.includes('javascript')) {
+              return cached;
+            }
+            // Corrupt cached entry (e.g. HTML served for JS), remove it
+            const cache = await caches.open(CACHE_NAME);
+            await cache.delete(event.request);
+          }
+          return new Response('/* Chunk offline or not found */', {
+            status: 404,
+            statusText: 'Not Found',
+            headers: { 'Content-Type': 'application/javascript; charset=UTF-8' },
+          });
+        })
+    );
+    return;
+  }
+
+  // Other static assets (CSS, Fonts, Images): Cache-first with network fallback
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

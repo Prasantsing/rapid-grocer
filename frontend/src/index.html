@@ -20,6 +20,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,680&family=Outfit:wght@380;460;560;680&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    (function () {
+      function recoverChunkError(ev) {
+        var msg = (ev && (ev.message || (ev.reason && ev.reason.message))) || String(ev || '');
+        if (/Failed to fetch dynamically imported module|Loading chunk|Importing a module script failed/i.test(msg)) {
+          var key = 'zap_chunk_reload_ts';
+          var now = Date.now();
+          var last = parseInt(sessionStorage.getItem(key) || '0', 10);
+          if (now - last > 12000) {
+            sessionStorage.setItem(key, String(now));
+            if ('caches' in window) {
+              caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              }).finally(function () {
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
+            }
+          }
+        }
+      }
+      window.addEventListener('error', recoverChunkError);
+      window.addEventListener('unhandledrejection', function (e) {
+        recoverChunkError(e.reason || e);
+      });
+    })();
+  </script>
 </head>
 <body>
   <app-root></app-root>

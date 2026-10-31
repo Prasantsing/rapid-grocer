@@ -12,7 +12,7 @@ import { ThemeService } from '../core/theme.service';
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, InrPipe, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="container-fluid p-3 p-md-4">
       <!-- Header -->
