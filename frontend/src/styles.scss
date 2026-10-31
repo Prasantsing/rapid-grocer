@@ -282,7 +282,7 @@ $nav-link-color: #cbd5e1;
   }
 }
 
-[data-theme="light"] {
+:root:not([data-theme="dark"]), [data-theme="light"] {
   color: #0f172a;
 
   .text-dark {
