@@ -45,10 +45,13 @@ app.use(cookieParser());
 
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist, {
-    maxAge: env.isProd ? '7d' : 0,
+    maxAge: 0,
+    etag: false,
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('index.html')) {
+      if (filePath.endsWith('index.html') || filePath.includes('brand-logo') || filePath.includes('icon-')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
       }
     },
   }));

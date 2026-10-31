@@ -126,6 +126,44 @@ const orderSchema = new mongoose.Schema(
       upiTransactionId: { type: String, default: '' },
       paidAt: { type: Date, default: null },
     },
+    picking: {
+      isPacked: { type: Boolean, default: false },
+      packedAt: { type: Date, default: null },
+      packedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      itemsChecked: [{ type: mongoose.Schema.Types.ObjectId }],
+      bagBarcode: { type: String, default: '' },
+    },
+    deliveryOtp: {
+      code: { type: String, default: '' },
+      generatedAt: { type: Date, default: null },
+      verifiedAt: { type: Date, default: null },
+      verifiedBy: {
+        type: String,
+        enum: ['none', 'customer_otp', 'admin_bypass'],
+        default: 'none',
+      },
+      resendCount: { type: Number, default: 0 },
+      adminBypassNote: { type: String, default: '' },
+    },
+    claims: [
+      {
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+        productName: { type: String, default: '' },
+        reason: {
+          type: String,
+          enum: ['damaged_spoiled', 'missing_item', 'wrong_item', 'expired', 'quality_issue'],
+          required: true,
+        },
+        comments: { type: String, default: '', maxlength: 500 },
+        photoUrl: { type: String, default: '' },
+        refundAmount: { type: Number, required: true, min: 0 },
+        status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+        adminNote: { type: String, default: '' },
+        createdAt: { type: Date, default: Date.now },
+        resolvedAt: { type: Date, default: null },
+        resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      },
+    ],
   },
   { timestamps: true }
 );

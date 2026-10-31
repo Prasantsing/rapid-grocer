@@ -93,6 +93,14 @@ const productBody = z.object({
   emoji: z.string().trim().min(1).max(8).optional(),
   tint: tint.optional(),
   imageUrl: z.string().trim().max(10000000).optional(),
+  images: z.array(z.string().trim().max(10000000)).max(6).optional(),
+  imageSlots: z
+    .object({
+      front: z.string().trim().max(10000000).optional().default(''),
+      back: z.string().trim().max(10000000).optional().default(''),
+      detail: z.string().trim().max(10000000).optional().default(''),
+    })
+    .optional(),
   tags: z.array(z.string().trim().min(1).max(30)).max(12).optional(),
   isActive: z.boolean().optional(),
 });
@@ -385,7 +393,7 @@ const updateStoreConfigSchema = z.object({
     minOrderAmount: z.coerce.number().min(0).optional(),
     freeDeliveryThreshold: z.coerce.number().min(0).optional(),
     deliveryFee: z.coerce.number().min(0).optional(),
-    upiVpa: z.string().trim().min(3).max(60).optional(),
+    upiVpa: z.string().trim().regex(/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/, 'Invalid UPI VPA format (e.g. merchant@ybl or phone@okaxis)').optional(),
     payeeName: z.string().trim().min(2).max(80).optional(),
     supportPhone: z.string().trim().max(30).optional(),
     supportEmail: z.string().trim().email().optional(),
@@ -394,6 +402,8 @@ const updateStoreConfigSchema = z.object({
     cancellationWindowMinutes: z.coerce.number().min(1).max(30).optional(),
     allowDirectRiderContact: z.boolean().optional(),
     nonReturnableNotice: z.string().trim().max(300).optional(),
+    fssaiLicense: z.string().trim().regex(/^\d{14}$/, 'FSSAI License must be a 14-digit number').optional(),
+    showDemoAccountsOnLogin: z.boolean().optional(),
     enableSmsAlerts: z.boolean().optional(),
     enableWhatsAppAlerts: z.boolean().optional(),
     smsProvider: z.string().trim().max(40).optional(),
@@ -411,13 +421,19 @@ const updateStoreConfigSchema = z.object({
       state: z.string().trim().optional(),
       pincode: z.string().trim().optional(),
     }).optional(),
+    theme: z.object({
+      preset: z.string().trim().optional(),
+      primaryColor: z.string().trim().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Must be a valid hex color code').optional(),
+      accentColor: z.string().trim().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Must be a valid hex color code').optional(),
+      surfaceMode: z.string().trim().optional(),
+    }).optional(),
   }),
 });
 
 const sendTestMessageSchema = z.object({
   body: z.object({
-    channel: z.enum(['sms', 'whatsapp']),
-    phone: z.string().trim().min(10).max(20),
+    channel: z.enum(['sms', 'whatsapp', 'push']),
+    phone: z.string().trim().min(5).max(50).optional().default(''),
   }),
 });
 
@@ -446,7 +462,87 @@ const submitTipSchema = z.object({
   }),
 });
 
+const packOrderSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    itemsChecked: z.array(objectId).optional().default([]),
+    bagBarcode: z.string().trim().max(100).optional().default(''),
+  }),
+});
+
+const submitClaimSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    productId: objectId,
+    reason: z.enum(['damaged_spoiled', 'missing_item', 'wrong_item', 'expired', 'quality_issue']),
+    comments: z.string().trim().max(500).optional().default(''),
+    photoUrl: z.string().trim().optional().default(''),
+  }),
+});
+
+const resolveClaimSchema = z.object({
+  params: z.object({ id: objectId, claimId: objectId }),
+  body: z.object({
+    action: z.enum(['approved', 'rejected']),
+    adminNote: z.string().trim().max(500).optional().default(''),
+  }),
+});
+
+const settleRiderCashSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    amount: z.number().min(1).max(50000),
+    note: z.string().trim().max(300).optional().default('End-of-shift COD deposit settled'),
+  }),
+});
+
+const fcmTokenSchema = z.object({
+  body: z.object({
+    token: z.string().trim().min(8, 'Token is required'),
+    device: z.string().trim().max(50).optional(),
+  }),
+});
+
+const notificationPreferencesSchema = z.object({
+  body: z.object({
+    orderUpdates: z.boolean().optional(),
+    promotionalAlerts: z.boolean().optional(),
+  }),
+});
+
+const broadcastPromoSchema = z.object({
+  body: z.object({
+    title: z.string().trim().min(3).max(100),
+    body: z.string().trim().min(3).max(300),
+    link: z.string().trim().max(200).optional(),
+    couponCode: z.string().trim().max(30).optional(),
+  }),
+});
+
+const verifyDeliveryOtpSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    otp: z.string().trim().regex(/^\d{4}$/, 'Enter the 4-digit Delivery OTP'),
+  }),
+});
+
+const adminBypassOtpSchema = z.object({
+  params: z.object({ id: objectId }),
+  body: z.object({
+    reason: z.string().trim().min(3, 'Provide a valid reason for admin bypass').max(200),
+  }),
+});
+
 module.exports = {
+  fcmTokenSchema,
+  objectId,
+  phone,
+  notificationPreferencesSchema,
+  broadcastPromoSchema,
+  packOrderSchema,
+  submitClaimSchema,
+  resolveClaimSchema,
+  settleRiderCashSchema,
   submitFeedbackSchema,
   submitTipSchema,
   registerSchema,
@@ -496,5 +592,7 @@ module.exports = {
   updateStoreConfigSchema,
   coverageQuerySchema,
   sendTestMessageSchema,
+  verifyDeliveryOtpSchema,
+  adminBypassOtpSchema,
 };
 

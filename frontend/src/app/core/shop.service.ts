@@ -1,4 +1,4 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -16,24 +16,42 @@ import {
   StoreConfig,
   MessageLog,
   FeedbackSummaryResponse,
+  FlatClaim,
+  RiderLedgerResponse,
+  RiderSettlement,
   UpiPaymentDetails,
   UpiStatusResponse,
+  BroadcastPromoPayload,
+  BroadcastPromoResponse,
+  PushSummaryResponse,
 } from './models';
+import { ThemeService } from './theme.service';
 
 @Injectable({ providedIn: 'root' })
 export class ShopService {
   private readonly http = inject(HttpClient);
+  private readonly themeService = inject(ThemeService);
   readonly cart = signal<Cart | null>(null);
   readonly wishlistIds = signal<string[]>([]);
   readonly unread = signal(0);
   readonly addresses = signal<Address[]>([]);
   readonly storeConfig = signal<StoreConfig | null>(null);
+  readonly logoUrl = computed(() => this.storeConfig()?.logoUrl || 'brand-logo-white.svg');
+  readonly paymentMethod = signal<'upi' | 'cod' | 'razorpay'>('upi');
+  readonly placingOrder = signal<boolean>(false);
+  readonly triggerPay$ = signal<number>(0);
+
+  requestPay() {
+    this.triggerPay$.update((n) => n + 1);
+  }
 
   reset() {
     this.cart.set(null);
     this.wishlistIds.set([]);
     this.unread.set(0);
     this.addresses.set([]);
+    this.paymentMethod.set('upi');
+    this.placingOrder.set(false);
   }
 
   categories() {
@@ -46,6 +64,15 @@ export class ShopService {
 
   product(slug: string) {
     return this.unwrap(this.http.get<ApiResponse<Product>>(`/api/v1/products/${slug}`));
+  }
+
+  interpretVoice(text: string, language = 'en-IN') {
+    return this.unwrap(
+      this.http.post<ApiResponse<{ raw: string; cleanQuery: string; terms: string[]; language: string }>>(
+        '/api/v1/voice-search/interpret',
+        { text, language }
+      )
+    );
   }
 
   async loadCart() {
@@ -271,6 +298,9 @@ export class ShopService {
     try {
       const config = await this.unwrap(this.http.get<ApiResponse<StoreConfig>>('/api/v1/store/config'));
       this.storeConfig.set(config);
+      if (config?.theme) {
+        this.themeService.applyStoreTheme(config.theme);
+      }
       return config;
     } catch {
       return this.storeConfig();
@@ -284,6 +314,9 @@ export class ShopService {
   async updateStoreConfig(data: Partial<StoreConfig>) {
     const updated = await this.unwrap(this.http.put<ApiResponse<StoreConfig>>('/api/v1/admin/store/config', data));
     this.storeConfig.set(updated);
+    if (updated?.theme) {
+      this.themeService.applyStoreTheme(updated.theme);
+    }
     return updated;
   }
 
@@ -295,7 +328,7 @@ export class ShopService {
     );
   }
 
-  sendTestMessage(channel: 'sms' | 'whatsapp', phone: string) {
+  sendTestMessage(channel: 'sms' | 'whatsapp' | 'push', phone: string) {
     return this.unwrap(
       this.http.post<ApiResponse<{ message: string; log: MessageLog }>>('/api/v1/admin/messaging/test', {
         channel,
@@ -312,6 +345,18 @@ export class ShopService {
     );
   }
 
+  getPushSummary() {
+    return this.unwrap(
+      this.http.get<ApiResponse<PushSummaryResponse>>('/api/v1/admin/messaging/push-summary')
+    );
+  }
+
+  broadcastPromo(payload: BroadcastPromoPayload) {
+    return this.unwrap(
+      this.http.post<ApiResponse<BroadcastPromoResponse>>('/api/v1/admin/messaging/broadcast-promo', payload)
+    );
+  }
+
   submitOrderFeedback(orderId: string, feedback: { storeRating: number; riderRating?: number; deliveryTags?: string[]; comments?: string }) {
     return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/feedback`, feedback));
   }
@@ -322,6 +367,51 @@ export class ShopService {
 
   getFeedbackSummary() {
     return this.unwrap(this.http.get<ApiResponse<FeedbackSummaryResponse>>('/api/v1/admin/feedback'));
+  }
+
+  packOrder(orderId: string, payload: { itemsChecked?: string[]; bagBarcode?: string } = {}) {
+    return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/pack`, payload));
+  }
+
+  submitItemClaim(orderId: string, payload: { productId: string; reason: string; comments?: string; photoUrl?: string }) {
+    return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/claim`, payload));
+  }
+
+  resolveClaim(orderId: string, claimId: string, payload: { action: 'approved' | 'rejected'; adminNote?: string }) {
+    return this.unwrap(this.http.post<ApiResponse<Order>>(`/api/v1/admin/orders/${orderId}/claims/${claimId}/resolve`, payload));
+  }
+
+  listAdminClaims() {
+    return this.unwrap(this.http.get<ApiResponse<FlatClaim[]>>('/api/v1/admin/claims'));
+  }
+
+  settleRiderCash(riderId: string, payload: { amount: number; note?: string }) {
+    return this.unwrap(this.http.post<ApiResponse<{ riderId: string; riderName: string; cashInHand: number; receiptNumber: string; settlement: RiderSettlement }>>(`/api/v1/admin/riders/${riderId}/settle-cash`, payload));
+  }
+
+  getRiderLedger() {
+    return this.unwrap(this.http.get<ApiResponse<RiderLedgerResponse>>('/api/v1/delivery/ledger'));
+  }
+
+  verifyDeliveryOtp(orderId: string, otp: string) {
+    return this.unwrap(
+      this.http.post<ApiResponse<Order>>(`/api/v1/orders/${orderId}/verify-otp`, { otp })
+    );
+  }
+
+  resendDeliveryOtp(orderId: string) {
+    return this.unwrap(
+      this.http.post<ApiResponse<{ success: boolean; message: string; resendCount: number }>>(
+        `/api/v1/orders/${orderId}/resend-otp`,
+        {}
+      )
+    );
+  }
+
+  adminBypassDeliveryOtp(orderId: string, reason: string) {
+    return this.unwrap(
+      this.http.post<ApiResponse<Order>>(`/api/v1/admin/orders/${orderId}/bypass-otp`, { reason })
+    );
   }
 
   private params(query: object) {

@@ -29,6 +29,30 @@ const messagingController = {
       next(err);
     }
   },
+
+  async broadcastPromo(req, res, next) {
+    try {
+      const result = await messagingService.broadcastPromoPush(req.body);
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getPushSummary(_req, res, next) {
+    try {
+      const summary = await messagingService.getPushSummary();
+      res.json({
+        success: true,
+        data: summary,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 module.exports = messagingController;

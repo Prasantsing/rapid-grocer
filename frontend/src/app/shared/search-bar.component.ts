@@ -4,41 +4,23 @@ import {
   HostListener,
   OnDestroy,
   OnInit,
-  computed,
   inject,
   signal,
 } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { Category, Product } from '../core/models';
+import { Product } from '../core/models';
 import { ShopService } from '../core/shop.service';
 import { InrPipe } from './inr.pipe';
+import { VoiceSearchModalComponent } from './voice-search-modal.component';
 
 @Component({
   selector: 'app-search-bar',
   standalone: true,
-  imports: [RouterLink, InrPipe],
+  imports: [RouterLink, InrPipe, VoiceSearchModalComponent],
   template: `
     <div class="search-bar-wrap" #container>
       <form class="search-bar-container" [class.focused]="isFocused()" (submit)="onSubmit($event)">
-        <!-- Category Filter Selector -->
-        <div class="category-segment" title="Filter by category">
-          <select
-            class="category-select"
-            [value]="selectedCategory()"
-            (change)="onCategoryChange($event)"
-            aria-label="Filter grocery items by category"
-          >
-            <option value="">🛒 All Aisles</option>
-            @for (cat of categories(); track cat.id) {
-              <option [value]="cat.slug">{{ cat.emoji }} {{ cat.name }}</option>
-            }
-          </select>
-          <i class="bi bi-chevron-down select-caret" aria-hidden="true"></i>
-        </div>
-
-        <div class="divider" aria-hidden="true"></div>
-
         <!-- Name / Keyword Search Input -->
         <div class="input-segment">
           <i class="bi bi-search search-icon" aria-hidden="true"></i>
@@ -50,8 +32,8 @@ import { InrPipe } from './inr.pipe';
             (input)="onSearchInput($event)"
             (focus)="onInputFocus()"
             (keydown.escape)="closeDropdown()"
-            [placeholder]="inputPlaceholder()"
-            aria-label="Filter grocery items by name or keyword"
+            placeholder='Search "milk", "bananas", "atta", "chips"…'
+            aria-label="Search grocery items by name or keyword"
             autocomplete="off"
           />
           @if (searchTerm()) {
@@ -64,6 +46,16 @@ import { InrPipe } from './inr.pipe';
               <i class="bi bi-x-circle-fill"></i>
             </button>
           }
+          <!-- Multi-Language Voice Search Mic Button -->
+          <button
+            type="button"
+            class="mic-btn"
+            (click)="openVoiceSearch($event)"
+            aria-label="Voice search in English, Hindi, Kannada, Tamil, etc."
+            title="Search with voice (English, Hindi, Kannada, Tamil, etc.)"
+          >
+            <i class="bi bi-mic-fill"></i>
+          </button>
         </div>
 
         <!-- Submit Button -->
@@ -77,13 +69,38 @@ import { InrPipe } from './inr.pipe';
         </button>
       </form>
 
+      <!-- Multi-Language Voice Search Modal -->
+      @if (showVoiceModal()) {
+        <app-voice-search-modal
+          (querySelected)="onVoiceQuery($event)"
+          (closed)="showVoiceModal.set(false)"
+        />
+      }
+
       <!-- Autocomplete & Quick Filter Dropdown -->
       @if (isOpen() && (isSearching() || liveResults().length > 0 || (searchTerm().trim().length >= 2 && liveResults().length === 0))) {
         <div class="search-dropdown-menu" (mousedown)="$event.preventDefault()">
           @if (isSearching()) {
-            <div class="dropdown-state-loading">
+            <div class="dropdown-header">
+              <span class="header-title">Checking the shelves…</span>
               <span class="spinner-border spinner-border-sm text-success" role="status"></span>
-              <span>Checking the shelves…</span>
+            </div>
+            <div class="dropdown-items-list" aria-label="Loading search items">
+              @for (row of [1, 2, 3, 4]; track row) {
+                <div class="dropdown-item-row skeleton-search-row">
+                  <div class="item-art skeleton-shimmer"></div>
+                  <div class="item-details">
+                    <div class="skeleton-shimmer mb-1" style="width: 70%; height: 13px; border-radius: 4px;"></div>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="skeleton-shimmer" style="width: 50px; height: 10px; border-radius: 4px;"></div>
+                      <div class="skeleton-shimmer" style="width: 40px; height: 10px; border-radius: 4px;"></div>
+                    </div>
+                  </div>
+                  <div class="item-pricing">
+                    <div class="skeleton-shimmer ms-auto" style="width: 46px; height: 16px; border-radius: 4px;"></div>
+                  </div>
+                </div>
+              }
             </div>
           } @else if (liveResults().length > 0) {
             <div class="dropdown-header">
@@ -133,14 +150,7 @@ import { InrPipe } from './inr.pipe';
             <div class="dropdown-state-empty">
               <i class="bi bi-search empty-icon"></i>
               <div class="empty-title">No grocery items found for "{{ searchTerm() }}"</div>
-              @if (selectedCategory()) {
-                <p class="empty-hint">
-                  Filtered to <b>{{ selectedCategoryName() }}</b>.
-                  <button type="button" class="switch-aisle-btn" (click)="resetCategory()">Search all aisles</button>
-                </p>
-              } @else {
-                <p class="empty-hint">Try searching for "doodh", "aloo", "tamatar", "pyaaz", "dahi", or "bread".</p>
-              }
+              <p class="empty-hint">Try searching for "doodh", "aloo", "tamatar", "pyaaz", "dahi", or "bread".</p>
             </div>
           }
         </div>
@@ -162,75 +172,24 @@ import { InrPipe } from './inr.pipe';
     .search-bar-container {
       display: flex;
       align-items: center;
-      background: #ffffff;
-      border: 1.5px solid var(--line, #e4dccb);
+      background: var(--search-bg, #141b26);
+      border: 1.5px solid var(--search-border, rgba(255, 255, 255, 0.1));
       border-radius: 999px;
-      padding: 0.2rem 0.35rem 0.2rem 0.85rem;
+      padding: 0.2rem 0.35rem 0.2rem 1rem;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 2px 6px rgba(28, 25, 21, 0.04);
+      box-shadow: var(--shadow);
       min-height: 44px;
     }
 
     .search-bar-container:hover {
-      border-color: #cfc5b0;
-      box-shadow: 0 4px 12px rgba(28, 25, 21, 0.07);
+      border-color: var(--leaf);
+      box-shadow: 0 4px 14px var(--leaf-glow, rgba(0, 0, 0, 0.1));
     }
 
     .search-bar-container.focused {
-      border-color: var(--leaf, #0e6b4f);
-      box-shadow: 0 0 0 4px rgba(14, 107, 79, 0.15), 0 4px 12px rgba(28, 25, 21, 0.06);
-    }
-
-    /* Category Dropdown Segment */
-    .category-segment {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      flex-shrink: 0;
-      max-width: 160px;
-    }
-
-    @media (max-width: 768px) {
-      .category-segment {
-        max-width: 110px;
-      }
-    }
-
-    .category-select {
-      appearance: none;
-      -webkit-appearance: none;
-      background: transparent;
-      border: none;
-      outline: none;
-      font-size: 0.82rem;
-      font-weight: 560;
-      color: var(--ink, #1c1915);
-      cursor: pointer;
-      padding-right: 1.25rem;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      width: 100%;
-    }
-
-    .category-select:focus-visible {
-      color: var(--leaf, #0e6b4f);
-    }
-
-    .select-caret {
-      position: absolute;
-      right: 0.15rem;
-      pointer-events: none;
-      font-size: 0.65rem;
-      color: var(--muted, #6f675c);
-    }
-
-    .divider {
-      width: 1px;
-      height: 20px;
-      background-color: var(--line, #e4dccb);
-      margin: 0 0.5rem;
-      flex-shrink: 0;
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 3px var(--leaf-glow, rgba(0, 229, 153, 0.22)), var(--shadow);
+      background: var(--search-bg-focus, #162030);
     }
 
     /* Input Segment */
@@ -243,9 +202,9 @@ import { InrPipe } from './inr.pipe';
     }
 
     .search-icon {
-      color: var(--muted, #6f675c);
+      color: var(--muted, #94a3b8);
       font-size: 0.95rem;
-      margin-right: 0.5rem;
+      margin-right: 0.6rem;
       flex-shrink: 0;
     }
 
@@ -255,94 +214,189 @@ import { InrPipe } from './inr.pipe';
       background: transparent;
       outline: none;
       font-size: 0.92rem;
-      color: var(--ink, #1c1915);
-      padding: 0.25rem 0.25rem 0.25rem 0;
-      font-family: inherit;
+      color: var(--ink, #f8fafc);
+      font-weight: 500;
+      padding: 0.2rem 0;
     }
 
     .search-input::placeholder {
-      color: #9c9384;
-      font-size: 0.86rem;
+      color: var(--muted, #64748b);
+      font-weight: 400;
     }
 
     .clear-btn {
-      background: transparent;
+      background: none;
       border: none;
-      color: #adb5bd;
-      padding: 0.2rem 0.4rem;
+      color: var(--muted, #64748b);
       cursor: pointer;
-      display: inline-flex;
+      padding: 0 0.4rem;
+      font-size: 0.85rem;
+      display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.95rem;
       transition: color 0.15s ease;
     }
 
     .clear-btn:hover {
-      color: var(--sale, #c2410c);
+      color: var(--ink, #f8fafc);
     }
 
-    /* Submit Arrow Button */
-    .submit-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 999px;
-      background: var(--leaf, #0e6b4f);
-      color: #ffffff;
+    .mic-btn {
+      background: none;
       border: none;
-      display: inline-flex;
+      color: var(--leaf, #00e599);
+      cursor: pointer;
+      padding: 0 0.4rem;
+      font-size: 0.95rem;
+      display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
+      transition: all 0.18s ease;
+      border-radius: 50%;
+      height: 32px;
+      width: 32px;
       flex-shrink: 0;
+      margin-left: 0.15rem;
+    }
+
+    .mic-btn:hover {
+      background: var(--leaf-glow, rgba(0, 229, 153, 0.18));
+      transform: scale(1.08);
+      color: var(--leaf, #00e599);
+    }
+
+    .mic-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* Submit Button */
+    .submit-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--chip-bg, #1e293b);
+      border: 1px solid var(--chip-border, rgba(255, 255, 255, 0.1));
+      color: var(--leaf-text, var(--leaf, #00e599));
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      cursor: pointer;
       font-size: 0.85rem;
       transition: all 0.15s ease;
       margin-left: 0.25rem;
     }
 
     .submit-btn:hover {
-      background: var(--leaf-deep, #0a3d2e);
-      transform: translateX(1px);
+      background: var(--leaf, #00e599);
+      border-color: var(--leaf, #00e599);
+      color: var(--stepper-text, #0b0f15);
     }
 
-    /* Suggestions Dropdown */
+    @media (max-width: 768px) {
+      .search-bar-container {
+        min-height: 44px;
+        padding: 0.25rem 0.35rem 0.25rem 0.9rem;
+      }
+
+      .search-input {
+        font-size: 0.92rem;
+      }
+
+      .search-icon {
+        font-size: 1rem;
+        margin-right: 0.55rem;
+      }
+
+      .mic-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.95rem;
+      }
+
+      .submit-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9rem;
+      }
+
+      .clear-btn {
+        padding: 0 0.45rem;
+        font-size: 0.95rem;
+      }
+
+      .dropdown-item-row {
+        padding: 0.7rem 0.85rem;
+      }
+
+      .item-art {
+        width: 42px;
+        height: 42px;
+        font-size: 1.35rem;
+      }
+    }
+
+    /* Dropdown */
     .search-dropdown-menu {
       position: absolute;
-      top: calc(100% + 8px);
+      top: calc(100% + 6px);
       left: 0;
       right: 0;
-      background: #ffffff;
-      border: 1px solid var(--line, #e4dccb);
+      background: var(--dropdown-bg, rgba(18, 23, 33, 0.97));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12));
       border-radius: 18px;
-      box-shadow: 0 16px 36px rgba(28, 25, 21, 0.14);
-      z-index: 1050;
+      box-shadow: var(--shadow-lg, 0 20px 48px rgba(0, 0, 0, 0.7));
+      z-index: 1200;
       overflow: hidden;
-      animation: dropdownFade 0.15s ease-out;
+      animation: dropdownSlide 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    @keyframes dropdownFade {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes dropdownSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-state-loading {
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      color: var(--muted, #94a3b8);
+      font-size: 0.9rem;
     }
 
     .dropdown-header {
+      padding: 0.6rem 1rem;
+      background: var(--dropdown-header-bg, #0e131d);
+      border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.08));
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.75rem 1rem 0.5rem;
-      background: #faf8f3;
-      border-bottom: 1px solid #f0eae1;
       font-size: 0.76rem;
+    }
+
+    .header-title {
       font-weight: 600;
+      color: var(--muted, #94a3b8);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: var(--muted, #6f675c);
+    }
+
+    .header-count {
+      color: var(--muted, #64748b);
     }
 
     .dropdown-items-list {
-      max-height: 340px;
+      max-height: 380px;
       overflow-y: auto;
-      overscroll-behavior: contain;
     }
 
     .dropdown-item-row {
@@ -351,13 +405,18 @@ import { InrPipe } from './inr.pipe';
       gap: 0.8rem;
       padding: 0.65rem 1rem;
       text-decoration: none;
-      color: var(--ink, #1c1915);
-      border-bottom: 1px solid #f6f3ee;
+      color: var(--ink, #f1f5f9);
+      border-bottom: 1px solid var(--line-light, rgba(255, 255, 255, 0.04));
       transition: background-color 0.15s ease;
     }
 
     .dropdown-item-row:hover {
-      background: #fdfaf2;
+      background: var(--leaf-glow, rgba(0, 229, 153, 0.08));
+    }
+
+    .skeleton-search-row {
+      pointer-events: none;
+      user-select: none;
     }
 
     .dropdown-item-row:last-child {
@@ -372,6 +431,8 @@ import { InrPipe } from './inr.pipe';
       place-items: center;
       flex-shrink: 0;
       font-size: 1.35rem;
+      background: var(--tile-art-bg, #0b0f15);
+      border: 1px solid var(--line, rgba(255, 255, 255, 0.06));
     }
 
     .item-details {
@@ -385,12 +446,12 @@ import { InrPipe } from './inr.pipe';
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: var(--ink, #1c1915);
+      color: var(--ink, #f8fafc);
     }
 
     .item-meta {
       font-size: 0.76rem;
-      color: var(--muted, #6f675c);
+      color: var(--muted, #94a3b8);
       display: flex;
       align-items: center;
       gap: 0.3rem;
@@ -401,15 +462,16 @@ import { InrPipe } from './inr.pipe';
     }
 
     .cat-tag {
-      background: #f0ede4;
+      background: var(--chip-bg, #1e293b);
       padding: 0.05rem 0.4rem;
       border-radius: 4px;
       font-weight: 500;
-      color: var(--ink, #1c1915);
+      color: var(--muted, #cbd5e1);
+      border: 1px solid var(--line, transparent);
     }
 
     .meta-separator {
-      color: #c4bcaf;
+      color: var(--muted, #475569);
     }
 
     .item-pricing {
@@ -421,88 +483,72 @@ import { InrPipe } from './inr.pipe';
       display: block;
       font-weight: 680;
       font-size: 0.95rem;
-      color: var(--ink, #1c1915);
+      color: var(--leaf-text, var(--leaf, #00e599));
     }
 
     .item-badge {
       display: inline-block;
       font-size: 0.68rem;
       font-weight: 600;
-      color: var(--sale, #c2410c);
-      background: #ffede6;
+      color: var(--copper, #e59880);
+      background: var(--copper-glow, rgba(229, 152, 128, 0.16));
+      border: 1px solid var(--copper-glow, rgba(229, 152, 128, 0.3));
       padding: 0.1rem 0.35rem;
       border-radius: 999px;
     }
 
     .dropdown-footer {
       padding: 0.6rem 0.8rem;
-      background: #faf8f3;
-      border-top: 1px solid #f0eae1;
+      background: var(--dropdown-header-bg, #0e131d);
+      border-top: 1px solid var(--line, rgba(255, 255, 255, 0.06));
       text-align: center;
     }
 
     .view-all-btn {
       width: 100%;
-      background: #ffffff;
-      border: 1px solid var(--line, #e4dccb);
+      background: var(--chip-bg, #182232);
+      border: 1px solid var(--leaf-glow, rgba(0, 229, 153, 0.3));
       border-radius: 999px;
       padding: 0.45rem 1rem;
       font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--leaf, #0e6b4f);
+      font-weight: 550;
+      color: var(--leaf-text, var(--leaf, #00e599));
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: all 0.15s ease;
     }
 
     .view-all-btn:hover {
-      background: var(--leaf, #0e6b4f);
-      color: #ffffff;
-      border-color: var(--leaf, #0e6b4f);
+      background: var(--leaf, #00e599);
+      color: var(--stepper-text, #0b0f15);
+      border-color: var(--leaf, #00e599);
     }
 
-    /* Loading & Empty States */
-    .dropdown-state-loading, .dropdown-state-empty {
-      padding: 1.5rem 1rem;
+    .dropdown-state-empty {
+      padding: 2rem 1.5rem;
       text-align: center;
-      color: var(--muted, #6f675c);
-      font-size: 0.88rem;
-    }
-
-    .dropdown-state-loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
     }
 
     .empty-icon {
-      font-size: 1.5rem;
-      color: #c4bcaf;
+      font-size: 1.8rem;
+      color: #475569;
       margin-bottom: 0.4rem;
       display: block;
     }
 
     .empty-title {
+      font-size: 0.95rem;
       font-weight: 600;
-      color: var(--ink, #1c1915);
+      color: #f8fafc;
+      margin-bottom: 0.35rem;
     }
 
     .empty-hint {
-      margin: 0.35rem 0 0;
-      font-size: 0.8rem;
-    }
-
-    .switch-aisle-btn {
-      background: transparent;
-      border: none;
-      color: var(--leaf, #0e6b4f);
-      font-weight: 600;
-      text-decoration: underline;
-      cursor: pointer;
-      padding: 0 0.2rem;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin: 0;
     }
   `],
 })
@@ -512,22 +558,14 @@ export class SearchBarComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly elementRef = inject(ElementRef);
 
-  readonly categories = signal<Category[]>([]);
-  readonly selectedCategory = signal<string>('');
   readonly searchTerm = signal<string>('');
   readonly liveResults = signal<Product[]>([]);
   readonly isSearching = signal<boolean>(false);
   readonly isOpen = signal<boolean>(false);
   readonly isFocused = signal<boolean>(false);
+  readonly showVoiceModal = signal<boolean>(false);
 
   private debounceTimer: any = null;
-
-  readonly selectedCategoryName = computed(() => {
-    const slug = this.selectedCategory();
-    if (!slug) return 'All Aisles';
-    const found = this.categories().find((c) => c.slug === slug);
-    return found ? `${found.emoji} ${found.name}` : 'All Aisles';
-  });
 
   getItemCategoryName(item: Product): string {
     if (!item.category) return '';
@@ -535,23 +573,9 @@ export class SearchBarComponent implements OnInit, OnDestroy {
     return item.category.name || '';
   }
 
-  readonly inputPlaceholder = computed(() => {
-    const slug = this.selectedCategory();
-    if (!slug) return 'Search "doodh", "aloo", "tamatar", "chips"…';
-    const found = this.categories().find((c) => c.slug === slug);
-    return found ? `Search in ${found.name}…` : 'Search "doodh", "aloo", "tamatar", "chips"…';
-  });
-
   ngOnInit() {
-    // Load categories for selector
-    void this.shop.categories().then((cats) => {
-      this.categories.set(cats);
-    }).catch(() => undefined);
-
-    // Sync input and category state from URL query & route params
     this.syncFromUrl();
 
-    // Listen to route changes to keep sync
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.syncFromUrl();
     });
@@ -569,24 +593,7 @@ export class SearchBarComponent implements OnInit, OnDestroy {
 
     if (currentRoute) {
       const q = currentRoute.snapshot.queryParamMap.get('q') || '';
-      const catParam = currentRoute.snapshot.paramMap.get('slug') || currentRoute.snapshot.queryParamMap.get('category') || '';
-
       this.searchTerm.set(q);
-      this.selectedCategory.set(catParam);
-    }
-  }
-
-  onCategoryChange(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    const catSlug = target.value;
-    this.selectedCategory.set(catSlug);
-
-    // Fetch live suggestions or update current search
-    if (this.searchTerm().trim().length >= 2) {
-      this.fetchLiveResults(this.searchTerm().trim(), catSlug);
-    } else {
-      // Direct category filter execution
-      this.submitFilter();
     }
   }
 
@@ -602,7 +609,7 @@ export class SearchBarComponent implements OnInit, OnDestroy {
       this.isOpen.set(true);
       this.isSearching.set(true);
       this.debounceTimer = setTimeout(() => {
-        this.fetchLiveResults(query, this.selectedCategory());
+        this.fetchLiveResults(query);
       }, 220);
     } else {
       this.liveResults.set([]);
@@ -611,11 +618,10 @@ export class SearchBarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private fetchLiveResults(query: string, category: string) {
+  private fetchLiveResults(query: string) {
     void this.shop
       .products({
         search: query,
-        category: category || undefined,
         limit: 6,
       })
       .then((page) => {
@@ -634,7 +640,7 @@ export class SearchBarComponent implements OnInit, OnDestroy {
     if (this.searchTerm().trim().length >= 2) {
       this.isOpen.set(true);
       if (this.liveResults().length === 0) {
-        this.fetchLiveResults(this.searchTerm().trim(), this.selectedCategory());
+        this.fetchLiveResults(this.searchTerm().trim());
       }
     }
   }
@@ -646,40 +652,31 @@ export class SearchBarComponent implements OnInit, OnDestroy {
     this.submitFilter();
   }
 
-  resetCategory() {
-    this.selectedCategory.set('');
-    if (this.searchTerm().trim().length >= 2) {
-      this.fetchLiveResults(this.searchTerm().trim(), '');
-    } else {
-      this.submitFilter();
-    }
-  }
-
   onSubmit(event: Event) {
     event.preventDefault();
-    this.submitFilter();
-  }
-
-  submitSearch() {
     this.submitFilter();
   }
 
   submitFilter() {
     this.closeDropdown();
     const query = this.searchTerm().trim();
-    const cat = this.selectedCategory();
+    void this.router.navigate(['/'], {
+      queryParams: query ? { q: query } : {},
+    });
+  }
 
-    const queryParams: Record<string, string | null> = {};
-    if (query) queryParams['q'] = query;
+  openVoiceSearch(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.closeDropdown();
+    this.showVoiceModal.set(true);
+  }
 
-    if (cat) {
-      void this.router.navigate(['/c', cat], {
-        queryParams: query ? { q: query } : {},
-      });
-    } else {
-      void this.router.navigate(['/'], {
-        queryParams: query ? { q: query } : {},
-      });
+  onVoiceQuery(query: string) {
+    this.showVoiceModal.set(false);
+    if (query && query.trim()) {
+      this.searchTerm.set(query.trim());
+      this.submitFilter();
     }
   }
 

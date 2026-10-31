@@ -24,6 +24,10 @@ function generateOrderNumber() {
   return `ZB${stamp}${crypto.randomInt(1000, 10000)}`;
 }
 
+function generateDeliveryOtp() {
+  return String(crypto.randomInt(1000, 10000));
+}
+
 function ownerId(order) {
   return String(order.user?._id || order.user);
 }
@@ -188,6 +192,14 @@ const orderService = {
             paymentStatus,
             status: 'placed',
             notes: input.notes || '',
+            deliveryOtp: {
+              code: generateDeliveryOtp(),
+              generatedAt: new Date(),
+              verifiedAt: null,
+              verifiedBy: 'none',
+              resendCount: 0,
+              adminBypassNote: '',
+            },
             timeline: [{
               status: 'placed',
               note: STATUS_NOTES.placed,
@@ -374,6 +386,45 @@ const orderService = {
     if (status === 'cancelled') {
       await restoreStock(order);
       if (order.couponCode) await couponRepository.release(order.couponCode);
+    }
+
+    if (status === 'out_for_delivery') {
+      if (!order.deliveryOtp || !order.deliveryOtp.code) {
+        order.deliveryOtp = {
+          code: generateDeliveryOtp(),
+          generatedAt: new Date(),
+          verifiedAt: null,
+          verifiedBy: 'none',
+          resendCount: 0,
+          adminBypassNote: '',
+        };
+      }
+    }
+
+    if (status === 'delivered') {
+      if (user.role === 'delivery' && !order.deliveryOtp?.verifiedAt) {
+        throw new ApiError(400, 'Doorstep Delivery Confirmation OTP is required before marking delivered.');
+      }
+      if (user.role === 'admin' && !order.deliveryOtp?.verifiedAt) {
+        if (!order.deliveryOtp) {
+          order.deliveryOtp = { code: generateDeliveryOtp(), generatedAt: new Date(), verifiedAt: null, verifiedBy: 'none', resendCount: 0, adminBypassNote: '' };
+        }
+        order.deliveryOtp.verifiedAt = new Date();
+        order.deliveryOtp.verifiedBy = 'admin_bypass';
+        order.deliveryOtp.adminBypassNote = note || 'Admin direct status update';
+      }
+      if (order.paymentMethod === 'cod') {
+        order.paymentStatus = 'paid';
+        if (order.deliveryPartner) {
+          const riderId = order.deliveryPartner._id || order.deliveryPartner;
+          const UserModel = require('../models/User');
+          try {
+            await UserModel.findByIdAndUpdate(riderId, {
+              $inc: { cashInHand: order.total },
+            });
+          } catch (_) {}
+        }
+      }
     }
 
     order.status = status;
@@ -771,6 +822,380 @@ const orderService = {
       },
       recentFeedback,
     };
+  },
+
+  async packOrder(user, orderId, { itemsChecked, bagBarcode }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+    if (!['confirmed', 'placed'].includes(order.status)) {
+      throw new ApiError(409, `Cannot pack order in status "${order.status}"`);
+    }
+
+    const barcode = bagBarcode || `ZB-BAG-${order.orderNumber.slice(-4)}`;
+    order.picking = {
+      isPacked: true,
+      packedAt: new Date(),
+      packedBy: user._id,
+      itemsChecked: itemsChecked || order.items.map((it) => it.product),
+      bagBarcode: barcode,
+    };
+    order.status = 'packed';
+    order.timeline.push({
+      status: 'packed',
+      note: `All ${order.items.length} items packed in dark store (Bag #${barcode}) by ${user.name || 'Store Picker'}. Ready for rider pickup.`,
+      at: new Date(),
+      by: user._id,
+    });
+    await orderRepository.save(order);
+
+    await notify(
+      ownerId(order),
+      'Order Packed & Bagged',
+      `${order.orderNumber} is packed and waiting for delivery partner pickup!`,
+      `/orders/${order._id}`
+    );
+    void messagingService.dispatchOrderNotification('order_packed', order);
+
+    const fresh = await orderRepository.findById(orderId);
+    return presentOrder(fresh, user.role);
+  },
+
+  async submitClaim(user, orderId, { productId, reason, comments, photoUrl }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+    if (ownerId(order) !== String(user._id) && user.role !== 'admin') {
+      throw new ApiError(403, 'You can only claim items from your own orders');
+    }
+    if (order.status !== 'delivered') {
+      throw new ApiError(400, 'Claims can only be filed for delivered orders');
+    }
+
+    const item = order.items.find((it) => String(it.productId || it.product?._id || it.product) === String(productId));
+    if (!item) throw new ApiError(404, 'Item not found in this order');
+
+    const refundAmount = Math.round(item.price * item.quantity * 100) / 100;
+    const newClaim = {
+      productId: item.productId || item.product?._id || item.product,
+      productName: item.name,
+      reason,
+      comments: comments || '',
+      photoUrl: photoUrl || '',
+      refundAmount,
+      status: 'pending',
+      createdAt: new Date(),
+    };
+    order.claims = order.claims || [];
+    order.claims.push(newClaim);
+
+    await orderRepository.save(order);
+
+    await notify(
+      ownerId(order),
+      'Refund Claim Submitted',
+      `Your claim for ${item.name} (₹${refundAmount}) has been submitted for store review.`,
+      `/orders/${order._id}`
+    );
+
+    const fresh = await orderRepository.findById(orderId);
+    return presentOrder(fresh, user.role);
+  },
+
+  async resolveClaim(adminUser, orderId, claimId, { action, adminNote }) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    const claim = (order.claims || []).find((c) => String(c._id) === String(claimId));
+    if (!claim) throw new ApiError(404, 'Claim not found');
+
+    claim.status = action;
+    claim.adminNote = adminNote || (action === 'approved' ? 'Refund approved by store manager' : 'Claim rejected after inspection');
+    claim.resolvedAt = new Date();
+    claim.resolvedBy = adminUser._id;
+
+    order.timeline.push({
+      status: order.status,
+      note: `Item claim for ${claim.productName} was ${action}: ${claim.adminNote}`,
+      at: new Date(),
+      by: adminUser._id,
+    });
+
+    await orderRepository.save(order);
+
+    if (action === 'approved') {
+      await notify(
+        ownerId(order),
+        'Refund Claim Approved!',
+        `₹${claim.refundAmount} refund approved for ${claim.productName}. Dispatched to your source account.`,
+        `/orders/${order._id}`
+      );
+    } else {
+      await notify(
+        ownerId(order),
+        'Claim Review Update',
+        `Your claim for ${claim.productName} was not approved: ${claim.adminNote}`,
+        `/orders/${order._id}`
+      );
+    }
+
+    const fresh = await orderRepository.findById(orderId);
+    return presentOrder(fresh, 'admin');
+  },
+
+  async listClaims() {
+    const OrderModel = require('../models/Order');
+    const orders = await OrderModel.find({ 'claims.0': { $exists: true } })
+      .populate([
+        { path: 'user', select: 'name email phone' },
+        { path: 'deliveryPartner', select: 'name phone' },
+      ])
+      .sort({ updatedAt: -1 })
+      .limit(50);
+
+    const flatClaims = [];
+    for (const o of orders) {
+      for (const c of o.claims || []) {
+        flatClaims.push({
+          orderId: o._id,
+          orderNumber: o.orderNumber,
+          customerName: o.user?.name || 'Customer',
+          customerPhone: o.user?.phone || '',
+          claimId: c._id,
+          productId: c.productId,
+          productName: c.productName,
+          reason: c.reason,
+          comments: c.comments,
+          photoUrl: c.photoUrl,
+          refundAmount: c.refundAmount,
+          status: c.status,
+          adminNote: c.adminNote,
+          createdAt: c.createdAt,
+          resolvedAt: c.resolvedAt,
+        });
+      }
+    }
+    return flatClaims;
+  },
+
+  async settleRiderCash(adminUser, riderId, { amount, note }) {
+    const UserModel = require('../models/User');
+    const rider = await UserModel.findById(riderId);
+    if (!rider) throw new ApiError(404, 'Rider not found');
+
+    const settleAmt = amount;
+    const prevCash = rider.cashInHand || 0;
+    rider.cashInHand = Math.max(0, prevCash - settleAmt);
+
+    const settlement = {
+      amount: settleAmt,
+      settledAt: new Date(),
+      settledBy: adminUser._id,
+      receiptNumber: `REC-CASH-${Date.now().toString().slice(-6)}`,
+      note: note || `End of shift deposit settled with store cashier`,
+    };
+    rider.cashSettlements = rider.cashSettlements || [];
+    rider.cashSettlements.unshift(settlement);
+    await rider.save();
+
+    await notify(
+      rider._id,
+      'COD Cash Deposit Settled',
+      `₹${settleAmt} deposited with dark store cashier. Balance cash in hand: ₹${rider.cashInHand}. Receipt #${settlement.receiptNumber}.`,
+      '/delivery'
+    );
+
+    return {
+      riderId: rider._id,
+      riderName: rider.name,
+      cashInHand: rider.cashInHand,
+      receiptNumber: settlement.receiptNumber,
+      settlement,
+    };
+  },
+
+  async getRiderLedger(riderId) {
+    const UserModel = require('../models/User');
+    const rider = await UserModel.findById(riderId);
+    if (!rider) throw new ApiError(404, 'Rider not found');
+    return {
+      cashInHand: rider.cashInHand || 0,
+      settlements: (rider.cashSettlements || []).slice(0, 20),
+    };
+  },
+
+  async verifyDeliveryOtp(user, orderId, enteredOtp) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (user.role === 'delivery' && partnerId(order) !== String(user._id)) {
+      throw new ApiError(403, 'This order is not assigned to you');
+    }
+
+    if (!['packed', 'out_for_delivery'].includes(order.status)) {
+      if (order.status === 'delivered') return presentOrder(order, user.role);
+      throw new ApiError(400, `Cannot verify delivery OTP while order is ${order.status}`);
+    }
+
+    if (!order.deliveryOtp || !order.deliveryOtp.code) {
+      order.deliveryOtp = {
+        code: generateDeliveryOtp(),
+        generatedAt: new Date(),
+        verifiedAt: null,
+        verifiedBy: 'none',
+        resendCount: 0,
+        adminBypassNote: '',
+      };
+    }
+
+    const expected = String(order.deliveryOtp.code).trim();
+    const provided = String(enteredOtp).trim();
+
+    if (expected !== provided) {
+      throw new ApiError(400, 'Incorrect 4-digit Delivery OTP. Please ask the customer to check their order screen or SMS.');
+    }
+
+    order.deliveryOtp.verifiedAt = new Date();
+    order.deliveryOtp.verifiedBy = 'customer_otp';
+
+    if (order.paymentMethod === 'cod') {
+      order.paymentStatus = 'paid';
+      if (order.deliveryPartner) {
+        const riderId = order.deliveryPartner._id || order.deliveryPartner;
+        const UserModel = require('../models/User');
+        try {
+          await UserModel.findByIdAndUpdate(riderId, {
+            $inc: { cashInHand: order.total },
+          });
+        } catch (_) {}
+      }
+    }
+
+    order.status = 'delivered';
+    order.timeline.push({
+      status: 'delivered',
+      note: 'Delivered at doorstep (Verified with customer 4-digit OTP)',
+      at: new Date(),
+      by: user._id,
+    });
+
+    await orderRepository.save(order);
+
+    await notify(
+      ownerId(order),
+      'Order delivered',
+      `${order.orderNumber} was successfully delivered and verified with your OTP. Enjoy your groceries!`,
+      `/orders/${order._id}`
+    );
+
+    void messagingService.dispatchOrderNotification('delivered', order);
+
+    const fresh = await orderRepository.findById(order._id);
+    return presentOrder(fresh, user.role);
+  },
+
+  async resendDeliveryOtp(user, orderId) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (['delivered', 'cancelled'].includes(order.status)) {
+      throw new ApiError(400, `Order is already ${order.status}`);
+    }
+
+    if (!order.deliveryOtp || !order.deliveryOtp.code) {
+      order.deliveryOtp = {
+        code: generateDeliveryOtp(),
+        generatedAt: new Date(),
+        verifiedAt: null,
+        verifiedBy: 'none',
+        resendCount: 0,
+        adminBypassNote: '',
+      };
+    }
+
+    order.deliveryOtp.resendCount = (order.deliveryOtp.resendCount || 0) + 1;
+    await orderRepository.save(order);
+
+    const otpMsg = `ZapBasket OTP for Order #${order.orderNumber}: ${order.deliveryOtp.code}. Share this 4-digit code with your rider to receive your delivery.`;
+    await notify(
+      ownerId(order),
+      'Your Delivery Verification OTP',
+      otpMsg,
+      `/orders/${order._id}`
+    );
+
+    if (order.address?.phone) {
+      void messagingService.dispatchCustomNotification(
+        'sms',
+        order.address.phone,
+        otpMsg,
+        order._id,
+        order.orderNumber
+      );
+    }
+
+    return {
+      success: true,
+      message: 'Delivery OTP resent to customer via in-app notification and SMS',
+      resendCount: order.deliveryOtp.resendCount,
+    };
+  },
+
+  async adminBypassDeliveryOtp(adminUser, orderId, reason) {
+    const order = await orderRepository.findById(orderId);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (['delivered', 'cancelled'].includes(order.status)) {
+      throw new ApiError(400, `Order is already ${order.status}`);
+    }
+
+    if (!order.deliveryOtp) {
+      order.deliveryOtp = {
+        code: generateDeliveryOtp(),
+        generatedAt: new Date(),
+        verifiedAt: null,
+        verifiedBy: 'none',
+        resendCount: 0,
+        adminBypassNote: '',
+      };
+    }
+
+    order.deliveryOtp.verifiedAt = new Date();
+    order.deliveryOtp.verifiedBy = 'admin_bypass';
+    order.deliveryOtp.adminBypassNote = reason || 'Emergency Dark Store Admin override';
+
+    if (order.paymentMethod === 'cod') {
+      order.paymentStatus = 'paid';
+      if (order.deliveryPartner) {
+        const riderId = order.deliveryPartner._id || order.deliveryPartner;
+        const UserModel = require('../models/User');
+        try {
+          await UserModel.findByIdAndUpdate(riderId, {
+            $inc: { cashInHand: order.total },
+          });
+        } catch (_) {}
+      }
+    }
+
+    order.status = 'delivered';
+    order.timeline.push({
+      status: 'delivered',
+      note: `Delivered via Dark Store Admin OTP bypass: ${reason || 'Approved by store manager'}`,
+      at: new Date(),
+      by: adminUser._id,
+    });
+
+    await orderRepository.save(order);
+
+    await notify(
+      ownerId(order),
+      'Order delivered',
+      `${order.orderNumber} was marked delivered with dark store manager authorization.`,
+      `/orders/${order._id}`
+    );
+
+    void messagingService.dispatchOrderNotification('delivered', order);
+
+    const fresh = await orderRepository.findById(order._id);
+    return presentOrder(fresh, adminUser.role);
   },
 };
 

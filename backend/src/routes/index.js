@@ -56,11 +56,15 @@ router.post('/auth/refresh', validate(schemas.refreshSchema), authController.ref
 router.post('/auth/logout', validate(schemas.refreshSchema), authController.logout);
 router.get('/auth/me', authenticate, authController.me);
 router.patch('/auth/me', authenticate, validate(schemas.updateMeSchema), authController.updateMe);
+router.patch('/auth/notification-preferences', authenticate, validate(schemas.notificationPreferencesSchema), authController.updateNotificationPreferences);
+router.post('/auth/fcm-token', authenticate, validate(schemas.fcmTokenSchema), authController.registerFcmToken);
+router.delete('/auth/fcm-token', authenticate, authController.removeFcmToken);
 
 router.get('/categories', catalogController.categories);
 router.get('/categories/:slug', validate(schemas.slugParamsSchema), catalogController.category);
 router.get('/products', validate(schemas.productQuerySchema), catalogController.products);
 router.get('/products/:slug', validate(schemas.slugParamsSchema), catalogController.product);
+router.post('/voice-search/interpret', catalogController.interpretVoiceSearch);
 
 router.get('/coupons/active', authenticate, authorize(P.COUPONS_APPLY), adminController.activeCoupons);
 
@@ -141,6 +145,27 @@ router.patch(
   validate(schemas.statusSchema),
   orderController.updateStatus
 );
+router.post(
+  '/orders/:id/verify-otp',
+  authenticate,
+  authorizeAny(P.ORDERS_DELIVER, P.ORDERS_MANAGE),
+  validate(schemas.verifyDeliveryOtpSchema),
+  orderController.verifyDeliveryOtp
+);
+router.post(
+  '/orders/:id/resend-otp',
+  authenticate,
+  authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_DELIVER, P.ORDERS_MANAGE),
+  validate(schemas.idParamsSchema),
+  orderController.resendDeliveryOtp
+);
+router.post(
+  '/admin/orders/:id/bypass-otp',
+  authenticate,
+  authorize(P.ORDERS_MANAGE),
+  validate(schemas.adminBypassOtpSchema),
+  orderController.adminBypassDeliveryOtp
+);
 router.patch(
   '/orders/:id/assign',
   authenticate,
@@ -182,6 +207,26 @@ router.post(
   authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_MANAGE),
   validate(schemas.submitTipSchema),
   orderController.submitTip
+);
+router.post(
+  '/orders/:id/claim',
+  authenticate,
+  authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_MANAGE),
+  validate(schemas.submitClaimSchema),
+  orderController.submitClaim
+);
+router.post(
+  '/orders/:id/pack',
+  authenticate,
+  authorize(P.ORDERS_MANAGE),
+  validate(schemas.packOrderSchema),
+  orderController.packOrder
+);
+router.get(
+  '/delivery/ledger',
+  authenticate,
+  authorize(P.ORDERS_DELIVER),
+  orderController.riderLedger
 );
 
 router.get('/store/config', storeConfigController.getPublicConfig);
@@ -241,8 +286,13 @@ admin.get('/store/config', authorize(P.USERS_READ), storeConfigController.getAdm
 admin.put('/store/config', authorize(P.USERS_WRITE), validate(schemas.updateStoreConfigSchema), storeConfigController.updateConfig);
 
 admin.post('/messaging/test', authorize(P.USERS_WRITE), validate(schemas.sendTestMessageSchema), messagingController.sendTestMessage);
+admin.post('/messaging/broadcast-promo', authorize(P.USERS_WRITE), validate(schemas.broadcastPromoSchema), messagingController.broadcastPromo);
+admin.get('/messaging/push-summary', authorize(P.USERS_READ), messagingController.getPushSummary);
 admin.get('/messaging/logs', authorize(P.USERS_READ), messagingController.getLogs);
 admin.get('/feedback', authorize(P.REPORTS_READ), orderController.feedbackSummary);
+admin.get('/claims', authorize(P.ORDERS_MANAGE), orderController.listClaims);
+admin.post('/orders/:id/claims/:claimId/resolve', authorize(P.ORDERS_MANAGE), validate(schemas.resolveClaimSchema), orderController.resolveClaim);
+admin.post('/riders/:id/settle-cash', authorize(P.ORDERS_MANAGE), validate(schemas.settleRiderCashSchema), orderController.settleRiderCash);
 
 router.use('/admin', admin);
 

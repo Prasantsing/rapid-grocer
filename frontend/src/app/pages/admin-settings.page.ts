@@ -3,14 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
-import { StoreConfig, MessageLog } from '../core/models';
+import { StoreConfig, MessageLog, PushSummaryResponse } from '../core/models';
+import { RouterLink } from '@angular/router';
 import { InrPipe } from '../shared/inr.pipe';
 import { errorMessage } from '../core/http-error';
+import { ThemeService } from '../core/theme.service';
 
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, InrPipe],
+  imports: [CommonModule, FormsModule, InrPipe, RouterLink],
   template: `
     <div class="container-fluid p-3 p-md-4">
       <!-- Header -->
@@ -65,6 +67,353 @@ import { errorMessage } from '../core/http-error';
         </div>
       } @else if (config()) {
         <div class="row g-4">
+          <!-- Brand Identity & Logo Customizer (Full Width) -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 mb-2 overflow-hidden">
+              <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-success-subtle text-success">
+                      <i class="bi bi-palette fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0">Brand Identity & Dynamic Logo</h5>
+                      <small class="text-muted">Customize the store logo across customer storefront, admin desk, and delivery app</small>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="resetDefaultLogo()"
+                      title="Reset to official ZapBasket emerald logo"
+                    >
+                      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Official Logo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-body p-4 pt-2">
+                <div class="row g-4 align-items-center">
+                  <!-- Left: Dual-Theme Live Logo Previews -->
+                  <div class="col-lg-5">
+                    <label class="form-label small fw-semibold text-muted d-block mb-2">Live Logo Previews (Light & Dark Headers)</label>
+                    <div class="d-flex flex-column gap-3">
+                      <!-- Light Storefront Header Mockup -->
+                      <div class="p-3 rounded-4 border bg-white shadow-sm d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="brand-mark" style="width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; border: 1.5px solid rgba(5,150,105,0.3); background: #ffffff; padding: 2px;">
+                            <img [src]="logoPreview()" alt="Logo Preview" class="brand-img" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" (error)="onLogoImgError($event)" />
+                          </span>
+                          <div>
+                            <span class="fw-bold text-dark d-block" style="font-family: Outfit, sans-serif; font-size: 1.05rem;">ZapBasket</span>
+                            <small class="text-muted" style="font-size: 0.72rem;">12-minute groceries</small>
+                          </div>
+                        </div>
+                        <span class="badge bg-light text-dark border px-2 py-1 small">Light Mode</span>
+                      </div>
+
+                      <!-- Dark Desk Header Mockup -->
+                      <div class="p-3 rounded-4 border border-secondary border-opacity-25 shadow-sm d-flex align-items-center justify-content-between" style="background: #0b111a;">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="brand-mark" style="width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; border: 1.5px solid rgba(0,229,153,0.5); background: #ffffff; padding: 2px; box-shadow: 0 0 12px rgba(0,229,153,0.35);">
+                            <img [src]="logoPreview()" alt="Logo Preview" class="brand-img" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />
+                          </span>
+                          <div>
+                            <span class="fw-bold text-white d-block" style="font-family: Outfit, sans-serif; font-size: 1.05rem;">ZapBasket</span>
+                            <small class="text-success" style="font-size: 0.72rem;"><i class="bi bi-lightning-fill"></i> Ultra-Fast Hub</small>
+                          </div>
+                        </div>
+                        <span class="badge bg-dark text-success border border-success border-opacity-50 px-2 py-1 small">Dark Mode</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Upload Controls & Presets -->
+                  <div class="col-lg-7">
+                    <!-- Method Toggle Tabs -->
+                    <div class="btn-group btn-group-sm w-100 mb-3" role="group">
+                      <button
+                        type="button"
+                        class="btn"
+                        [class.btn-primary]="logoInputMode() === 'upload'"
+                        [class.btn-outline-primary]="logoInputMode() !== 'upload'"
+                        (click)="logoInputMode.set('upload')"
+                      >
+                        <i class="bi bi-upload me-1"></i> Upload Image File from Device
+                      </button>
+                      <button
+                        type="button"
+                        class="btn"
+                        [class.btn-primary]="logoInputMode() === 'url'"
+                        [class.btn-outline-primary]="logoInputMode() !== 'url'"
+                        (click)="logoInputMode.set('url')"
+                      >
+                        <i class="bi bi-link-45deg me-1"></i> Paste Image URL
+                      </button>
+                    </div>
+
+                    @if (logoInputMode() === 'upload') {
+                      <!-- Device File Upload Dropzone -->
+                      <div class="p-3 p-md-4 rounded-4 border-2 border-dashed text-center bg-light bg-opacity-50 position-relative mb-3">
+                        <input
+                          type="file"
+                          id="logoFileInput"
+                          class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                          style="cursor: pointer;"
+                          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                          (change)="onLogoFileSelected($event)"
+                        />
+                        <div class="d-flex flex-column align-items-center justify-content-center pointer-events-none">
+                          <div class="p-3 rounded-circle bg-primary-subtle text-primary mb-2">
+                            <i class="bi bi-cloud-arrow-up fs-3"></i>
+                          </div>
+                          <span class="fw-bold text-dark mb-1">Click to browse or drag & drop logo file</span>
+                          <span class="text-muted small">Supports PNG, SVG, JPEG, and WebP (Max 5MB)</span>
+                        </div>
+                      </div>
+                    } @else {
+                      <!-- URL Input -->
+                      <div class="mb-3">
+                        <label for="logoUrlInput" class="form-label small fw-semibold">Direct Image URL</label>
+                        <div class="input-group">
+                          <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                          <input
+                            id="logoUrlInput"
+                            type="text"
+                            class="form-control"
+                            [(ngModel)]="formData.logoUrl"
+                            (ngModelChange)="onLogoUrlChange($event)"
+                            placeholder="e.g. brand-logo-white.svg or https://example.com/logo.png"
+                          />
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Official Preset Quick Selection -->
+                    <div class="pt-2">
+                      <label class="form-label small fw-semibold text-muted d-block mb-2">Official Brand Presets</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-success rounded-pill px-3 py-1"
+                          (click)="setLogoPreset('brand-logo-white.svg')"
+                        >
+                          <i class="bi bi-check2-circle me-1"></i> Minimalist Emerald Basket (New)
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                          (click)="setLogoPreset('brand-logo-transparent.svg')"
+                        >
+                          <i class="bi bi-layers me-1"></i> Transparent Emerald Vector
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                          (click)="setLogoPreset('brand-logo-white.png')"
+                        >
+                          <i class="bi bi-box me-1"></i> 3D Woven Basket Badge
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme Studio & Color Customizer (Full Width) -->
+          <div class="col-12">
+            <div class="card border shadow-sm rounded-4 mb-2 overflow-hidden">
+              <div class="card-header border-0 pt-4 px-4 pb-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+                      <i class="bi bi-brush-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0 text-dark">Store Color Theme & Visual Customizer</h5>
+                      <small class="text-secondary fw-medium">Customize the brand palette, button accents, and visual mood with instant live preview</small>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      (click)="resetDefaultTheme()"
+                      title="Reset to default Emerald Velocity theme"
+                    >
+                      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Emerald Theme
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-body p-4 pt-2">
+                <div class="row g-4">
+                  <!-- Left: Curated Presets Grid + Custom Color Pickers -->
+                  <div class="col-lg-7">
+                    <label class="form-label small fw-semibold text-dark d-block mb-2">Curated Retail Theme Presets</label>
+                    <div class="row g-2 mb-3">
+                      @for (p of themeService.presets; track p.id) {
+                        <div class="col-sm-6 col-md-4">
+                          <div
+                            class="theme-preset-card h-100"
+                            [class.active]="selectedThemePreset === p.id"
+                            (click)="choosePreset(p.id)"
+                          >
+                            <div class="theme-swatch-strip">
+                              <div class="theme-swatch-primary" [style.background]="p.primary"></div>
+                              <div class="theme-swatch-accent" [style.background]="p.accent"></div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                              <span class="fw-bold small text-dark d-block">{{ p.name }}</span>
+                              @if (selectedThemePreset === p.id) {
+                                <i class="bi bi-check-circle-fill text-success small"></i>
+                              }
+                            </div>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.72rem; line-height: 1.2;">
+                              {{ p.tagline }}
+                            </small>
+                          </div>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Custom Hex Color Pickers -->
+                    <div class="p-3 bg-light rounded-3 border">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-dark d-flex align-items-center gap-1">
+                          <i class="bi bi-eyedropper text-primary"></i> Custom Brand Colors
+                        </span>
+                        @if (selectedThemePreset === 'custom') {
+                          <span class="badge bg-primary text-white small" style="font-size: 0.7rem;">Custom Active</span>
+                        }
+                      </div>
+
+                      <div class="row g-3">
+                        <div class="col-sm-6">
+                          <label class="form-label small fw-semibold text-secondary mb-1">Primary Brand Color</label>
+                          <div class="theme-color-input-wrapper">
+                            <input
+                              type="color"
+                              [value]="themePrimaryColor"
+                              (input)="onPrimaryColorChange($event)"
+                            />
+                            <input
+                              type="text"
+                              class="theme-hex-input"
+                              [value]="themePrimaryColor"
+                              (input)="onPrimaryHexChange($event)"
+                              placeholder="#059669"
+                            />
+                            <span class="small text-muted ms-auto" style="font-size: 0.72rem;">Buttons & Accents</span>
+                          </div>
+                        </div>
+
+                        <div class="col-sm-6">
+                          <label class="form-label small fw-semibold text-secondary mb-1">Accent / Highlights Color</label>
+                          <div class="theme-color-input-wrapper">
+                            <input
+                              type="color"
+                              [value]="themeAccentColor"
+                              (input)="onAccentColorChange($event)"
+                            />
+                            <input
+                              type="text"
+                              class="theme-hex-input"
+                              [value]="themeAccentColor"
+                              (input)="onAccentHexChange($event)"
+                              placeholder="#ea580c"
+                            />
+                            <span class="small text-muted ms-auto" style="font-size: 0.72rem;">Offers & Badges</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Live Interactive Mockup Card -->
+                  <div class="col-lg-5">
+                    <label class="form-label small fw-semibold text-dark d-block mb-2">Instant Live Preview</label>
+                    <div class="theme-live-mockup">
+                      <!-- Mini Header Bar -->
+                      <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                          <div
+                            class="rounded-3 d-grid place-items-center text-white"
+                            [style.background]="themePrimaryColor"
+                            style="width: 32px; height: 32px;"
+                          >
+                            <i class="bi bi-basket-fill small"></i>
+                          </div>
+                          <div>
+                            <span class="fw-bold text-dark d-block small">Storefront Hero</span>
+                            <small class="text-muted" style="font-size: 0.68rem;">ZapBasket Instant</small>
+                          </div>
+                        </div>
+                        <span
+                          class="badge rounded-pill text-white px-2 py-1"
+                          [style.background]="themeAccentColor"
+                          style="font-size: 0.7rem;"
+                        >
+                          <i class="bi bi-lightning-fill me-1"></i> 12 Mins
+                        </span>
+                      </div>
+
+                      <!-- Sample Product Card -->
+                      <div class="card border rounded-3 p-2 mb-3 bg-white shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="rounded-2 bg-light p-2 text-center" style="width: 50px; height: 50px;">
+                            <span class="fs-4">🥑</span>
+                          </div>
+                          <div class="flex-grow-1">
+                            <span class="fw-bold text-dark small d-block">Fresh Hass Avocados</span>
+                            <div class="d-flex align-items-center gap-1">
+                              <span class="fw-bold text-dark small">₹189</span>
+                              <small class="text-muted text-decoration-line-through" style="font-size: 0.7rem;">₹220</small>
+                              <span class="badge bg-danger-subtle text-danger" style="font-size: 0.65rem;">14% OFF</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            class="btn btn-sm rounded-pill px-3 py-1 text-white fw-bold shadow-sm"
+                            [style.background]="themePrimaryColor"
+                            [style.borderColor]="themePrimaryColor"
+                            style="font-size: 0.75rem;"
+                          >
+                            + ADD
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Sample Controls Strip -->
+                      <div class="d-flex gap-2 flex-wrap">
+                        <span
+                          class="badge border px-2 py-1"
+                          [style.borderColor]="themePrimaryColor"
+                          [style.color]="themePrimaryColor"
+                          style="font-size: 0.72rem; background: rgba(5,150,105,0.06);"
+                        >
+                          Active Delivery Slot
+                        </span>
+                        <span
+                          class="badge rounded-pill text-white px-2 py-1"
+                          [style.background]="themeAccentColor"
+                          style="font-size: 0.72rem;"
+                        >
+                          FLAT ₹50 OFF
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Left Column: Operational Status & Business Hours -->
           <div class="col-lg-6">
             <!-- 1. Master Operational Switch -->
@@ -425,28 +774,48 @@ import { errorMessage } from '../core/http-error';
             <!-- 5. Live Merchant UPI & Webhook Parameters -->
             <div class="card border-0 shadow-sm rounded-4">
               <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="p-2 rounded-3 bg-primary-subtle text-primary">
-                    <i class="bi bi-qr-code fs-5"></i>
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+                      <i class="bi bi-qr-code fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0">Merchant UPI & Webhook Parameters</h5>
+                      <small class="text-muted">Settlement VPA and automated callback security</small>
+                    </div>
                   </div>
-                  <div>
-                    <h5 class="fw-bold mb-0">Merchant UPI & Webhook Parameters</h5>
-                    <small class="text-muted">Settlement VPA and automated callback security</small>
-                  </div>
+                  <a routerLink="/admin/settlement" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Open Settlement Studio</span>
+                  </a>
                 </div>
               </div>
               <div class="card-body p-4 pt-2">
                 <div class="row g-3 mb-3">
                   <div class="col-sm-6">
-                    <label for="upiVpa" class="form-label small fw-semibold">Payee UPI VPA</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="upiVpa" class="form-label small fw-semibold mb-0">Payee UPI VPA</label>
+                      @if (formData.upiVpa) {
+                        @if (isValidVpa(formData.upiVpa)) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Valid VPA
+                          </span>
+                        } @else {
+                          <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;">
+                            <i class="bi bi-x-circle-fill me-1"></i> Invalid format
+                          </span>
+                        }
+                      }
+                    </div>
                     <input
                       id="upiVpa"
                       type="text"
                       class="form-control font-monospace"
+                      [class.is-invalid]="formData.upiVpa && !isValidVpa(formData.upiVpa)"
                       [(ngModel)]="formData.upiVpa"
                       placeholder="e.g. 9101516662@ybl"
                     />
-                    <div class="form-text small">Receives customer payments</div>
+                    <div class="form-text small">Receives customer UPI payments & QR settlements</div>
                   </div>
                   <div class="col-sm-6">
                     <label for="payeeName" class="form-label small fw-semibold">Display Merchant Name</label>
@@ -495,6 +864,72 @@ import { errorMessage } from '../core/http-error';
                       [(ngModel)]="formData.supportEmail"
                       placeholder="support@zapbasket.store"
                     />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FSSAI Food Safety Licensing & Public Demo Security -->
+            <div class="card border-0 shadow-sm rounded-4 mt-4 mb-4">
+              <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-2 rounded-3 bg-success-subtle text-success">
+                    <i class="bi bi-shield-fill-check fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 class="fw-bold mb-0">Legal Compliance & Public Login Security</h5>
+                    <small class="text-muted">FSSAI food licensing and login page demo accounts visibility</small>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body p-4 pt-2">
+                <div class="row g-3">
+                  <div class="col-sm-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="fssaiLic" class="form-label small fw-semibold mb-0">FSSAI 14-Digit License</label>
+                      @if (formData.fssaiLicense) {
+                        @if (isValidFssai(formData.fssaiLicense)) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Valid 14 Digits
+                          </span>
+                        } @else {
+                          <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Must be 14 digits
+                          </span>
+                        }
+                      }
+                    </div>
+                    <input
+                      id="fssaiLic"
+                      type="text"
+                      class="form-control font-monospace"
+                      [class.is-invalid]="formData.fssaiLicense && !isValidFssai(formData.fssaiLicense)"
+                      maxlength="14"
+                      [(ngModel)]="formData.fssaiLicense"
+                      placeholder="11224333000542"
+                    />
+                    <div class="form-text small">Mandatory on food delivery storefronts & invoice headers</div>
+                  </div>
+
+                  <div class="col-sm-6">
+                    <label class="form-label small fw-semibold">Public Login Demo Accounts Display</label>
+                    <div class="form-check form-switch fs-6 p-2 rounded-3 bg-light border">
+                      <input
+                        class="form-check-input ms-0 me-2"
+                        type="checkbox"
+                        role="switch"
+                        id="showDemoAccountsSwitch"
+                        [(ngModel)]="formData.showDemoAccountsOnLogin"
+                      />
+                      <label class="form-check-label fw-bold small" for="showDemoAccountsSwitch">
+                        @if (formData.showDemoAccountsOnLogin) {
+                          <span class="text-success"><i class="bi bi-eye-fill me-1"></i> Testing Desks Enabled</span>
+                        } @else {
+                          <span class="text-danger"><i class="bi bi-eye-slash-fill me-1"></i> Hidden for Public Shoppers</span>
+                        }
+                      </label>
+                    </div>
+                    <div class="form-text small">When enabled, reviewers can expand the demo desk; when disabled, hidden completely</div>
                   </div>
                 </div>
               </div>
@@ -667,6 +1102,7 @@ import { errorMessage } from '../core/http-error';
                     <div class="col-sm-3">
                       <label for="testChannel" class="form-label small fw-semibold">Channel</label>
                       <select id="testChannel" class="form-select form-select-sm" [(ngModel)]="testChannel">
+                        <option value="push">Push Notification</option>
                         <option value="whatsapp">WhatsApp</option>
                         <option value="sms">SMS</option>
                       </select>
@@ -697,6 +1133,148 @@ import { errorMessage } from '../core/http-error';
             </div>
           </div>
 
+          <!-- FCM Web Push Notification & Promotional Broadcast Station -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+              <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+                    <i class="bi bi-bell-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <h5 class="fw-bold mb-0">Firebase Cloud Messaging & Push Notification Station</h5>
+                    <small class="text-muted">Monitor device token opt-ins, customer preferences, and dispatch promotional push broadcasts</small>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="loadPushSummary()"
+                  [disabled]="isLoadingPushSummary()"
+                >
+                  @if (isLoadingPushSummary()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                  } @else {
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                  }
+                  Refresh Push Stats
+                </button>
+              </div>
+
+              <div class="card-body p-4 pt-2">
+                <!-- Push Opt-In Metric Cards -->
+                <div class="row g-3 mb-4">
+                  <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small mb-1"><i class="bi bi-phone me-1"></i> Registered Devices</div>
+                      <h4 class="fw-bold mb-0 text-dark">{{ pushSummary()?.usersWithTokens ?? 0 }}</h4>
+                      <small class="text-secondary" style="font-size: 0.72rem;">{{ pushSummary()?.totalUsers ?? 0 }} total registered customers</small>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small mb-1"><i class="bi bi-bicycle me-1"></i> Order Update Opt-in</div>
+                      <h4 class="fw-bold mb-0 text-primary">{{ pushSummary()?.orderOptInRate ?? 100 }}%</h4>
+                      <small class="text-secondary" style="font-size: 0.72rem;">{{ pushSummary()?.optedInOrderUpdates ?? 0 }} customers opted-in</small>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small mb-1"><i class="bi bi-tags-fill me-1"></i> Deals & Promo Opt-in</div>
+                      <h4 class="fw-bold mb-0 text-warning">{{ pushSummary()?.promoOptInRate ?? 100 }}%</h4>
+                      <small class="text-secondary" style="font-size: 0.72rem;">{{ pushSummary()?.optedInPromos ?? 0 }} customers opted-in</small>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="p-3 rounded-3 bg-light border">
+                      <div class="text-muted small mb-1"><i class="bi bi-broadcast-pin me-1"></i> Gateway Provider</div>
+                      <h5 class="fw-bold mb-0 text-success">Web Push / FCM</h5>
+                      <small class="text-success" style="font-size: 0.72rem;">Background SW Active</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Promotional Push Broadcast Form -->
+                <div class="p-3 rounded-3 border bg-light bg-opacity-50">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                      <i class="bi bi-megaphone-fill text-primary"></i>
+                      <span>Broadcast Promotional Push Alert</span>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                      Delivers to all customers with promotional alerts turned on
+                    </span>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-md-5">
+                      <label class="form-label small fw-semibold">Push Title</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        [(ngModel)]="promoForm.title"
+                        placeholder="e.g. ⚡ Flash Deal: Flat 40% Off Veggies!"
+                      />
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small fw-semibold">Target Route / Deep Link</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-sm"
+                        [(ngModel)]="promoForm.link"
+                        placeholder="/coupons or /products"
+                      />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold">Coupon Code (Optional)</label>
+                      <input
+                        type="text"
+                        class="form-control form-control-sm font-monospace text-uppercase"
+                        [(ngModel)]="promoForm.couponCode"
+                        placeholder="e.g. FLASH40"
+                      />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-semibold">Notification Body</label>
+                      <textarea
+                        class="form-control form-control-sm"
+                        rows="2"
+                        [(ngModel)]="promoForm.body"
+                        placeholder="Order before 8 PM to enjoy farm-fresh veggies at dark store clearance rates."
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3 pt-3 border-top">
+                    <div class="small text-muted">
+                      Customers who have toggled off "Promotional Alerts" in their profile will be automatically respected and excluded.
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm px-4 fw-bold"
+                        [disabled]="isBroadcastingPromo() || !promoForm.title || !promoForm.body"
+                        (click)="broadcastPromoPush()"
+                      >
+                        @if (isBroadcastingPromo()) {
+                          <span class="spinner-border spinner-border-sm me-1"></span> Broadcasting…
+                        } @else {
+                          <i class="bi bi-broadcast me-1"></i> Broadcast Push Notification
+                        }
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (promoBroadcastResult()) {
+                    <div class="alert alert-success py-2 px-3 mt-3 mb-0 rounded-3 small">
+                      <i class="bi bi-check-circle-fill me-1"></i> {{ promoBroadcastResult() }}
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Full-Width Live Message Logs Drawer -->
           @if (showLogs()) {
             <div class="col-12 mt-4">
@@ -708,7 +1286,7 @@ import { errorMessage } from '../core/http-error';
                     </div>
                     <div>
                       <h5 class="fw-bold mb-0">Transactional Message Dispatch Audit Logs</h5>
-                      <small class="text-muted">Real-time delivery history across SMS and WhatsApp channels</small>
+                      <small class="text-muted">Real-time delivery history across Web Push, SMS and WhatsApp channels</small>
                     </div>
                   </div>
                   <button type="button" class="btn btn-outline-secondary btn-sm" (click)="loadMessageLogs()">
@@ -743,7 +1321,11 @@ import { errorMessage } from '../core/http-error';
                                 {{ log.createdAt | date:'d MMM, h:mm:ss a' }}
                               </td>
                               <td>
-                                @if (log.channel === 'whatsapp') {
+                                @if (log.channel === 'push') {
+                                  <span class="badge bg-primary text-white">
+                                    <i class="bi bi-bell-fill me-1"></i> Web Push
+                                  </span>
+                                } @else if (log.channel === 'whatsapp') {
                                   <span class="badge bg-success-subtle text-success border border-success-subtle">
                                     <i class="bi bi-whatsapp me-1"></i> WhatsApp
                                   </span>
@@ -796,16 +1378,22 @@ import { errorMessage } from '../core/http-error';
 export class AdminSettingsPage implements OnInit {
   private readonly shop = inject(ShopService);
   private readonly toasts = inject(ToastService);
+  readonly themeService = inject(ThemeService);
 
   readonly config = signal<StoreConfig | null>(null);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
+
+  selectedThemePreset = 'emerald';
+  themePrimaryColor = '#059669';
+  themeAccentColor = '#ea580c';
 
   formData: any = {
     isOpen: true,
     closedReason: '',
     openingTime: '07:00',
     closingTime: '23:00',
+    logoUrl: 'brand-logo-white.svg',
     deliveryRadiusKm: 8.0,
     minOrderAmount: 99,
     freeDeliveryThreshold: 299,
@@ -828,6 +1416,8 @@ export class AdminSettingsPage implements OnInit {
     webhookSecret: 'zb_webhook_secret_live',
     supportPhone: '+91 9101516662',
     supportEmail: 'support@zapbasket.store',
+    fssaiLicense: '11224333000542',
+    showDemoAccountsOnLogin: true,
     storeLocation: {
       lat: 12.9352,
       lng: 77.6245,
@@ -835,13 +1425,128 @@ export class AdminSettingsPage implements OnInit {
     },
   };
 
+  choosePreset(presetId: string) {
+    this.selectedThemePreset = presetId;
+    const preset = this.themeService.presets.find((p) => p.id === presetId);
+    if (preset) {
+      this.themePrimaryColor = preset.primary;
+      this.themeAccentColor = preset.accent;
+      this.themeService.applyPaletteToDom(preset.primary, preset.accent);
+    }
+  }
+
+  onPrimaryColorChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.selectedThemePreset = 'custom';
+    this.themePrimaryColor = val;
+    this.themeService.applyPaletteToDom(val, this.themeAccentColor);
+  }
+
+  onPrimaryHexChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value.trim();
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(val)) {
+      this.selectedThemePreset = 'custom';
+      this.themePrimaryColor = val;
+      this.themeService.applyPaletteToDom(val, this.themeAccentColor);
+    }
+  }
+
+  onAccentColorChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value;
+    this.selectedThemePreset = 'custom';
+    this.themeAccentColor = val;
+    this.themeService.applyPaletteToDom(this.themePrimaryColor, val);
+  }
+
+  onAccentHexChange(event: Event) {
+    const val = (event.target as HTMLInputElement).value.trim();
+    if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(val)) {
+      this.selectedThemePreset = 'custom';
+      this.themeAccentColor = val;
+      this.themeService.applyPaletteToDom(this.themePrimaryColor, val);
+    }
+  }
+
+  resetDefaultTheme() {
+    this.choosePreset('emerald');
+    this.toasts.show('Reset to default Emerald Velocity theme.');
+  }
+
   testCoords = '12.9352, 77.6245';
   readonly testResult = signal<{ distanceKm: number; eligible: boolean } | null>(null);
 
+  readonly logoInputMode = signal<'upload' | 'url'>('upload');
+  readonly logoPreview = signal<string>('brand-logo-white.svg');
+  readonly isUploadingLogo = signal<boolean>(false);
+
+  onLogoFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.toasts.error('Please select an image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.toasts.error('File size must be under 5 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      this.logoPreview.set(result);
+      this.formData.logoUrl = result;
+      this.toasts.show('Logo loaded! Click "Save Changes" to apply across the store.');
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  onLogoUrlChange(url: string) {
+    if (url && url.trim()) {
+      this.logoPreview.set(url.trim());
+    } else {
+      this.logoPreview.set('brand-logo-white.svg');
+    }
+  }
+
+  setLogoPreset(url: string) {
+    this.formData.logoUrl = url;
+    this.logoPreview.set(url);
+    this.toasts.show(`Selected preset: ${url}`);
+  }
+
+  resetDefaultLogo() {
+    this.formData.logoUrl = 'brand-logo-white.svg';
+    this.logoPreview.set('brand-logo-white.svg');
+    this.toasts.show('Reset to official minimalist emerald ZapBasket logo.');
+  }
+
+  onLogoImgError(event: Event) {
+    const img = event.target as HTMLImageElement;
+    if (img && !img.src.includes('brand-logo-white.svg')) {
+      img.src = 'brand-logo-white.svg';
+    }
+  }
+
   testPhone = '+91 9101516662';
-  testChannel: 'sms' | 'whatsapp' = 'whatsapp';
+  testChannel: 'sms' | 'whatsapp' | 'push' = 'push';
   readonly isTestingAlert = signal(false);
   readonly testAlertResult = signal<string | null>(null);
+
+  readonly pushSummary = signal<PushSummaryResponse | null>(null);
+  readonly isLoadingPushSummary = signal(false);
+  readonly isBroadcastingPromo = signal(false);
+  readonly promoBroadcastResult = signal<string | null>(null);
+
+  promoForm = {
+    title: '⚡ Flash Offer: 25% Off Fresh Fruits',
+    body: 'Stock up your basket with farm-fresh apples, bananas & berries before 8 PM!',
+    couponCode: 'FRUIT25',
+    link: '/categories',
+  };
 
   readonly showLogs = signal(false);
   readonly messageLogs = signal<MessageLog[]>([]);
@@ -849,6 +1554,48 @@ export class AdminSettingsPage implements OnInit {
 
   ngOnInit() {
     void this.loadConfig();
+    void this.loadPushSummary();
+  }
+
+  async loadPushSummary() {
+    this.isLoadingPushSummary.set(true);
+    try {
+      const summary = await this.shop.getPushSummary();
+      this.pushSummary.set(summary);
+    } catch (err) {
+      console.warn('Could not load push summary:', err);
+    } finally {
+      this.isLoadingPushSummary.set(false);
+    }
+  }
+
+  async broadcastPromoPush() {
+    if (!this.promoForm.title || !this.promoForm.body) {
+      this.toasts.error('Please enter a title and message body for the push broadcast');
+      return;
+    }
+    this.isBroadcastingPromo.set(true);
+    this.promoBroadcastResult.set(null);
+    try {
+      const res = await this.shop.broadcastPromo({
+        title: this.promoForm.title,
+        body: this.promoForm.body,
+        couponCode: this.promoForm.couponCode || undefined,
+        link: this.promoForm.link || undefined,
+      });
+      this.promoBroadcastResult.set(
+        `Dispatched successfully: ${res.recipientsCount} opted-in customers targeted (${res.deliveredCount} device tokens sent, ${res.failedCount} failures).`
+      );
+      this.toasts.show('Promotional push broadcast dispatched!');
+      void this.loadPushSummary();
+      if (this.showLogs()) {
+        void this.loadMessageLogs();
+      }
+    } catch (err) {
+      this.toasts.error(errorMessage(err, 'Failed to broadcast promotional push notification'));
+    } finally {
+      this.isBroadcastingPromo.set(false);
+    }
   }
 
   toggleLogs() {
@@ -871,14 +1618,15 @@ export class AdminSettingsPage implements OnInit {
   }
 
   async sendTestAlert() {
-    if (!this.testPhone) {
+    const phone = this.testPhone || (this.testChannel === 'push' ? 'Push-Device' : '');
+    if (!phone) {
       this.toasts.error('Please enter a recipient phone number');
       return;
     }
     this.isTestingAlert.set(true);
     this.testAlertResult.set(null);
     try {
-      const res = await this.shop.sendTestMessage(this.testChannel, this.testPhone);
+      const res = await this.shop.sendTestMessage(this.testChannel, phone);
       this.testAlertResult.set(
         `${this.testChannel.toUpperCase()} alert triggered (${res.log?.status || 'simulated'}). Log ID: #${res.log?._id || 'ok'}`
       );
@@ -927,12 +1675,23 @@ export class AdminSettingsPage implements OnInit {
         webhookSecret: data.webhookSecret || 'zb_webhook_secret_live',
         supportPhone: data.supportPhone || '+91 9101516662',
         supportEmail: data.supportEmail || 'support@zapbasket.store',
+        logoUrl: data.logoUrl || 'brand-logo-white.svg',
+        fssaiLicense: data.fssaiLicense || '11224333000542',
+        showDemoAccountsOnLogin: data.showDemoAccountsOnLogin !== false,
         storeLocation: {
           lat: data.storeLocation?.lat ?? 12.9352,
           lng: data.storeLocation?.lng ?? 77.6245,
           address: data.storeLocation?.address || 'Koramangala 4th Block, Bengaluru',
         },
       };
+      this.logoPreview.set(this.formData.logoUrl);
+
+      if (data.theme) {
+        this.selectedThemePreset = data.theme.preset || 'emerald';
+        this.themePrimaryColor = data.theme.primaryColor || '#059669';
+        this.themeAccentColor = data.theme.accentColor || '#ea580c';
+        this.themeService.applyPaletteToDom(this.themePrimaryColor, this.themeAccentColor);
+      }
     } catch (error) {
       this.toasts.error(errorMessage(error, 'Could not load store configuration'));
     } finally {
@@ -940,12 +1699,36 @@ export class AdminSettingsPage implements OnInit {
     }
   }
 
+  isValidVpa(vpa: string): boolean {
+    return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test((vpa || '').trim());
+  }
+
+  isValidFssai(lic: string): boolean {
+    return /^\d{14}$/.test((lic || '').trim());
+  }
+
   async saveConfig() {
+    if (this.formData.upiVpa && !this.isValidVpa(this.formData.upiVpa)) {
+      this.toasts.error('Please enter a valid Merchant UPI VPA (e.g. yourname@bank)');
+      return;
+    }
+    if (this.formData.fssaiLicense && !this.isValidFssai(this.formData.fssaiLicense)) {
+      this.toasts.error('FSSAI Food Safety License must be exactly 14 numeric digits');
+      return;
+    }
+
+    this.formData.theme = {
+      preset: this.selectedThemePreset,
+      primaryColor: this.themePrimaryColor,
+      accentColor: this.themeAccentColor,
+      surfaceMode: 'slate-contrast',
+    };
+
     this.isSaving.set(true);
     try {
       const updated = await this.shop.updateStoreConfig(this.formData);
       this.config.set(updated);
-      this.toasts.show('Store operational settings saved successfully!');
+      this.toasts.show('Store operational settings & theme saved successfully!');
     } catch (error) {
       this.toasts.error(errorMessage(error, 'Failed to save settings'));
     } finally {

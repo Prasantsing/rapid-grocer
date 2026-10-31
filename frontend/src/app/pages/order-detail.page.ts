@@ -5,16 +5,18 @@ import { Order, UpiPaymentDetails } from '../core/models';
 import { AuthService } from '../core/auth.service';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
+import { FcmService } from '../core/fcm.service';
 import { errorMessage } from '../core/http-error';
 import { InrPipe } from '../shared/inr.pipe';
 import { ORDER_STEPS, STATUS_LABEL } from '../shared/status';
 import { UpiPaymentModalComponent } from '../shared/upi-payment-modal.component';
 import { OrderProgressBarComponent } from '../shared/order-progress-bar.component';
 import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
+import { OrderTrackingMapComponent } from '../shared/order-tracking-map.component';
 
 @Component({
   selector: 'app-order-detail-page',
-  imports: [DatePipe, RouterLink, InrPipe, UpiPaymentModalComponent, OrderProgressBarComponent, ReceiptUploadComponent],
+  imports: [DatePipe, RouterLink, InrPipe, UpiPaymentModalComponent, OrderProgressBarComponent, ReceiptUploadComponent, OrderTrackingMapComponent],
   template: `
     <a class="muted" routerLink="/orders">All orders</a>
     @if (loading()) {
@@ -29,7 +31,92 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
       </div>
 
       <!-- Order Tracking Progress Bar Component -->
-      <app-order-progress-bar [order]="current" [status]="current.status" class="mb-4" />
+      <app-order-progress-bar [order]="current" [status]="current.status" class="mb-3" />
+
+      <!-- Customer Live Order Tracking Map -->
+      @if (current.status !== 'cancelled') {
+        <app-order-tracking-map [order]="current" [storeConfig]="shop.storeConfig()" />
+      }
+
+      <!-- DOORSTEP DELIVERY OTP SPOTLIGHT CARD -->
+      @if (['confirmed', 'packed', 'out_for_delivery'].includes(current.status)) {
+        <div class="card border-2 border-primary bg-primary-subtle text-primary-emphasis p-3 rounded-4 mb-4 shadow-sm text-center">
+          <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
+            <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+            <span class="text-uppercase small fw-bold text-primary" style="letter-spacing: 0.05em;">Doorstep Delivery Verification Code</span>
+          </div>
+          <div class="display-5 fw-bold font-monospace text-dark my-1" style="letter-spacing: 0.3em;">
+            {{ current.deliveryOtp?.code || '••••' }}
+          </div>
+          <p class="small text-secondary mb-2" style="font-size: 0.82rem;">
+            Please share this 4-digit code with your ZapBasket delivery partner at your door to accept your items.
+          </p>
+          <div class="d-flex justify-content-center align-items-center gap-2">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1"
+              style="font-size: 0.75rem;"
+              [disabled]="resendOtpLoading()"
+              (click)="resendOtp(current.id)">
+              <i class="bi bi-arrow-repeat me-1" [class.spin]="resendOtpLoading()"></i>
+              Resend Code via SMS
+            </button>
+            <span class="text-muted small" style="font-size: 0.72rem;">
+              <i class="bi bi-shield-check text-success me-1"></i> Verified Handover
+            </span>
+          </div>
+        </div>
+      } @else if (current.status === 'delivered') {
+        <div class="card border border-success-subtle bg-success-subtle text-success-emphasis p-3 rounded-4 mb-4 text-center">
+          <div class="d-flex align-items-center justify-content-center gap-2">
+            <i class="bi bi-patch-check-fill text-success fs-5"></i>
+            <span class="fw-bold">Handover Verified & Successfully Delivered</span>
+          </div>
+          <div class="small text-muted mt-1" style="font-size: 0.78rem;">
+            Delivered on {{ current.updatedAt | date:'d MMM, h:mm a' }}
+            @if (current.deliveryOtp?.verifiedBy === 'customer_otp') {
+              · Verified via Customer OTP
+            } @else if (current.deliveryOtp?.verifiedBy === 'admin_bypass') {
+              · Authorized via Dark Store Admin Bypass
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Soft Push Notification Opt-in Prompt -->
+      @if (showPushBanner()) {
+        <div class="card border-0 bg-primary-subtle text-primary-emphasis p-3 rounded-4 mb-4 shadow-sm">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                <i class="bi bi-bell-fill fs-5"></i>
+              </div>
+              <div>
+                <div class="fw-bold fs-6">Enable Live Order Tracking Push Alerts</div>
+                <div class="small text-secondary">Get instant screen notifications when your rider departs, packs your bag, and reaches your door.</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                class="btn btn-primary btn-sm px-3 fw-bold rounded-pill"
+                (click)="enablePushAlerts()"
+                [disabled]="pushBusy()"
+              >
+                @if (pushBusy()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                <i class="bi bi-bell me-1"></i> Enable Push Alerts
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm rounded-pill"
+                (click)="dismissPushBanner()"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      }
 
       <div class="split">
         <div class="panel">
@@ -70,6 +157,15 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- FSSAI Food Safety & Regulatory Disclosure -->
+          <div class="mt-3 p-3 rounded-3 bg-white border d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted small">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success text-white px-2 py-1">FSSAI Certified</span>
+              <span class="font-monospace text-dark fw-bold">Lic. No. {{ shop.storeConfig()?.fssaiLicense || '11224333000542' }}</span>
+            </div>
+            <span class="text-secondary" style="font-size: 0.76rem;">Certified Food-Grade Hyperlocal Fulfillment</span>
           </div>
         </div>
 
@@ -153,7 +249,7 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
                 <strong class="small">UPI Payment Pending</strong>
               </div>
               <p class="small mb-2 text-muted">
-                Send <b>{{ current.total | inr }}</b> to <b>9101516662&#64;ybl</b> to confirm packaging.
+                Send <b>{{ current.total | inr }}</b> to <b>{{ shop.storeConfig()?.upiVpa || '9101516662@ybl' }}</b> to confirm packaging.
               </p>
               <div class="d-grid gap-2">
                 <button class="btn btn-sm btn-success w-100 fw-semibold" type="button" (click)="openUpiPayment(current.id)">
@@ -170,7 +266,7 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
             <div class="alert alert-success py-2 px-3 mt-3 mb-2 rounded-3 small">
               <div class="d-flex align-items-center gap-1 mb-1">
                 <i class="bi bi-check-circle-fill text-success"></i>
-                <strong>Paid via UPI to 9101516662&#64;ybl</strong>
+                <strong>Paid via UPI to {{ shop.storeConfig()?.upiVpa || '9101516662@ybl' }}</strong>
               </div>
               @if (current.gatewayVerification?.verified) {
                 <div class="badge bg-success-subtle text-success border border-success-subtle d-inline-block mb-1" style="font-size: 0.68rem;">
@@ -195,6 +291,40 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
           >
             <i class="bi bi-whatsapp"></i> Share Tracking on WhatsApp
           </a>
+
+          @if (current.status === 'delivered') {
+            @if (current.claims?.length) {
+              <div class="mt-2 border rounded-3 p-2 bg-light text-start">
+                <div class="fw-bold small mb-1 d-flex align-items-center justify-content-between">
+                  <span><i class="bi bi-shield-exclamation text-primary me-1"></i> Item Claims</span>
+                  <span class="badge bg-secondary">{{ current.claims?.length || 0 }}</span>
+                </div>
+                @for (c of current.claims; track c.id || c.productId) {
+                  <div class="p-2 mb-1 rounded bg-white border small">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong>{{ c.productName }}</strong>
+                        <div class="text-muted" style="font-size: 0.72rem;">Reason: {{ formatClaimReason(c.reason) }}</div>
+                      </div>
+                      <span class="badge" [class.bg-warning-subtle]="c.status === 'pending'" [class.text-warning-emphasis]="c.status === 'pending'" [class.bg-success-subtle]="c.status === 'approved'" [class.text-success]="c.status === 'approved'" [class.bg-danger-subtle]="c.status === 'rejected'" [class.text-danger]="c.status === 'rejected'">
+                        {{ c.status === 'pending' ? 'Reviewing' : (c.status === 'approved' ? '₹' + c.refundAmount + ' Refunded' : 'Declined') }}
+                      </span>
+                    </div>
+                    @if (c.adminNote) {
+                      <div class="mt-1 text-muted" style="font-size: 0.7rem;">Store note: {{ c.adminNote }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <button
+              class="btn btn-outline-danger w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-1"
+              type="button"
+              (click)="openClaimModal()">
+              <i class="bi bi-shield-exclamation"></i> Report Damaged / Missing Item
+            </button>
+          }
 
           <!-- Customer Self-Cancellation & Dynamic Grace Window -->
           @if (current.status === 'cancelled') {
@@ -510,6 +640,85 @@ import { ReceiptUploadComponent } from '../shared/receipt-upload.component';
           (payLater)="onUpiModalClosed()"
         />
       }
+
+      <!-- ITEM CLAIM & REFUND MODAL -->
+      @if (showClaimModal()) {
+        <div class="review-modal-backdrop" (click)="showClaimModal.set(false)">
+          <div class="review-modal-content" style="max-width: 500px;" (click)="$event.stopPropagation()">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+              <h5 class="h6 fw-bold mb-0">
+                <i class="bi bi-shield-exclamation text-danger me-1"></i>
+                Report Damaged / Missing Item
+              </h5>
+              <button type="button" class="btn-close" (click)="showClaimModal.set(false)"></button>
+            </div>
+
+            <div class="p-3">
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Select Affected Item</label>
+                <select class="form-select form-select-sm" [value]="selectedClaimProductId()" (change)="selectedClaimProductId.set($any($event.target).value)">
+                  <option value="">Choose item from order…</option>
+                  @for (it of current.items; track it.productId) {
+                    <option [value]="it.productId">{{ it.emoji }} {{ it.name }} ({{ it.quantity }} {{ it.unit }}) · ₹{{ it.price * it.quantity }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Issue Reason</label>
+                <select class="form-select form-select-sm" [value]="selectedClaimReason()" (change)="selectedClaimReason.set($any($event.target).value)">
+                  <option value="damaged_spoiled">Damaged or Spoiled Produce / Leaked Pack 🥬</option>
+                  <option value="missing_item">Item Missing in Delivery Bag 📦</option>
+                  <option value="expired">Expired or Near Expiry Date ⏳</option>
+                  <option value="wrong_item">Wrong Item / Variant Delivered ❌</option>
+                  <option value="quality_issue">General Quality Defect 😕</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Attach Photo Proof (Required for damaged/spoiled)</label>
+                <input type="file" class="form-control form-control-sm" accept="image/*" (change)="onClaimPhotoSelected($event)" />
+                @if (claimPhoto()) {
+                  <div class="mt-2 text-center p-2 bg-light rounded border">
+                    <img [src]="claimPhoto()" alt="Proof preview" class="img-fluid rounded" style="max-height: 140px;" />
+                    <div class="text-success small mt-1"><i class="bi bi-check-circle-fill me-1"></i> Photo attached</div>
+                  </div>
+                }
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Comments / Details</label>
+                <textarea
+                  class="form-control form-control-sm"
+                  rows="2"
+                  placeholder="Describe the issue (e.g. seal was broken, bruised tomatoes)..."
+                  [value]="claimComments()"
+                  (input)="claimComments.set($any($event.target).value)"
+                  maxlength="500"></textarea>
+              </div>
+
+              @if (getClaimSelectedLine(current); as line) {
+                <div class="alert alert-info py-2 px-3 small d-flex justify-content-between align-items-center mb-3">
+                  <span>Eligible Refund Amount:</span>
+                  <strong class="fs-6 text-dark">₹{{ line.price * line.quantity }}</strong>
+                </div>
+              }
+
+              <button
+                class="btn btn-danger w-100 fw-semibold"
+                type="button"
+                [disabled]="submittingClaim() || !selectedClaimProductId()"
+                (click)="submitItemClaim(current.id)">
+                @if (submittingClaim()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span> Submitting…
+                } @else {
+                  <i class="bi bi-send-fill me-1"></i> Submit Claim for Refund
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     }
   `,
 })
@@ -518,10 +727,54 @@ export class OrderDetailPage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastService);
   readonly auth = inject(AuthService);
+  readonly fcm = inject(FcmService);
   readonly order = signal<Order | null>(null);
   readonly loading = signal(true);
   readonly steps = ORDER_STEPS;
   readonly upiDetails = signal<UpiPaymentDetails | null>(null);
+  readonly resendOtpLoading = signal(false);
+
+  async resendOtp(orderId: string) {
+    this.resendOtpLoading.set(true);
+    try {
+      const res = await this.shop.resendDeliveryOtp(orderId);
+      this.toasts.show(res.message || 'OTP resent to your mobile number!');
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.resendOtpLoading.set(false);
+    }
+  }
+
+  readonly pushBannerDismissed = signal(typeof sessionStorage !== 'undefined' && sessionStorage.getItem('zb_dismiss_push_banner') === '1');
+  readonly pushBusy = signal(false);
+
+  showPushBanner(): boolean {
+    return (
+      !this.pushBannerDismissed() &&
+      this.fcm.isSupported() &&
+      this.fcm.permissionStatus() === 'default'
+    );
+  }
+
+  async enablePushAlerts() {
+    this.pushBusy.set(true);
+    try {
+      const granted = await this.fcm.requestPermissionAndRegister();
+      if (granted) {
+        this.toasts.show('Push alerts enabled for your delivery!');
+      }
+    } finally {
+      this.pushBusy.set(false);
+    }
+  }
+
+  dismissPushBanner() {
+    this.pushBannerDismissed.set(true);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('zb_dismiss_push_banner', '1');
+    }
+  }
 
   readonly remainingSeconds = signal(0);
   readonly showCancelPrompt = signal(false);
@@ -545,6 +798,13 @@ export class OrderDetailPage implements OnDestroy {
   ];
   readonly selectedTipAmount = signal(30);
   readonly submittingTip = signal(false);
+
+  readonly showClaimModal = signal(false);
+  readonly selectedClaimProductId = signal('');
+  readonly selectedClaimReason = signal<'damaged_spoiled' | 'missing_item' | 'wrong_item' | 'expired' | 'quality_issue'>('damaged_spoiled');
+  readonly claimComments = signal('');
+  readonly claimPhoto = signal('');
+  readonly submittingClaim = signal(false);
 
   constructor() {
     void this.shop.loadStoreConfig();
@@ -803,6 +1063,65 @@ export class OrderDetailPage implements OnDestroy {
       this.toasts.error(errorMessage(err));
     } finally {
       this.submittingTip.set(false);
+    }
+  }
+
+  formatClaimReason(reason: string): string {
+    switch (reason) {
+      case 'damaged_spoiled': return 'Damaged / Spoiled Produce 🥬';
+      case 'missing_item': return 'Missing in Delivery Bag 📦';
+      case 'expired': return 'Expired / Close to Expiry ⏳';
+      case 'wrong_item': return 'Wrong Item / Variant ❌';
+      case 'quality_issue': return 'Quality Defect 😕';
+      default: return reason;
+    }
+  }
+
+  openClaimModal(): void {
+    const ord = this.order();
+    if (ord?.items?.length) {
+      this.selectedClaimProductId.set(ord.items[0].productId);
+    }
+    this.claimComments.set('');
+    this.claimPhoto.set('');
+    this.showClaimModal.set(true);
+  }
+
+  getClaimSelectedLine(ord: Order) {
+    const pid = this.selectedClaimProductId();
+    return ord.items.find((it) => it.productId === pid);
+  }
+
+  onClaimPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.claimPhoto.set((e.target?.result as string) || '');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async submitItemClaim(orderId: string): Promise<void> {
+    const pid = this.selectedClaimProductId();
+    if (!pid) return;
+    this.submittingClaim.set(true);
+    try {
+      const updated = await this.shop.submitItemClaim(orderId, {
+        productId: pid,
+        reason: this.selectedClaimReason(),
+        comments: this.claimComments().trim() || undefined,
+        photoUrl: this.claimPhoto() || undefined,
+      });
+      this.order.set(updated);
+      this.showClaimModal.set(false);
+      this.toasts.show('Item claim submitted! Our store manager will review and refund promptly.');
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.submittingClaim.set(false);
     }
   }
 

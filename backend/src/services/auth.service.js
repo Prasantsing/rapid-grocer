@@ -24,6 +24,12 @@ function publicUser(user) {
     permissions: resolvePermissions(user),
     permissionGrants: user.permissionGrants || [],
     permissionRevokes: user.permissionRevokes || [],
+    cashInHand: user.cashInHand || 0,
+    notificationPreferences: user.notificationPreferences || {
+      orderUpdates: true,
+      promotionalAlerts: true,
+    },
+    fcmTokenCount: (user.fcmTokens || []).length,
     createdAt: user.createdAt,
   };
 }
@@ -136,6 +142,53 @@ const authService = {
     if (input.phone !== undefined) user.phone = input.phone || '';
     await userRepository.save(user);
     return publicUser(user);
+  },
+
+  async updateNotificationPreferences(userId, { orderUpdates, promotionalAlerts }) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new ApiError(404, 'Account not found');
+    user.notificationPreferences = user.notificationPreferences || {};
+    if (orderUpdates !== undefined) user.notificationPreferences.orderUpdates = Boolean(orderUpdates);
+    if (promotionalAlerts !== undefined) user.notificationPreferences.promotionalAlerts = Boolean(promotionalAlerts);
+    await userRepository.save(user);
+    return publicUser(user);
+  },
+
+  async registerFcmToken(userId, { token, device = 'web' }) {
+    if (!token || typeof token !== 'string') throw new ApiError(400, 'Valid token is required');
+    const user = await userRepository.findById(userId);
+    if (!user) throw new ApiError(404, 'Account not found');
+    user.fcmTokens = user.fcmTokens || [];
+    const cleanToken = token.trim();
+    const existing = user.fcmTokens.find((t) => t.token === cleanToken);
+    if (existing) {
+      existing.lastUsedAt = new Date();
+      existing.device = device || existing.device;
+    } else {
+      user.fcmTokens.push({
+        token: cleanToken,
+        device: device || 'web',
+        createdAt: new Date(),
+        lastUsedAt: new Date(),
+      });
+    }
+    await userRepository.save(user);
+    return {
+      registered: true,
+      tokenCount: user.fcmTokens.length,
+      user: publicUser(user),
+    };
+  },
+
+  async removeFcmToken(userId, token) {
+    const user = await userRepository.findById(userId);
+    if (!user) throw new ApiError(404, 'Account not found');
+    user.fcmTokens = (user.fcmTokens || []).filter((t) => t.token !== (token || '').trim());
+    await userRepository.save(user);
+    return {
+      removed: true,
+      tokenCount: user.fcmTokens.length,
+    };
   },
 };
 

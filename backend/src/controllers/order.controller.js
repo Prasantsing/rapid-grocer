@@ -64,6 +64,42 @@ const orderController = {
   feedbackSummary: asyncHandler(async (_req, res) => {
     send(res, await orderService.getFeedbackSummary());
   }),
+
+  packOrder: asyncHandler(async (req, res) => {
+    send(res, await orderService.packOrder(req.user, req.params.id, req.body));
+  }),
+
+  submitClaim: asyncHandler(async (req, res) => {
+    send(res, await orderService.submitClaim(req.user, req.params.id, req.body));
+  }),
+
+  resolveClaim: asyncHandler(async (req, res) => {
+    send(res, await orderService.resolveClaim(req.user, req.params.id, req.params.claimId, req.body));
+  }),
+
+  listClaims: asyncHandler(async (_req, res) => {
+    send(res, await orderService.listClaims());
+  }),
+
+  settleRiderCash: asyncHandler(async (req, res) => {
+    send(res, await orderService.settleRiderCash(req.user, req.params.id, req.body));
+  }),
+
+  riderLedger: asyncHandler(async (req, res) => {
+    send(res, await orderService.getRiderLedger(req.user._id));
+  }),
+
+  verifyDeliveryOtp: asyncHandler(async (req, res) => {
+    send(res, await orderService.verifyDeliveryOtp(req.user, req.params.id, req.body.otp));
+  }),
+
+  resendDeliveryOtp: asyncHandler(async (req, res) => {
+    send(res, await orderService.resendDeliveryOtp(req.user, req.params.id));
+  }),
+
+  adminBypassDeliveryOtp: asyncHandler(async (req, res) => {
+    send(res, await orderService.adminBypassDeliveryOtp(req.user, req.params.id, req.body.reason));
+  }),
 };
 
 module.exports = orderController;

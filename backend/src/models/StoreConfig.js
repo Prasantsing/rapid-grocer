@@ -53,6 +53,29 @@ const storeConfigSchema = new mongoose.Schema(
       default: 25,
       min: 0,
     },
+    logoUrl: {
+      type: String,
+      default: 'brand-logo-white.svg',
+      trim: true,
+    },
+    theme: {
+      preset: {
+        type: String,
+        default: 'emerald',
+      },
+      primaryColor: {
+        type: String,
+        default: '#059669',
+      },
+      accentColor: {
+        type: String,
+        default: '#ea580c',
+      },
+      surfaceMode: {
+        type: String,
+        default: 'slate-contrast',
+      },
+    },
     upiVpa: {
       type: String,
       default: '9101516662@ybl',
@@ -92,6 +115,15 @@ const storeConfigSchema = new mongoose.Schema(
     nonReturnableNotice: {
       type: String,
       default: 'Perishable groceries (fresh produce, dairy, bakery) cannot be returned once delivered.',
+    },
+    fssaiLicense: {
+      type: String,
+      default: '11224333000542',
+      trim: true,
+    },
+    showDemoAccountsOnLogin: {
+      type: Boolean,
+      default: true,
     },
     enableSmsAlerts: {
       type: Boolean,

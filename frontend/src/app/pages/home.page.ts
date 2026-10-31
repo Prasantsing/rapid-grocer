@@ -5,10 +5,11 @@ import { Category, Product } from '../core/models';
 import { ShopService } from '../core/shop.service';
 import { errorMessage } from '../core/http-error';
 import { ProductCard } from '../shared/product-card.component';
+import { ProductCardSkeletonComponent } from '../shared/product-card-skeleton.component';
 
 @Component({
   selector: 'app-home-page',
-  imports: [ProductCard, RouterLink],
+  imports: [ProductCard, ProductCardSkeletonComponent, RouterLink],
   template: `
     @if (!categorySlug() && !term()) {
       <section class="hero">
@@ -70,7 +71,11 @@ import { ProductCard } from '../shared/product-card.component';
     </div>
 
     @if (loading()) {
-      <p class="muted">Bringing the aisle over…</p>
+      <div class="product-grid" aria-label="Loading groceries">
+        @for (i of skeletonItems; track i) {
+          <app-product-card-skeleton />
+        }
+      </div>
     } @else if (error()) {
       <div class="empty panel">
         <h2>The aisle did not load</h2>
@@ -109,11 +114,12 @@ import { ProductCard } from '../shared/product-card.component';
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 0.6rem;
-      background: #ffffff;
-      border: 1px solid var(--line, #e4dccb);
+      background: var(--card);
+      border: 1px solid var(--line);
       border-radius: 14px;
       padding: 0.55rem 0.9rem;
       margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
     }
 
     .strip-items {
@@ -126,16 +132,16 @@ import { ProductCard } from '../shared/product-card.component';
     .strip-label {
       font-size: 0.78rem;
       font-weight: 600;
-      color: var(--muted, #6f675c);
+      color: var(--muted);
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
     }
 
     .filter-chip {
-      background: #f4efe4;
-      border: 1px solid #e2dac9;
-      color: var(--ink, #1c1915);
+      background: var(--chip-bg);
+      border: 1px solid var(--line);
+      color: var(--ink);
       border-radius: 999px;
       font-size: 0.8rem;
       padding: 0.2rem 0.6rem;
@@ -145,7 +151,7 @@ import { ProductCard } from '../shared/product-card.component';
     }
 
     .chip-remove {
-      color: #9c9384;
+      color: var(--muted);
       text-decoration: none;
       font-size: 1.1rem;
       line-height: 1;
@@ -153,13 +159,13 @@ import { ProductCard } from '../shared/product-card.component';
     }
 
     .chip-remove:hover {
-      color: var(--sale, #c2410c);
+      color: var(--sale);
     }
 
     .clear-all-link {
       font-size: 0.8rem;
       font-weight: 600;
-      color: var(--sale, #c2410c);
+      color: var(--sale);
       text-decoration: none;
       margin-left: auto;
     }
@@ -180,6 +186,7 @@ export class HomePage {
   readonly categorySlug = signal('');
   readonly sort = signal('newest');
   readonly slot = signal(this.nextSlot());
+  readonly skeletonItems = [1, 2, 3, 4, 5, 6, 7, 8];
 
   constructor() {
     void this.shop.categories().then((items) => this.categories.set(items)).catch(() => undefined);

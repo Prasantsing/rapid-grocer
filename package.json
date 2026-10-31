@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build:frontend": "npm run build --prefix frontend",
-    "build": "npm run build:frontend",
+    "build": "node -e \"if(!require('fs').existsSync('frontend/dist/frontend/browser/index.html')){require('child_process').execSync('npm run build:frontend',{stdio:'inherit'})}\"",
     "dev:api": "npm run dev --prefix backend",
     "dev:web": "npm start --prefix frontend",
     "dev": "node server.ts",

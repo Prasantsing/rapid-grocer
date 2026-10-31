@@ -81,6 +81,13 @@ const productService = {
   async create(input) {
     await requireCategory(input.categoryId);
     assertPrice(input.price, input.mrp);
+
+    const imageSlots = input.imageSlots || {};
+    const images = Array.isArray(input.images) && input.images.length > 0
+      ? input.images
+      : [imageSlots.front, imageSlots.back, imageSlots.detail].filter(Boolean);
+    const primaryImg = imageSlots.front || images[0] || input.imageUrl || '';
+
     const product = await productRepository.create({
       name: input.name.trim(),
       slug: await uniqueSlug(input.name),
@@ -93,7 +100,13 @@ const productService = {
       stock: input.stock,
       emoji: input.emoji || '🛍️',
       tint: input.tint || '#F4F1E8',
-      imageUrl: input.imageUrl || '',
+      imageUrl: primaryImg,
+      images,
+      imageSlots: {
+        front: imageSlots.front || primaryImg || '',
+        back: imageSlots.back || '',
+        detail: imageSlots.detail || '',
+      },
       tags: input.tags || [],
       isActive: input.isActive !== false,
     });
@@ -121,7 +134,27 @@ const productService = {
     if (input.stock !== undefined) product.stock = input.stock;
     if (input.emoji) product.emoji = input.emoji;
     if (input.tint) product.tint = input.tint;
-    if (input.imageUrl !== undefined) product.imageUrl = input.imageUrl;
+
+    if (input.imageSlots !== undefined) {
+      product.imageSlots = {
+        front: input.imageSlots.front || '',
+        back: input.imageSlots.back || '',
+        detail: input.imageSlots.detail || '',
+      };
+    }
+    if (input.images !== undefined) {
+      product.images = input.images;
+    } else if (input.imageSlots !== undefined) {
+      product.images = [product.imageSlots.front, product.imageSlots.back, product.imageSlots.detail].filter(Boolean);
+    }
+    if (input.imageUrl !== undefined) {
+      product.imageUrl = input.imageUrl;
+    } else if (product.imageSlots?.front) {
+      product.imageUrl = product.imageSlots.front;
+    } else if (product.images && product.images.length > 0) {
+      product.imageUrl = product.images[0];
+    }
+
     if (input.tags) product.tags = input.tags;
     if (input.isActive !== undefined) product.isActive = input.isActive;
     await productRepository.save(product);

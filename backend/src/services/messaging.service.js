@@ -87,6 +87,20 @@ const messagingService = {
         );
       }
 
+      // 3. Firebase Cloud Messaging / Web Push Dispatch
+      const customerUserId = order.user?._id || order.user;
+      if (customerUserId) {
+        promises.push(
+          this.sendOrderPush({
+            userId: customerUserId,
+            eventType,
+            orderId,
+            orderNumber,
+            messageBody,
+          })
+        );
+      }
+
       await Promise.allSettled(promises);
     } catch (err) {
       console.warn('Failed to dispatch transactional messaging alert:', err.message);
@@ -202,14 +216,132 @@ const messagingService = {
       });
     }
 
-    return this.sendSms({
-      phone,
-      messageBody,
+    if (channel === 'sms') {
+      return this.sendSms({
+        phone,
+        messageBody,
+        orderId: null,
+        orderNumber: 'TEST-ALERT',
+        eventType: 'manual_test',
+        config,
+      });
+    }
+
+    return MessageLog.create({
       orderId: null,
-      orderNumber: 'TEST-ALERT',
+      orderNumber: 'TEST-FCM-PUSH',
+      channel: 'push',
+      recipientPhone: phone || 'test-fcm-device',
       eventType: 'manual_test',
-      config,
+      messageBody,
+      status: 'simulated',
+      provider: 'firebase_fcm',
+      providerResponse: {
+        title: '⚡ ZapBasket Test Push',
+        body: messageBody,
+        simulated: true,
+      },
     });
+  },
+
+  async sendOrderPush({ userId, eventType, orderId, orderNumber, messageBody }) {
+    const UserModel = require('../models/User');
+    const user = await UserModel.findById(userId);
+    if (!user) return null;
+
+    const prefs = user.notificationPreferences || { orderUpdates: true, promotionalAlerts: true };
+    if (prefs.orderUpdates === false) {
+      return null;
+    }
+
+    const tokens = (user.fcmTokens || []).map((t) => t.token).filter(Boolean);
+    const tokenCount = tokens.length;
+    const status = tokenCount > 0 ? 'sent' : 'simulated';
+
+    return MessageLog.create({
+      orderId,
+      orderNumber,
+      channel: 'push',
+      recipientPhone: user.phone || user.email || String(user._id),
+      eventType,
+      messageBody,
+      status,
+      provider: 'firebase_fcm',
+      providerResponse: {
+        tokensDispatched: tokenCount,
+        title: `⚡ ZapBasket #${orderNumber}`,
+        clickAction: `/orders/${orderId}`,
+      },
+      error: tokenCount === 0 ? 'No active FCM tokens registered for device' : '',
+    });
+  },
+
+  async broadcastPromoPush({ title, body, link = '/', couponCode }) {
+    const UserModel = require('../models/User');
+    const fullMessage = couponCode ? `${body} Use code: ${couponCode}` : body;
+
+    const eligibleUsers = await UserModel.find({
+      'notificationPreferences.promotionalAlerts': { $ne: false },
+    }).select('_id name email phone fcmTokens notificationPreferences');
+
+    let totalTokens = 0;
+    let usersReached = 0;
+    for (const u of eligibleUsers) {
+      const uTokens = (u.fcmTokens || []).length;
+      if (uTokens > 0) {
+        totalTokens += uTokens;
+        usersReached++;
+      }
+    }
+
+    const log = await MessageLog.create({
+      orderId: null,
+      orderNumber: couponCode ? `PROMO-${couponCode}` : 'PROMO-BROADCAST',
+      channel: 'push',
+      recipientPhone: `All Opted-In Customers (${eligibleUsers.length} total, ${usersReached} with active devices)`,
+      eventType: 'promotional_broadcast',
+      messageBody: `${title}: ${fullMessage}`,
+      status: 'sent',
+      provider: 'firebase_fcm',
+      providerResponse: {
+        eligibleUsersCount: eligibleUsers.length,
+        usersWithTokens: usersReached,
+        totalTokensDispatched: totalTokens,
+        link,
+        couponCode: couponCode || null,
+      },
+    });
+
+    return {
+      success: true,
+      eligibleUsersCount: eligibleUsers.length,
+      usersReached,
+      totalTokensDispatched: totalTokens,
+      log,
+    };
+  },
+
+  async getPushSummary() {
+    const UserModel = require('../models/User');
+    const totalUsers = await UserModel.countDocuments({ role: 'customer' });
+    const usersWithTokens = await UserModel.countDocuments({ 'fcmTokens.0': { $exists: true } });
+    const optedInOrderUpdates = await UserModel.countDocuments({
+      role: 'customer',
+      'notificationPreferences.orderUpdates': { $ne: false },
+    });
+    const optedInPromos = await UserModel.countDocuments({
+      role: 'customer',
+      'notificationPreferences.promotionalAlerts': { $ne: false },
+    });
+
+    return {
+      totalUsers,
+      usersWithTokens,
+      optedInOrderUpdates,
+      optedInPromos,
+      orderOptInRate: totalUsers > 0 ? Math.round((optedInOrderUpdates / totalUsers) * 100) : 100,
+      promoOptInRate: totalUsers > 0 ? Math.round((optedInPromos / totalUsers) * 100) : 100,
+    };
   },
 
   async getRecentLogs(limit = 30) {

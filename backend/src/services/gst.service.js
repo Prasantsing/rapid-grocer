@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const inMemoryStore = require('../services/inMemoryStore');
+const storeConfigRepository = require('../repositories/storeConfig.repository');
 const { getProductGstConfig, calculateGstFromGross, GST_SLABS } = require('../domain/gst');
 
 const STORE_GST_PROFILE = {
@@ -13,7 +14,7 @@ const STORE_GST_PROFILE = {
   address: 'No. 42, 80 Feet Road, 4th Block, Koramangala, Bengaluru, Karnataka 560034',
   email: 'billing@zapbasket.dev',
   phone: '+91 80 4920 1200',
-  fssaiLicense: '11226333000142',
+  fssaiLicense: '11224333000542',
   taxType: 'Intra-State GST (CGST + SGST)',
 };
 
@@ -61,8 +62,19 @@ function resolveDateRange(period, from, to) {
 }
 
 const gstService = {
-  getStoreProfile() {
-    return STORE_GST_PROFILE;
+  async getStoreProfile() {
+    try {
+      const config = await storeConfigRepository.get();
+      return {
+        ...STORE_GST_PROFILE,
+        fssaiLicense: config?.fssaiLicense || STORE_GST_PROFILE.fssaiLicense,
+        phone: config?.supportPhone || STORE_GST_PROFILE.phone,
+        email: config?.supportEmail || STORE_GST_PROFILE.email,
+        address: config?.storeLocation?.address || STORE_GST_PROFILE.address,
+      };
+    } catch {
+      return STORE_GST_PROFILE;
+    }
   },
 
   async getGstReport({ period = 'this_month', from, to } = {}) {
@@ -195,8 +207,10 @@ const gstService = {
       slabTotals[k].gross = Math.round(slabTotals[k].gross * 100) / 100;
     });
 
+    const storeProfile = await this.getStoreProfile();
+
     return {
-      store: STORE_GST_PROFILE,
+      store: storeProfile,
       period: {
         name: period,
         startDate: startDate.toISOString(),
@@ -262,8 +276,10 @@ const gstService = {
       };
     });
 
+    const storeProfile = await this.getStoreProfile();
+
     return {
-      store: STORE_GST_PROFILE,
+      store: storeProfile,
       invoice: {
         invoiceNumber,
         invoiceDate: orderJson.createdAt,

@@ -217,128 +217,342 @@ import { InrPipe } from '../shared/inr.pipe';
               <input class="form-control" placeholder="e.g. Ratnagiri Fresh" formControlName="brand" />
             </div>
 
-            <!-- Product Visual & AI Studio Showcase -->
+            <!-- 3-Angle Commercial Product Photo Studio -->
             <div class="col-12">
               <div class="image-manager-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <label class="form-label fw-bold mb-0">
-                    <i class="bi bi-image me-1"></i> Product Photo & AI Studio Enhancement
-                  </label>
-                  @if (previewImage()) {
-                    <button class="btn btn-sm btn-link text-danger p-0 text-decoration-none" type="button" (click)="clearImage()">
-                      <i class="bi bi-trash"></i> Remove photo
-                    </button>
-                  }
-                </div>
-
-                <!-- Input Method Toggle -->
-                <div class="image-tab-group">
-                  <button type="button" [class.active]="inputMode() === 'upload'" (click)="inputMode.set('upload')">
-                    📁 Upload from Device
-                  </button>
-                  <button type="button" [class.active]="inputMode() === 'url'" (click)="inputMode.set('url')">
-                    🔗 Paste Image URL
-                  </button>
-                </div>
-
-                @if (inputMode() === 'upload') {
-                  <div
-                    class="image-preview-stage"
-                    [class.has-image]="!!previewImage()"
-                    [class.dragover]="isDragging()"
-                    (dragover)="onDragOver($event)"
-                    (dragleave)="isDragging.set(false)"
-                    (drop)="onDrop($event)"
-                  >
-                    @if (previewImage()) {
-                      <img [src]="previewImage()" alt="Product preview" class="preview-img" />
-                      <div class="position-absolute bottom-0 start-0 m-2 badge bg-dark opacity-75">
-                        {{ isAiEnhanced() ? '✨ AI Studio Photo' : 'Device Upload' }}
-                      </div>
-                    } @else {
-                      <div class="text-center p-3">
-                        <div class="fs-1 text-muted mb-1">📷</div>
-                        <p class="mb-1 fw-semibold small">Drag & drop photo here or choose file</p>
-                        <p class="text-muted small mb-2">JPG, PNG, WebP up to 10MB</p>
-                        <label class="btn btn-sm btn-outline-dark">
-                          Choose Photo
-                          <input type="file" accept="image/*" class="d-none" (change)="onFileSelected($event)" />
-                        </label>
-                      </div>
-                    }
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2 pb-2 border-bottom">
+                  <div>
+                    <label class="form-label fw-bold mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-camera-fill text-success"></i>
+                      <span>Commercial Product Photos (Up to 3 Angles)</span>
+                    </label>
+                    <small class="text-muted" style="font-size: 0.74rem;">
+                      Snap or upload Front, Back & Detail shots. AI isolates products onto clean studio white with soft drop shadows.
+                    </small>
                   </div>
-                  @if (previewImage()) {
-                    <div class="mt-2 d-flex flex-wrap gap-2 justify-content-center">
+                  @if (hasAnyPhotos()) {
+                    <div class="d-flex gap-2">
                       <button
                         type="button"
-                        class="btn btn-sm btn-success d-inline-flex align-items-center gap-1 shadow-sm"
-                        [disabled]="isExtractingDetails()"
-                        (click)="runAiAutoFill(previewImage())"
+                        class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1 shadow-sm"
+                        [disabled]="isRefiningAny()"
+                        (click)="refineAllSlots()"
                       >
-                        <i class="bi bi-stars"></i>
-                        {{ isExtractingDetails() ? 'Extracting details…' : 'AI Auto-Fill Form from Photo' }}
-                      </button>
-                      <label class="btn btn-sm btn-outline-secondary">
-                        Change Photo
-                        <input type="file" accept="image/*" class="d-none" (change)="onFileSelected($event)" />
-                      </label>
-                    </div>
-                  }
-                } @else {
-                  <div class="mb-2">
-                    <div class="input-group">
-                      <span class="input-group-text">🔗</span>
-                      <input
-                        class="form-control"
-                        placeholder="https://images.unsplash.com/photo-... or web link"
-                        formControlName="imageUrl"
-                        (input)="onUrlInput($event)"
-                      />
-                    </div>
-                  </div>
-                  @if (previewImage()) {
-                    <div class="image-preview-stage has-image">
-                      <img [src]="previewImage()" alt="URL preview" class="preview-img" (error)="onUrlError()" />
-                      <div class="position-absolute bottom-0 start-0 m-2 badge bg-dark opacity-75">
-                        {{ isAiEnhanced() ? '✨ AI Studio Photo' : 'Web Image' }}
-                      </div>
-                    </div>
-                    <div class="mt-2 d-flex flex-wrap gap-2 justify-content-center">
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-success d-inline-flex align-items-center gap-1 shadow-sm"
-                        [disabled]="isExtractingDetails()"
-                        (click)="runAiAutoFill(previewImage())"
-                      >
-                        <i class="bi bi-stars"></i>
-                        {{ isExtractingDetails() ? 'Extracting details…' : 'AI Auto-Fill Form from Photo' }}
+                        <i class="bi bi-magic"></i>
+                        {{ isRefiningAny() ? 'Refining Photos…' : 'Refine All to Studio White' }}
                       </button>
                     </div>
                   }
-                }
+                </div>
 
-                <!-- AI Enhancement Trigger Bar -->
-                @if (previewImage()) {
-                  <div class="ai-enhance-strip">
-                    <div class="ai-enhance-info">
-                      <b>✨ AI Studio Lighting & Cleanup</b>
-                      <span>Studio light balancing, clean backdrop, and soft drop shadow</span>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn-ai-enhance"
-                      [disabled]="isEnhancing()"
-                      (click)="enhanceWithAi()"
-                    >
-                      @if (isEnhancing()) {
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        Enhancing...
-                      } @else {
-                        <span>✨ Enhance with AI</span>
+                <!-- 3 Photo Slots Grid -->
+                <div class="row g-3">
+                  <!-- SLOT 1: FRONT VIEW -->
+                  <div class="col-md-4">
+                    <div class="photo-slot-card" [class.has-photo]="!!photoSlots().front" [class.is-refined]="isSlotRefined().front">
+                      <div class="photo-slot-header">
+                        <span class="badge bg-primary text-white font-monospace" style="font-size: 0.72rem;">
+                          <i class="bi bi-box me-1"></i> Front View (Primary)
+                        </span>
+                        @if (isSlotRefined().front) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                            ✨ Studio White
+                          </span>
+                        }
+                      </div>
+
+                      <div class="photo-slot-stage" [class.empty-slot]="!photoSlots().front">
+                        @if (photoSlots().front) {
+                          <img [src]="photoSlots().front" alt="Front angle preview" class="slot-preview-img" />
+                          @if (refiningSlot() === 'front') {
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex flex-column align-items-center justify-content-center text-white">
+                              <span class="spinner-border spinner-border-sm mb-1" role="status"></span>
+                              <small style="font-size: 0.7rem;">Removing background…</small>
+                            </div>
+                          }
+                        } @else {
+                          <div class="p-2 text-center">
+                            <i class="bi bi-camera text-muted fs-3 mb-1 d-block"></i>
+                            <span class="fw-semibold text-dark small d-block mb-2">Front Catalog Shot</span>
+                            <div class="d-flex flex-column gap-1 w-100">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-dark d-inline-flex align-items-center justify-content-center gap-1 py-1"
+                                (click)="openCameraForSlot('front')"
+                              >
+                                <i class="bi bi-camera-fill"></i> Snap Camera
+                              </button>
+                              <label class="btn btn-sm btn-outline-dark d-inline-flex align-items-center justify-content-center gap-1 py-1 mb-0" style="cursor: pointer;">
+                                <i class="bi bi-upload"></i> Upload File
+                                <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'front')" />
+                              </label>
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      @if (photoSlots().front) {
+                        <div class="photo-slot-actions">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-success py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            [disabled]="refiningSlot() === 'front'"
+                            (click)="refineSlot('front')"
+                            title="Remove background & apply studio white lighting"
+                          >
+                            <i class="bi bi-magic"></i> Refine
+                          </button>
+                          @if (rawSlots().front && rawSlots().front !== photoSlots().front) {
+                            <button
+                              type="button"
+                              class="btn btn-xs btn-outline-secondary py-1 px-2"
+                              style="font-size: 0.74rem;"
+                              (click)="revertSlotToRaw('front')"
+                              title="Revert to raw photo"
+                            >
+                              <i class="bi bi-arrow-counterclockwise"></i> Raw
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-dark py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="openCameraForSlot('front')"
+                            title="Re-snap camera"
+                          >
+                            <i class="bi bi-camera"></i>
+                          </button>
+                          <label class="btn btn-xs btn-outline-dark py-1 px-2 mb-0" style="font-size: 0.74rem; cursor: pointer;" title="Change file">
+                            <i class="bi bi-upload"></i>
+                            <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'front')" />
+                          </label>
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-danger py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="clearSlot('front')"
+                            title="Clear this photo"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-success w-100 mt-1 py-1"
+                            style="font-size: 0.74rem;"
+                            [disabled]="isExtractingDetails()"
+                            (click)="runAiAutoFill(photoSlots().front)"
+                          >
+                            <i class="bi bi-stars me-1"></i> Auto-Fill Form from Front
+                          </button>
+                        </div>
                       }
-                    </button>
+                    </div>
                   </div>
-                }
+
+                  <!-- SLOT 2: BACK VIEW -->
+                  <div class="col-md-4">
+                    <div class="photo-slot-card" [class.has-photo]="!!photoSlots().back" [class.is-refined]="isSlotRefined().back">
+                      <div class="photo-slot-header">
+                        <span class="badge bg-secondary text-white font-monospace" style="font-size: 0.72rem;">
+                          <i class="bi bi-arrow-repeat me-1"></i> Back View (Nutrition/MRP)
+                        </span>
+                        @if (isSlotRefined().back) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                            ✨ Studio White
+                          </span>
+                        }
+                      </div>
+
+                      <div class="photo-slot-stage" [class.empty-slot]="!photoSlots().back">
+                        @if (photoSlots().back) {
+                          <img [src]="photoSlots().back" alt="Back angle preview" class="slot-preview-img" />
+                          @if (refiningSlot() === 'back') {
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex flex-column align-items-center justify-content-center text-white">
+                              <span class="spinner-border spinner-border-sm mb-1" role="status"></span>
+                              <small style="font-size: 0.7rem;">Removing background…</small>
+                            </div>
+                          }
+                        } @else {
+                          <div class="p-2 text-center">
+                            <i class="bi bi-upc-scan text-muted fs-3 mb-1 d-block"></i>
+                            <span class="fw-semibold text-dark small d-block mb-2">Back Packaging Shot</span>
+                            <div class="d-flex flex-column gap-1 w-100">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-dark d-inline-flex align-items-center justify-content-center gap-1 py-1"
+                                (click)="openCameraForSlot('back')"
+                              >
+                                <i class="bi bi-camera-fill"></i> Snap Camera
+                              </button>
+                              <label class="btn btn-sm btn-outline-dark d-inline-flex align-items-center justify-content-center gap-1 py-1 mb-0" style="cursor: pointer;">
+                                <i class="bi bi-upload"></i> Upload File
+                                <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'back')" />
+                              </label>
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      @if (photoSlots().back) {
+                        <div class="photo-slot-actions">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-success py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            [disabled]="refiningSlot() === 'back'"
+                            (click)="refineSlot('back')"
+                            title="Remove background & apply studio white lighting"
+                          >
+                            <i class="bi bi-magic"></i> Refine
+                          </button>
+                          @if (rawSlots().back && rawSlots().back !== photoSlots().back) {
+                            <button
+                              type="button"
+                              class="btn btn-xs btn-outline-secondary py-1 px-2"
+                              style="font-size: 0.74rem;"
+                              (click)="revertSlotToRaw('back')"
+                              title="Revert to raw photo"
+                            >
+                              <i class="bi bi-arrow-counterclockwise"></i> Raw
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-dark py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="openCameraForSlot('back')"
+                            title="Re-snap camera"
+                          >
+                            <i class="bi bi-camera"></i>
+                          </button>
+                          <label class="btn btn-xs btn-outline-dark py-1 px-2 mb-0" style="font-size: 0.74rem; cursor: pointer;" title="Change file">
+                            <i class="bi bi-upload"></i>
+                            <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'back')" />
+                          </label>
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-danger py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="clearSlot('back')"
+                            title="Clear this photo"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- SLOT 3: DETAIL VIEW -->
+                  <div class="col-md-4">
+                    <div class="photo-slot-card" [class.has-photo]="!!photoSlots().detail" [class.is-refined]="isSlotRefined().detail">
+                      <div class="photo-slot-header">
+                        <span class="badge bg-secondary text-white font-monospace" style="font-size: 0.72rem;">
+                          <i class="bi bi-zoom-in me-1"></i> Detail View (Side/Texture)
+                        </span>
+                        @if (isSlotRefined().detail) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.68rem;">
+                            ✨ Studio White
+                          </span>
+                        }
+                      </div>
+
+                      <div class="photo-slot-stage" [class.empty-slot]="!photoSlots().detail">
+                        @if (photoSlots().detail) {
+                          <img [src]="photoSlots().detail" alt="Detail angle preview" class="slot-preview-img" />
+                          @if (refiningSlot() === 'detail') {
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex flex-column align-items-center justify-content-center text-white">
+                              <span class="spinner-border spinner-border-sm mb-1" role="status"></span>
+                              <small style="font-size: 0.7rem;">Removing background…</small>
+                            </div>
+                          }
+                        } @else {
+                          <div class="p-2 text-center">
+                            <i class="bi bi-eye text-muted fs-3 mb-1 d-block"></i>
+                            <span class="fw-semibold text-dark small d-block mb-2">Detail / Side Shot</span>
+                            <div class="d-flex flex-column gap-1 w-100">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-dark d-inline-flex align-items-center justify-content-center gap-1 py-1"
+                                (click)="openCameraForSlot('detail')"
+                              >
+                                <i class="bi bi-camera-fill"></i> Snap Camera
+                              </button>
+                              <label class="btn btn-sm btn-outline-dark d-inline-flex align-items-center justify-content-center gap-1 py-1 mb-0" style="cursor: pointer;">
+                                <i class="bi bi-upload"></i> Upload File
+                                <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'detail')" />
+                              </label>
+                            </div>
+                          </div>
+                        }
+                      </div>
+
+                      @if (photoSlots().detail) {
+                        <div class="photo-slot-actions">
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-success py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            [disabled]="refiningSlot() === 'detail'"
+                            (click)="refineSlot('detail')"
+                            title="Remove background & apply studio white lighting"
+                          >
+                            <i class="bi bi-magic"></i> Refine
+                          </button>
+                          @if (rawSlots().detail && rawSlots().detail !== photoSlots().detail) {
+                            <button
+                              type="button"
+                              class="btn btn-xs btn-outline-secondary py-1 px-2"
+                              style="font-size: 0.74rem;"
+                              (click)="revertSlotToRaw('detail')"
+                              title="Revert to raw photo"
+                            >
+                              <i class="bi bi-arrow-counterclockwise"></i> Raw
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-dark py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="openCameraForSlot('detail')"
+                            title="Re-snap camera"
+                          >
+                            <i class="bi bi-camera"></i>
+                          </button>
+                          <label class="btn btn-xs btn-outline-dark py-1 px-2 mb-0" style="font-size: 0.74rem; cursor: pointer;" title="Change file">
+                            <i class="bi bi-upload"></i>
+                            <input type="file" accept="image/*" class="d-none" (change)="onSlotFileSelected($event, 'detail')" />
+                          </label>
+                          <button
+                            type="button"
+                            class="btn btn-xs btn-outline-danger py-1 px-2"
+                            style="font-size: 0.74rem;"
+                            (click)="clearSlot('detail')"
+                            title="Clear this photo"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <!-- URL Pasting Toggle (Secondary Fallback) -->
+                <div class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <span class="text-muted small" style="font-size: 0.72rem;">Need to link an image from the web?</span>
+                  <div class="input-group input-group-sm" style="max-width: 360px;">
+                    <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      placeholder="Paste web URL for Front photo..."
+                      formControlName="imageUrl"
+                      (input)="onUrlInput($event)"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -629,6 +843,25 @@ export class AdminProductsPage {
   readonly editing = signal<string | null>(null);
   readonly saving = signal(false);
 
+  // 3-Angle Commercial Product Photo Studio State
+  readonly photoSlots = signal<{ front: string; back: string; detail: string }>({
+    front: '',
+    back: '',
+    detail: '',
+  });
+  readonly rawSlots = signal<{ front: string; back: string; detail: string }>({
+    front: '',
+    back: '',
+    detail: '',
+  });
+  readonly isSlotRefined = signal<{ front: boolean; back: boolean; detail: boolean }>({
+    front: false,
+    back: false,
+    detail: false,
+  });
+  readonly activeTargetSlot = signal<'front' | 'back' | 'detail'>('front');
+  readonly refiningSlot = signal<'front' | 'back' | 'detail' | null>(null);
+
   // Image & AI state
   readonly inputMode = signal<'upload' | 'url'>('upload');
   readonly previewImage = signal<string>('');
@@ -693,10 +926,22 @@ export class AdminProductsPage {
   open(product?: Product) {
     this.editing.set(product?.id ?? null);
     const categoryId = product && typeof product.category === 'object' ? product.category.id : this.categories()[0]?.id || '';
-    const img = product?.imageUrl || '';
-    this.previewImage.set(img);
-    this.isAiEnhanced.set(img.includes('studio') || img.includes('data:image/svg+xml') || img.includes('gemini'));
-    this.inputMode.set(img.startsWith('http') ? 'url' : 'upload');
+    
+    const frontImg = product?.imageSlots?.front || product?.imageUrl || (product?.images && product?.images[0]) || '';
+    const backImg = product?.imageSlots?.back || (product?.images && product?.images[1]) || '';
+    const detailImg = product?.imageSlots?.detail || (product?.images && product?.images[2]) || '';
+
+    this.photoSlots.set({ front: frontImg, back: backImg, detail: detailImg });
+    this.rawSlots.set({ front: frontImg, back: backImg, detail: detailImg });
+    this.isSlotRefined.set({
+      front: frontImg.includes('studio') || frontImg.includes('data:image/svg+xml'),
+      back: backImg.includes('studio') || backImg.includes('data:image/svg+xml'),
+      detail: detailImg.includes('studio') || detailImg.includes('data:image/svg+xml'),
+    });
+
+    this.previewImage.set(frontImg);
+    this.isAiEnhanced.set(frontImg.includes('studio') || frontImg.includes('data:image/svg+xml') || frontImg.includes('gemini'));
+    this.inputMode.set(frontImg.startsWith('http') ? 'url' : 'upload');
     this.hasAiAutoFilled.set(false);
 
     const tagsStr = Array.isArray(product?.tags) ? product.tags.join(', ') : (product?.tags || '');
@@ -712,11 +957,120 @@ export class AdminProductsPage {
       mrp: product?.mrp ?? 1,
       emoji: product?.emoji || '🛍️',
       tint: product?.tint || '#F4F1E8',
-      imageUrl: img,
+      imageUrl: frontImg,
       tags: tagsStr,
       isActive: product?.isActive ?? true,
     });
     this.openForm.set(true);
+  }
+
+  hasAnyPhotos(): boolean {
+    const s = this.photoSlots();
+    return !!(s.front || s.back || s.detail);
+  }
+
+  isRefiningAny(): boolean {
+    return this.refiningSlot() !== null;
+  }
+
+  openCameraForSlot(slot: 'front' | 'back' | 'detail') {
+    this.activeTargetSlot.set(slot);
+    void this.openCameraCapture();
+  }
+
+  async onSlotFileSelected(event: Event, slot: 'front' | 'back' | 'detail') {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      try {
+        const dataUrl = await this.compressImage(file);
+        this.photoSlots.update((s) => ({ ...s, [slot]: dataUrl }));
+        this.rawSlots.update((s) => ({ ...s, [slot]: dataUrl }));
+        this.isSlotRefined.update((s) => ({ ...s, [slot]: false }));
+        if (slot === 'front') {
+          this.previewImage.set(dataUrl);
+          this.form.controls.imageUrl.setValue(dataUrl);
+          if (!this.form.value.name) {
+            void this.runAiAutoFill(dataUrl);
+          }
+        }
+        await this.refineSlot(slot, dataUrl);
+      } catch {
+        this.toasts.error('Failed to read image file');
+      }
+    }
+    input.value = '';
+  }
+
+  async refineSlot(slot: 'front' | 'back' | 'detail', rawImg?: string) {
+    const current = rawImg || this.photoSlots()[slot];
+    if (!current) return;
+    this.refiningSlot.set(slot);
+    try {
+      let refined = '';
+      try {
+        const res = await this.admin.aiEnhanceProductImage({
+          image: current,
+          name: this.form.value.name || 'Product',
+          category: this.form.value.categoryId,
+        });
+        if (res && res.enhancedImage) {
+          refined = res.enhancedImage;
+        }
+      } catch {
+        refined = await this.createCanvasStudioEnhanced(current);
+      }
+      if (!refined) {
+        refined = await this.createCanvasStudioEnhanced(current);
+      }
+      this.photoSlots.update((s) => ({ ...s, [slot]: refined }));
+      this.isSlotRefined.update((s) => ({ ...s, [slot]: true }));
+      if (slot === 'front') {
+        this.previewImage.set(refined);
+        this.form.controls.imageUrl.setValue(refined);
+      }
+      const label = slot === 'front' ? 'Front' : slot === 'back' ? 'Back' : 'Detail';
+      this.toasts.show(`✨ ${label} view refined on clean studio white background!`);
+    } catch {
+      this.toasts.error(`Could not refine ${slot} view photo`);
+    } finally {
+      this.refiningSlot.set(null);
+    }
+  }
+
+  async refineAllSlots() {
+    const slots = (['front', 'back', 'detail'] as const).filter((slot) => !!this.photoSlots()[slot]);
+    for (const slot of slots) {
+      await this.refineSlot(slot);
+    }
+  }
+
+  revertSlotToRaw(slot: 'front' | 'back' | 'detail') {
+    const raw = this.rawSlots()[slot];
+    if (raw) {
+      this.photoSlots.update((s) => ({ ...s, [slot]: raw }));
+      this.isSlotRefined.update((s) => ({ ...s, [slot]: false }));
+      if (slot === 'front') {
+        this.previewImage.set(raw);
+        this.form.controls.imageUrl.setValue(raw);
+      }
+      this.toasts.show(`Reverted ${slot} view to raw photo.`);
+    }
+  }
+
+  clearSlot(slot: 'front' | 'back' | 'detail') {
+    this.photoSlots.update((s) => ({ ...s, [slot]: '' }));
+    this.rawSlots.update((s) => ({ ...s, [slot]: '' }));
+    this.isSlotRefined.update((s) => ({ ...s, [slot]: false }));
+    if (slot === 'front') {
+      const next = this.photoSlots().back || this.photoSlots().detail || '';
+      this.previewImage.set(next);
+      this.form.controls.imageUrl.setValue(next);
+    }
+  }
+
+  createCanvasStudioEnhanced(rawImageSrc: string): Promise<string> {
+    return this.renderStudioSquareCanvas(rawImageSrc, null, 0.12);
   }
 
   // Camera handling
@@ -771,13 +1125,26 @@ export class AdminProductsPage {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
+    const targetSlot = this.activeTargetSlot();
+    this.photoSlots.update((s) => ({ ...s, [targetSlot]: dataUrl }));
+    this.rawSlots.update((s) => ({ ...s, [targetSlot]: dataUrl }));
+    this.isSlotRefined.update((s) => ({ ...s, [targetSlot]: false }));
+    if (targetSlot === 'front') {
+      this.previewImage.set(dataUrl);
+      this.form.controls.imageUrl.setValue(dataUrl);
+    }
+
     this.closeCamera();
 
     if (!this.openForm()) {
       this.open();
     }
 
-    void this.autoEnhanceAndReview(dataUrl);
+    void this.refineSlot(targetSlot, dataUrl);
+
+    if (targetSlot === 'front' && !this.form.value.name) {
+      void this.runAiAutoFill(dataUrl);
+    }
   }
 
   closeCamera() {
@@ -1056,12 +1423,8 @@ export class AdminProductsPage {
           return;
         }
 
-        // 1. Studio Seamless Cyclorama Background
-        const grad = ctx.createRadialGradient(500, 420, 60, 500, 500, 750);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.58, '#f8fafc');
-        grad.addColorStop(1, '#e9eef5');
-        ctx.fillStyle = grad;
+        // 1. Studio Clean White Seamless Background (#ffffff)
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, 1000, 1000);
 
         // 2. Calculate Centered 1:1 Dimensions inside 1000x1000
@@ -1072,21 +1435,21 @@ export class AdminProductsPage {
         const destX = Math.round((1000 - destW) / 2);
         const destY = Math.round(480 - destH / 2);
 
-        // 3. Ground Softbox Contact Drop Shadows
-        const shadowY = Math.min(910, destY + destH - 10);
+        // 3. Ground Softbox Contact Drop Shadows on Studio White
+        const shadowY = Math.min(910, destY + destH - 6);
         const shadowRx = Math.min(360, destW * 0.44);
 
         ctx.save();
         ctx.filter = 'blur(16px)';
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.16)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.12)';
         ctx.beginPath();
-        ctx.ellipse(500, shadowY, shadowRx, 22, 0, 0, Math.PI * 2);
+        ctx.ellipse(500, shadowY, shadowRx, 18, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.filter = 'blur(5px)';
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.24)';
+        ctx.filter = 'blur(4px)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.20)';
         ctx.beginPath();
-        ctx.ellipse(500, shadowY, shadowRx * 0.72, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(500, shadowY, shadowRx * 0.72, 7, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
@@ -1149,12 +1512,22 @@ export class AdminProductsPage {
       ? raw.tags.split(',').map((t) => t.trim()).filter(Boolean)
       : (raw.tags || []);
 
+    const slots = this.photoSlots();
+    const imagesList = [slots.front, slots.back, slots.detail].filter(Boolean);
+    const primaryImg = slots.front || slots.back || slots.detail || this.previewImage() || raw.imageUrl || '';
+
     const payload = {
       ...raw,
       price: Number(raw.price),
       mrp: Number(raw.mrp),
       stock: Number(raw.stock),
-      imageUrl: this.previewImage() || raw.imageUrl || '',
+      imageUrl: primaryImg,
+      images: imagesList,
+      imageSlots: {
+        front: slots.front || primaryImg || '',
+        back: slots.back || '',
+        detail: slots.detail || '',
+      },
       tags: tagsArray,
     };
     try {

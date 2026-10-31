@@ -63,6 +63,18 @@ const authController = {
   updateMe: asyncHandler(async (req, res) => {
     send(res, await authService.updateMe(req.user._id, req.body));
   }),
+
+  updateNotificationPreferences: asyncHandler(async (req, res) => {
+    send(res, await authService.updateNotificationPreferences(req.user._id, req.body));
+  }),
+
+  registerFcmToken: asyncHandler(async (req, res) => {
+    send(res, await authService.registerFcmToken(req.user._id, req.body));
+  }),
+
+  removeFcmToken: asyncHandler(async (req, res) => {
+    send(res, await authService.removeFcmToken(req.user._id, req.body.token));
+  }),
 };
 
 module.exports = authController;

@@ -100,18 +100,18 @@ function generateStudioFramedFallback(base64Data, mimeType, name, box_2d) {
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
     <defs>
-      <!-- Seamless Studio Cyclorama Background -->
-      <radialGradient id="studioCyclorama" cx="50%" cy="40%" r="68%">
+      <!-- Commercial Studio White Backdrop -->
+      <linearGradient id="studioWhiteBackdrop" x1="0%" y1="0%" x2="0%" y2="100%">
         <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="60%" stop-color="#f8fafc"/>
-        <stop offset="100%" stop-color="#edf2f7"/>
-      </radialGradient>
-      <!-- Ground Ambient Shadow Filter -->
-      <filter id="studioContactShadow" x="-30%" y="-30%" width="160%" height="180%">
-        <feGaussianBlur in="SourceAlpha" stdDeviation="16"/>
-        <feOffset dx="0" dy="24" result="offsetblur"/>
+        <stop offset="75%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#f8fafc"/>
+      </linearGradient>
+      <!-- Soft Ground Drop Shadow Filter -->
+      <filter id="studioDropShadow" x="-30%" y="-30%" width="160%" height="180%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="14"/>
+        <feOffset dx="0" dy="18" result="offsetblur"/>
         <feComponentTransfer>
-          <feFuncA type="linear" slope="0.14"/>
+          <feFuncA type="linear" slope="0.16"/>
         </feComponentTransfer>
         <feMerge> 
           <feMergeNode/>
@@ -119,37 +119,34 @@ function generateStudioFramedFallback(base64Data, mimeType, name, box_2d) {
         </feMerge>
       </filter>
       <!-- Tight Base Contact Shadow -->
-      <filter id="baseOcclusion" x="-20%" y="-20%" width="140%" height="150%">
-        <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
-        <feOffset dx="0" dy="6" result="offsetblur"/>
+      <filter id="baseContactOcclusion" x="-20%" y="-20%" width="140%" height="150%">
+        <feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
+        <feOffset dx="0" dy="5" result="offsetblur"/>
         <feComponentTransfer>
-          <feFuncA type="linear" slope="0.22"/>
+          <feFuncA type="linear" slope="0.26"/>
         </feComponentTransfer>
         <feMerge> 
           <feMergeNode/>
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
-      <!-- Focused Subject Clip Path -->
+      <!-- Feathered Subject Clip Path with Soft Corners -->
       <clipPath id="subjectCropClip">
-        <rect x="${Math.round(cropX)}" y="${Math.round(cropY)}" width="${Math.round(cropW)}" height="${Math.round(cropH)}" rx="20"/>
+        <rect x="${Math.round(cropX)}" y="${Math.round(cropY)}" width="${Math.round(cropW)}" height="${Math.round(cropH)}" rx="24"/>
       </clipPath>
     </defs>
 
-    <!-- Cyclorama Seamless Backdrop -->
-    <rect width="1000" height="1000" fill="url(#studioCyclorama)"/>
+    <!-- Clean Studio White Background -->
+    <rect width="1000" height="1000" fill="url(#studioWhiteBackdrop)"/>
 
-    <!-- Studio Floor Contact Shadow -->
-    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx)}" ry="22" fill="#0f172a" opacity="0.18" filter="url(#studioContactShadow)"/>
-    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx * 0.7)}" ry="9" fill="#090d16" opacity="0.25" filter="url(#baseOcclusion)"/>
+    <!-- Ground Drop Shadow (Soft Ambient + Tight Contact) -->
+    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx)}" ry="18" fill="#0f172a" opacity="0.14" filter="url(#studioDropShadow)"/>
+    <ellipse cx="500" cy="${Math.round(shadowY)}" rx="${Math.round(shadowRx * 0.72)}" ry="8" fill="#090d16" opacity="0.22" filter="url(#baseContactOcclusion)"/>
 
     <!-- Isolated Focused Subject -->
     <g clip-path="url(#subjectCropClip)">
       <image href="${dataUrl}" x="${Math.round(imgX)}" y="${Math.round(imgY)}" width="${Math.round(imgW)}" height="${Math.round(imgH)}" preserveAspectRatio="none"/>
     </g>
-
-    <!-- Soft Vignette Outer Frame -->
-    <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="rgba(15,23,42,0.06)" stroke-width="2"/>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

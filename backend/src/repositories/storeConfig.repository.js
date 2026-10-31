@@ -23,6 +23,8 @@ const DEFAULT_CONFIG = {
   webhookSecret: 'zb_webhook_secret_live',
   supportPhone: '+91 9101516662',
   supportEmail: 'support@zapbasket.store',
+  fssaiLicense: '11224333000542',
+  showDemoAccountsOnLogin: true,
   allowCustomerCancellation: true,
   cancellationWindowMinutes: 3,
   allowDirectRiderContact: true,

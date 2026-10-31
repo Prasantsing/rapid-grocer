@@ -2,6 +2,7 @@ import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { ShopService } from '../core/shop.service';
+import { ThemeService } from '../core/theme.service';
 import { ToastService } from '../core/toast.service';
 import { errorMessage } from '../core/http-error';
 import { Product } from '../core/models';
@@ -12,39 +13,49 @@ import { InrPipe } from './inr.pipe';
   imports: [RouterLink, InrPipe],
   template: `
     <article class="tile">
-      <a class="tile-art" [routerLink]="['/p', product().slug]" [style.background]="(product().imageUrl && !imgFailed()) ? '#ffffff' : product().tint">
-        @if (product().imageUrl && !imgFailed()) {
-          <img [src]="product().imageUrl" [alt]="product().name" class="product-thumb" (error)="imgFailed.set(true)" loading="lazy" />
-        } @else {
-          <span class="emoji">{{ product().emoji }}</span>
+      <div class="tile-media-wrap">
+        <a class="tile-art" [routerLink]="['/p', product().slug]" [style.background]="getArtBackground()">
+          @if (product().imageUrl && !imgFailed()) {
+            <img [src]="product().imageUrl" [alt]="product().name" class="product-thumb" (error)="imgFailed.set(true)" loading="lazy" />
+          } @else {
+            <span class="emoji">{{ product().emoji }}</span>
+          }
+          @if (product().discountPercent > 0) {
+            <span class="off">{{ product().discountPercent }}% off</span>
+          }
+        </a>
+        @if (auth.user()?.role === 'customer' || !auth.user()) {
+          <button class="wish" type="button" (click)="toggleWish()" [attr.aria-label]="wished() ? 'Remove from wishlist' : 'Save to wishlist'">
+            <i class="bi" [class.bi-heart-fill]="wished()" [class.bi-heart]="!wished()"></i>
+          </button>
         }
-        @if (product().discountPercent > 0) {
-          <span class="off">{{ product().discountPercent }}% off</span>
-        }
-      </a>
-      @if (auth.user()?.role === 'customer' || !auth.user()) {
-        <button class="wish" type="button" (click)="toggleWish()" [attr.aria-label]="wished() ? 'Remove from wishlist' : 'Save to wishlist'">
-          <i class="bi" [class.bi-heart-fill]="wished()" [class.bi-heart]="!wished()"></i>
-        </button>
-      }
+
+        <!-- Myntra-style Add to Basket action button downside of image -->
+        <div class="card-action-bar">
+          @if (product().stock < 1) {
+            <span class="sold-badge">Sold out</span>
+          } @else if (qty() === 0) {
+            <button class="add-basket-btn" type="button" [disabled]="busy()" (click)="add()">
+              <i class="bi bi-basket2-fill"></i>
+              <span>ADD</span>
+            </button>
+          } @else {
+            <div class="card-stepper">
+              <button type="button" [disabled]="busy()" (click)="change(qty() - 1)" aria-label="Decrease quantity">−</button>
+              <span class="stepper-count">{{ qty() }}</span>
+              <button type="button" [disabled]="busy()" (click)="change(qty() + 1)" aria-label="Increase quantity">+</button>
+            </div>
+          }
+        </div>
+      </div>
+
       <div class="tile-body">
         <p class="unit">{{ product().unit }}</p>
-        <a [routerLink]="['/p', product().slug]">{{ product().name }}</a>
+        <a class="product-title" [routerLink]="['/p', product().slug]">{{ product().name }}</a>
         <div class="price-row">
-          <strong>{{ product().price | inr }}</strong>
+          <strong class="price-main">{{ product().price | inr }}</strong>
           @if (product().mrp > product().price) {
-            <s>{{ product().mrp | inr }}</s>
-          }
-          @if (product().stock < 1) {
-            <span class="sold">Sold out</span>
-          } @else if (qty() === 0) {
-            <button class="add-btn" type="button" [disabled]="busy()" (click)="add()">ADD</button>
-          } @else {
-            <div class="stepper">
-              <button type="button" [disabled]="busy()" (click)="change(qty() - 1)">−</button>
-              <span>{{ qty() }}</span>
-              <button type="button" [disabled]="busy()" (click)="change(qty() + 1)">+</button>
-            </div>
+            <s class="price-mrp">{{ product().mrp | inr }}</s>
           }
         </div>
       </div>
@@ -54,6 +65,7 @@ import { InrPipe } from './inr.pipe';
 export class ProductCard {
   readonly product = input.required<Product>();
   readonly auth = inject(AuthService);
+  readonly themeService = inject(ThemeService);
   private readonly shop = inject(ShopService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -61,6 +73,17 @@ export class ProductCard {
   readonly imgFailed = signal(false);
   readonly qty = computed(() => this.shop.cart()?.items.find((item) => item.productId === this.product().id)?.quantity ?? 0);
   readonly wished = computed(() => this.shop.wishlistIds().includes(this.product().id));
+
+  getArtBackground(): string {
+    if (this.product().imageUrl && !this.imgFailed()) {
+      return this.themeService.isDark() ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc';
+    }
+    const t = this.product().tint;
+    if (t && t.startsWith('#') && t.length === 7) {
+      return this.themeService.isDark() ? t + '20' : t + '38';
+    }
+    return this.themeService.isDark() ? 'rgba(255, 255, 255, 0.03)' : '#f8fafc';
+  }
 
   add() {
     void this.change(1, true);

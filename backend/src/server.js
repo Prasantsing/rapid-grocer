@@ -9,17 +9,9 @@ function main() {
     console.log(`Swagger docs at http://0.0.0.0:${env.port}/api/docs`);
   });
 
-  const rawPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
-  let altServer = null;
-  if (rawPort && rawPort !== env.port && !isNaN(rawPort)) {
-    try {
-      altServer = app.listen(rawPort, '0.0.0.0', () => {
-        console.log(`ZapBasket Cloud Run ingress listener active on http://0.0.0.0:${rawPort}`);
-      });
-    } catch (e) {
-      console.warn('Could not bind secondary port:', e.message);
-    }
-  }
+  server.on('error', (err) => {
+    console.error(`ZapBasket server error on port ${env.port}:`, err.message);
+  });
 
   (async () => {
     try {
@@ -38,11 +30,7 @@ function main() {
   const shutdown = (signal) => {
     console.log(`${signal} received, closing API`);
     server.close(() => {
-      if (altServer) {
-        altServer.close(() => process.exit(0));
-      } else {
-        process.exit(0);
-      }
+      process.exit(0);
     });
   };
   process.on('SIGINT', () => shutdown('SIGINT'));

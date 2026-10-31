@@ -15,6 +15,35 @@ import { STATUS_LABEL } from '../shared/status';
     <div class="section-head"><div><p class="eyebrow">Today</p><h2>Store pulse</h2></div></div>
     @if (error()) { <div class="panel">{{ error() }}</div> }
     @if (data(); as dash) {
+      <!-- ACTIVE RECEIVING UPI ACCOUNT STRIP -->
+      <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 receiving-account-card">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div class="d-flex align-items-start align-items-sm-center gap-3 w-100 min-w-0">
+            <div class="p-3 rounded-3 bg-success-subtle text-success flex-shrink-0">
+              <i class="bi bi-wallet2 fs-4"></i>
+            </div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="small fw-semibold text-muted text-uppercase">Receiving Money Account</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-check-circle-fill me-1"></i> Active
+                </span>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                <span class="fs-5 fw-bold font-monospace text-ink text-break">{{ shop.storeConfig()?.upiVpa || '9101516662@ybl' }}</span>
+                <span class="text-muted small text-truncate">· Payee: <b>{{ shop.storeConfig()?.payeeName || 'ZapBasket' }}</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="w-100 w-sm-auto flex-shrink-0">
+            <a routerLink="/admin/settlement" class="btn btn-sm btn-dark w-100 d-inline-flex align-items-center justify-content-center gap-1 px-3 py-2">
+              <i class="bi bi-pencil-square"></i>
+              <span>Change Receiving Account</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div class="stat-grid mb-3">
         <article class="stat"><span>Revenue</span><strong>{{ dash.revenue | inr }}</strong></article>
         <article class="stat"><span>Orders</span><strong>{{ dash.orders }}</strong></article>
@@ -124,10 +153,17 @@ import { STATUS_LABEL } from '../shared/status';
       }
     }
   `,
+  styles: [`
+    .receiving-account-card {
+      background: var(--card) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--ink);
+    }
+  `],
 })
 export class AdminDashboardPage {
   private readonly admin = inject(AdminService);
-  private readonly shop = inject(ShopService);
+  readonly shop = inject(ShopService);
   readonly data = signal<DashboardData | null>(null);
   readonly feedback = signal<FeedbackSummaryResponse | null>(null);
   readonly error = signal('');
@@ -135,6 +171,7 @@ export class AdminDashboardPage {
   constructor() {
     this.admin.dashboard().then((data) => this.data.set(data)).catch((error) => this.error.set(errorMessage(error)));
     this.shop.getFeedbackSummary().then((fb) => this.feedback.set(fb)).catch(() => {});
+    void this.shop.loadStoreConfig();
   }
 
   label(status: string) {

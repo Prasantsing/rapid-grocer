@@ -14,17 +14,17 @@ const messageLogSchema = new mongoose.Schema(
     },
     channel: {
       type: String,
-      enum: ['sms', 'whatsapp'],
+      enum: ['sms', 'whatsapp', 'push'],
       required: true,
       index: true,
     },
     recipientPhone: {
       type: String,
-      required: true,
+      default: '',
     },
     eventType: {
       type: String,
-      enum: ['order_placed', 'order_confirmed', 'order_packed', 'out_for_delivery', 'delivered', 'order_cancelled', 'manual_test'],
+      enum: ['order_placed', 'order_confirmed', 'order_packed', 'out_for_delivery', 'delivered', 'order_cancelled', 'manual_test', 'promotional_broadcast'],
       required: true,
     },
     messageBody: {

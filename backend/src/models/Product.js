@@ -14,6 +14,12 @@ const productSchema = new mongoose.Schema(
     emoji: { type: String, default: '🛍️' },
     tint: { type: String, default: '#F4F1E8' },
     imageUrl: { type: String, default: '' },
+    images: { type: [String], default: [] },
+    imageSlots: {
+      front: { type: String, default: '' },
+      back: { type: String, default: '' },
+      detail: { type: String, default: '' },
+    },
     tags: { type: [String], default: [] },
     isActive: { type: Boolean, default: true },
     isReturnable: { type: Boolean, default: false },

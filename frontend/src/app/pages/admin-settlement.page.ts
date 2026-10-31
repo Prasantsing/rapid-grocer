@@ -1,0 +1,544 @@
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { ShopService } from '../core/shop.service';
+import { ToastService } from '../core/toast.service';
+import { StoreConfig } from '../core/models';
+import { InrPipe } from '../shared/inr.pipe';
+import { errorMessage } from '../core/http-error';
+
+@Component({
+  selector: 'app-admin-settlement',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterLink, InrPipe],
+  template: `
+    <div class="container-fluid p-3 p-md-4">
+      <!-- Breadcrumb & Header -->
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+              <li class="breadcrumb-item"><a routerLink="/admin" class="text-decoration-none text-muted">Desk</a></li>
+              <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Settlement & Accounts</li>
+            </ol>
+          </nav>
+          <div class="d-flex align-items-center gap-2">
+            <h1 class="h3 fw-bold mb-0 text-dark">Receiving Account & UPI Settlement</h1>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+              <i class="bi bi-shield-check me-1"></i> Live Merchant Account
+            </span>
+          </div>
+          <p class="text-muted small mb-0 mt-1">
+            Configure the payee UPI ID and legal business entity name used to receive customer payments across Google Pay, PhonePe, Paytm, and all UPI applications.
+          </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+            (click)="loadConfig()"
+            [disabled]="isLoading()"
+          >
+            <i class="bi bi-arrow-clockwise" [class.spin]="isLoading()"></i>
+            <span>Refresh</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-dark btn-sm d-inline-flex align-items-center gap-1"
+            (click)="saveConfig()"
+            [disabled]="isSaving() || (formData.upiVpa && !isValidVpa(formData.upiVpa))"
+          >
+            @if (isSaving()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <span>Saving…</span>
+            } @else {
+              <i class="bi bi-check2-circle me-1 text-success"></i>
+              <span>Save Receiving Account</span>
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Strip -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border shadow-sm rounded-4 p-3 h-100">
+            <span class="text-secondary small text-uppercase fw-semibold">Current Payee VPA</span>
+            <div class="d-flex align-items-center justify-content-between mt-2">
+              <span class="font-monospace fw-bold text-dark fs-5 text-truncate" [title]="config()?.upiVpa || '9101516662@ybl'">
+                {{ config()?.upiVpa || '9101516662@ybl' }}
+              </span>
+              <button
+                type="button"
+                class="btn btn-sm btn-light border py-1 px-2"
+                (click)="copyToClipboard(config()?.upiVpa || '9101516662@ybl', 'UPI ID')"
+                title="Copy UPI ID"
+              >
+                <i class="bi bi-copy"></i>
+              </button>
+            </div>
+            <div class="mt-2 small text-muted">
+              Bank PSP: <b class="text-dark">{{ getPspLabel(config()?.upiVpa) }}</b>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border shadow-sm rounded-4 p-3 h-100">
+            <span class="text-secondary small text-uppercase fw-semibold">Registered Merchant Name</span>
+            <div class="fw-bold text-dark fs-5 mt-2 text-truncate">
+              {{ config()?.payeeName || 'ZapBasket' }}
+            </div>
+            <div class="mt-2 small text-muted">
+              Displayed in: <span class="badge bg-light text-secondary border">GPay · PhonePe · Paytm</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border shadow-sm rounded-4 p-3 h-100">
+            <span class="text-secondary small text-uppercase fw-semibold">Receiving Mode</span>
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 py-1 px-2">
+                <i class="bi bi-lightning-fill me-1"></i> Instant UPI (0% Fee)
+              </span>
+            </div>
+            <div class="mt-2 small text-muted">
+              Settlement: Direct to linked bank account
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+          <div class="card border shadow-sm rounded-4 p-3 h-100">
+            <span class="text-secondary small text-uppercase fw-semibold">Webhook Verification</span>
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 py-1 px-2">
+                <i class="bi bi-shield-lock-fill me-1"></i> Active & Protected
+              </span>
+            </div>
+            <div class="mt-2 small text-muted">
+              Callback endpoint: <code class="small text-dark font-monospace">/api/v1/payments/webhook</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Columns: Form & Live Verification Studio -->
+      <div class="row g-4">
+        <!-- Left: Configuration Form -->
+        <div class="col-lg-7">
+          <div class="card shadow-sm rounded-4 mb-4 border">
+            <div class="card-header border-0 pt-4 px-4 pb-2">
+              <div class="d-flex align-items-center gap-2">
+                <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+                  <i class="bi bi-wallet2 fs-5"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bold mb-0 text-dark">Merchant Receiving Account Parameters</h5>
+                  <small class="text-secondary fw-medium">Direct money deposits for customer orders</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body p-4 pt-2">
+              <!-- Field: UPI VPA -->
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label for="settlementVpa" class="form-label small fw-semibold mb-0">
+                    Payee UPI ID (VPA) <span class="text-danger">*</span>
+                  </label>
+                  @if (formData.upiVpa) {
+                    @if (isValidVpa(formData.upiVpa)) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.72rem;">
+                        <i class="bi bi-check-circle-fill me-1"></i> Valid UPI Handle ({{ getPspLabel(formData.upiVpa) }})
+                      </span>
+                    } @else {
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.72rem;">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Invalid Format (e.g. username&#64;bank)
+                      </span>
+                    }
+                  }
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted font-monospace"><i class="bi bi-at"></i></span>
+                  <input
+                    id="settlementVpa"
+                    type="text"
+                    class="form-control font-monospace"
+                    [class.is-invalid]="formData.upiVpa && !isValidVpa(formData.upiVpa)"
+                    [class.is-valid]="formData.upiVpa && isValidVpa(formData.upiVpa)"
+                    [(ngModel)]="formData.upiVpa"
+                    placeholder="e.g. 9101516662@ybl or store@okhdfcbank"
+                  />
+                </div>
+                <div class="form-text small mt-1">
+                  Customer payments across UPI apps will route directly into this Virtual Payment Address.
+                </div>
+              </div>
+
+              <!-- Field: Merchant Display Name -->
+              <div class="mb-3">
+                <label for="settlementPayeeName" class="form-label small fw-semibold mb-1">
+                  Registered Merchant Display Name <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted"><i class="bi bi-shop"></i></span>
+                  <input
+                    id="settlementPayeeName"
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="formData.payeeName"
+                    placeholder="e.g. ZapBasket Quick Retail"
+                  />
+                </div>
+                <div class="form-text small mt-1">
+                  Appears as the verified payee in consumer apps (Google Pay, PhonePe, Paytm, BHIM).
+                </div>
+              </div>
+
+              <!-- Field: Webhook Secret -->
+              <div class="mb-4">
+                <label for="settlementWebhook" class="form-label small fw-semibold mb-1">
+                  Gateway Webhook Signature Secret
+                </label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light text-muted font-monospace"><i class="bi bi-key-fill"></i></span>
+                  <input
+                    id="settlementWebhook"
+                    type="text"
+                    class="form-control font-monospace"
+                    [(ngModel)]="formData.webhookSecret"
+                    placeholder="zb_webhook_secret_live"
+                  />
+                </div>
+                <div class="form-text small mt-1">
+                  Used by the payment provider callback to verify that transaction confirmations are genuine.
+                </div>
+              </div>
+
+              <!-- Fast Preset Templates -->
+              <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="small fw-semibold text-dark mb-2">
+                  <i class="bi bi-magic me-1 text-primary"></i> Popular UPI PSP Presets:
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-white bg-white border"
+                    (click)="applyVpaPreset('9101516662@ybl', 'ZapBasket Express')"
+                  >
+                    PhonePe / Yes Bank (&#64;ybl)
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-white bg-white border"
+                    (click)="applyVpaPreset('zapbasket@okaxis', 'ZapBasket Hyperlocal')"
+                  >
+                    Google Pay / Axis (&#64;okaxis)
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-white bg-white border"
+                    (click)="applyVpaPreset('zapbasket@paytm', 'ZapBasket Retail')"
+                  >
+                    Paytm Payments (&#64;paytm)
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-white bg-white border"
+                    (click)="applyVpaPreset('zapbasket@okhdfcbank', 'ZapBasket Foods')"
+                  >
+                    HDFC Bank (&#64;okhdfcbank)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Action Bar -->
+              <div class="d-flex align-items-center justify-content-between pt-2">
+                <button
+                  type="button"
+                  class="btn btn-link text-muted p-0 text-decoration-none small"
+                  (click)="resetToDefaults()"
+                >
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Reset to Default (9101516662&#64;ybl)
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-primary px-4 fw-semibold"
+                  [disabled]="isSaving() || !isValidVpa(formData.upiVpa)"
+                  (click)="saveConfig()"
+                >
+                  @if (isSaving()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span> Saving…
+                  } @else {
+                    <i class="bi bi-check-lg me-1"></i> Update Receiving Account
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compliance Note Card -->
+          <div class="card border-0 shadow-sm rounded-4 bg-white p-4">
+            <h6 class="fw-bold text-dark mb-2 d-flex align-items-center gap-2">
+              <i class="bi bi-shield-check text-success"></i> NPCI & RBI Compliance Checklist
+            </h6>
+            <ul class="list-unstyled d-flex flex-column gap-2 small text-muted mb-0">
+              <li class="d-flex align-items-start gap-2">
+                <i class="bi bi-check2 text-success mt-1"></i>
+                <span><b>Zero Merchant Fees:</b> UPI P2M (Peer-to-Merchant) transactions incur 0% MDR fee for retail grocery operations.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2">
+                <i class="bi bi-check2 text-success mt-1"></i>
+                <span><b>Real-Time Settlements:</b> Transactions credit directly to the savings or current account linked with your UPI VPA handle.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2">
+                <i class="bi bi-check2 text-success mt-1"></i>
+                <span><b>Tax Invoices Synced:</b> The configured merchant name and UPI reference are dynamically embedded into customer GST invoices and order receipts.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right: Live QR & Payment Verification Studio -->
+        <div class="col-lg-5">
+          <div class="card shadow-sm rounded-4 border p-4 text-center">
+            <div class="d-flex align-items-center justify-content-between mb-3 text-start">
+              <div>
+                <h5 class="fw-bold mb-0 text-dark">Live QR Verification Studio</h5>
+                <small class="text-secondary fw-medium">Real-time preview of checkout QR</small>
+              </div>
+              <span class="badge bg-light text-dark border">
+                <i class="bi bi-qr-code me-1"></i> Real-time
+              </span>
+            </div>
+
+            <!-- Dynamic QR Code Card -->
+            <div class="p-3 bg-light rounded-4 border d-inline-block mx-auto mb-3" style="max-width: 280px; width: 100%;">
+              <div class="bg-white p-3 rounded-3 shadow-sm border mb-2 position-relative">
+                <img
+                  [src]="previewQrUrl()"
+                  alt="Live Settlement QR Code"
+                  class="img-fluid rounded"
+                  style="width: 200px; height: 200px; object-fit: contain;"
+                />
+                <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1">
+                  <span class="badge bg-dark text-white rounded-pill px-3 py-1 font-monospace" style="font-size: 0.7rem;">
+                    {{ (formData.upiVpa || '9101516662@ybl') }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="fw-bold text-dark fs-5 mb-0">
+                {{ testAmount | inr }}
+              </div>
+              <small class="text-muted d-block">
+                Payee: <b>{{ formData.payeeName || 'ZapBasket' }}</b>
+              </small>
+            </div>
+
+            <!-- Test Amount Preset Chips -->
+            <div class="mb-3 text-start">
+              <label class="form-label small fw-semibold text-muted mb-1">Simulated Test Amount</label>
+              <div class="d-flex flex-wrap gap-2">
+                @for (amt of [1, 10, 50, 100, 299]; track amt) {
+                  <button
+                    type="button"
+                    class="btn btn-sm rounded-pill"
+                    [class.btn-dark]="testAmount === amt"
+                    [class.btn-outline-secondary]="testAmount !== amt"
+                    (click)="setTestAmount(amt)"
+                  >
+                    ₹{{ amt }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Generated UPI URI Deep Link -->
+            <div class="mb-3 text-start">
+              <label class="form-label small fw-semibold text-muted mb-1">Generated Intent URI</label>
+              <div class="input-group input-group-sm">
+                <input
+                  type="text"
+                  readonly
+                  class="form-control font-monospace text-muted small bg-light"
+                  [value]="previewUpiUri()"
+                />
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  (click)="copyToClipboard(previewUpiUri(), 'UPI Intent Link')"
+                  title="Copy Link"
+                >
+                  <i class="bi bi-copy"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Direct App Test Triggers -->
+            <div class="mb-3">
+              <div class="small fw-semibold text-muted mb-2 text-start">Test Launch in UPI App:</div>
+              <div class="row g-2">
+                <div class="col-6">
+                  <a
+                    [href]="previewUpiUri()"
+                    class="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-1"
+                    target="_blank"
+                  >
+                    <i class="bi bi-wallet2"></i> Launch UPI App
+                  </a>
+                </div>
+                <div class="col-6">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-success w-100 d-flex align-items-center justify-content-center gap-1"
+                    (click)="copyToClipboard(formData.upiVpa || '9101516662@ybl', 'UPI ID')"
+                  >
+                    <i class="bi bi-clipboard-check"></i> Copy VPA
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scan Instruction Tip -->
+            <div class="p-3 bg-light rounded-3 text-start small text-muted border">
+              <i class="bi bi-camera-fill text-dark me-1"></i>
+              <b>Test Scan Instruction:</b> Open Google Pay, PhonePe, or Paytm on your phone, scan this QR code, and verify that <b>{{ formData.payeeName || 'ZapBasket' }}</b> appears on your screen before confirming.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .spin {
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+  `],
+})
+export class AdminSettlementPage implements OnInit {
+  private readonly shop = inject(ShopService);
+  private readonly toasts = inject(ToastService);
+
+  readonly config = signal<StoreConfig | null>(null);
+  readonly isLoading = signal(false);
+  readonly isSaving = signal(false);
+
+  testAmount = 1;
+
+  formData = {
+    upiVpa: '9101516662@ybl',
+    payeeName: 'ZapBasket',
+    webhookSecret: 'zb_webhook_secret_live',
+  };
+
+  readonly previewUpiUri = computed(() => {
+    const vpa = (this.formData.upiVpa || '9101516662@ybl').trim();
+    const name = (this.formData.payeeName || 'ZapBasket').trim();
+    const amt = Number(this.testAmount || 1).toFixed(2);
+    return `upi://pay?pa=${encodeURIComponent(vpa)}&pn=${encodeURIComponent(name)}&am=${amt}&cu=INR&tn=ZapBasket%20Test%20Settlement`;
+  });
+
+  readonly previewQrUrl = computed(() => {
+    const uri = this.previewUpiUri();
+    return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(uri)}`;
+  });
+
+  ngOnInit() {
+    void this.loadConfig();
+  }
+
+  async loadConfig() {
+    this.isLoading.set(true);
+    try {
+      const data = await this.shop.getAdminStoreConfig();
+      this.config.set(data);
+      this.formData = {
+        upiVpa: data.upiVpa || '9101516662@ybl',
+        payeeName: data.payeeName || 'ZapBasket',
+        webhookSecret: data.webhookSecret || 'zb_webhook_secret_live',
+      };
+    } catch (err) {
+      this.toasts.error(errorMessage(err, 'Could not load settlement configuration'));
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  isValidVpa(vpa: string): boolean {
+    return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test((vpa || '').trim());
+  }
+
+  getPspLabel(vpa?: string): string {
+    const handle = (vpa || '').toLowerCase().trim();
+    if (handle.endsWith('@ybl') || handle.endsWith('@ibl') || handle.endsWith('@axl')) return 'PhonePe / Yes Bank';
+    if (handle.endsWith('@okaxis')) return 'Google Pay (Axis Bank)';
+    if (handle.endsWith('@okhdfcbank')) return 'Google Pay (HDFC Bank)';
+    if (handle.endsWith('@okicici')) return 'Google Pay (ICICI Bank)';
+    if (handle.endsWith('@oksbi')) return 'Google Pay (State Bank of India)';
+    if (handle.endsWith('@paytm')) return 'Paytm Payments Bank';
+    if (handle.endsWith('@upi')) return 'BHIM / NPCI Official';
+    if (handle.endsWith('@apl')) return 'Amazon Pay';
+    return 'UPI Bank Provider';
+  }
+
+  setTestAmount(amt: number) {
+    this.testAmount = amt;
+  }
+
+  applyVpaPreset(vpa: string, payeeName: string) {
+    this.formData.upiVpa = vpa;
+    this.formData.payeeName = payeeName;
+    this.toasts.show(`Applied preset: ${vpa}`);
+  }
+
+  resetToDefaults() {
+    this.formData.upiVpa = '9101516662@ybl';
+    this.formData.payeeName = 'ZapBasket';
+    this.formData.webhookSecret = 'zb_webhook_secret_live';
+    this.toasts.show('Reset to default ZapBasket receiving account');
+  }
+
+  async saveConfig() {
+    const vpa = (this.formData.upiVpa || '').trim();
+    if (!this.isValidVpa(vpa)) {
+      this.toasts.error('Please enter a valid Merchant UPI VPA (e.g. yourname@bank)');
+      return;
+    }
+
+    if (!this.formData.payeeName?.trim()) {
+      this.toasts.error('Please enter the merchant business display name');
+      return;
+    }
+
+    this.isSaving.set(true);
+    try {
+      const updated = await this.shop.updateStoreConfig({
+        upiVpa: vpa,
+        payeeName: this.formData.payeeName.trim(),
+        webhookSecret: this.formData.webhookSecret?.trim() || 'zb_webhook_secret_live',
+      });
+      this.config.set(updated);
+      this.toasts.show('Merchant receiving account updated successfully!');
+    } catch (err) {
+      this.toasts.error(errorMessage(err, 'Failed to update receiving account'));
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
+  copyToClipboard(text: string, label: string) {
+    if (!text) return;
+    void navigator.clipboard?.writeText(text);
+    this.toasts.show(`${label} copied to clipboard!`);
+  }
+}

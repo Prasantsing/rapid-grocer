@@ -18,6 +18,11 @@ export interface Page<T> {
 
 export type Role = 'admin' | 'customer' | 'delivery';
 
+export interface NotificationPreferences {
+  orderUpdates: boolean;
+  promotionalAlerts: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -28,7 +33,10 @@ export interface User {
   permissions: string[];
   permissionGrants: string[];
   permissionRevokes: string[];
+  cashInHand?: number;
   createdAt?: string;
+  notificationPreferences?: NotificationPreferences;
+  fcmTokenCount?: number;
 }
 
 export interface Session {
@@ -62,6 +70,12 @@ export interface Product {
   emoji: string;
   tint: string;
   imageUrl?: string;
+  images?: string[];
+  imageSlots?: {
+    front?: string;
+    back?: string;
+    detail?: string;
+  };
   tags: string[];
   isActive: boolean;
   isReturnable?: boolean;
@@ -190,11 +204,74 @@ export interface Order {
   notes: string;
   timeline: { status: string; note: string; at: string }[];
   user: { id: string; name: string; phone?: string; email?: string } | string | null;
-  deliveryPartner: { id: string; name: string; phone?: string } | string | null;
+  deliveryPartner: { id: string; name: string; phone?: string; cashInHand?: number } | string | null;
   feedback?: OrderFeedback | null;
   tip?: OrderTip | null;
+  picking?: OrderPicking | null;
+  deliveryOtp?: DeliveryOtp | null;
+  claims?: OrderItemClaim[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DeliveryOtp {
+  code?: string;
+  isVerified: boolean;
+  verifiedAt?: string | null;
+  verifiedBy?: 'customer_otp' | 'admin_bypass' | 'none';
+  resendCount?: number;
+  adminBypassNote?: string;
+}
+
+export interface OrderPicking {
+  isPacked: boolean;
+  packedAt?: string | null;
+  itemsChecked?: string[];
+  bagBarcode?: string;
+}
+
+export interface OrderItemClaim {
+  id?: string;
+  productId: string;
+  productName: string;
+  reason: 'damaged_spoiled' | 'missing_item' | 'wrong_item' | 'expired' | 'quality_issue';
+  comments?: string;
+  photoUrl?: string;
+  refundAmount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+export interface FlatClaim {
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  claimId: string;
+  productId: string;
+  productName: string;
+  reason: string;
+  comments: string;
+  photoUrl: string;
+  refundAmount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+export interface RiderSettlement {
+  amount: number;
+  settledAt: string;
+  receiptNumber: string;
+  note: string;
+}
+
+export interface RiderLedgerResponse {
+  cashInHand: number;
+  settlements: RiderSettlement[];
 }
 
 export interface OrderFeedback {
@@ -294,6 +371,13 @@ export interface UpiPaymentDetails {
   qrCodeData: string;
 }
 
+export interface ThemeConfig {
+  preset: string; // 'emerald' | 'sapphire' | 'indigo' | 'amber' | 'slate' | 'rose' | 'custom'
+  primaryColor: string; // hex
+  accentColor: string; // hex
+  surfaceMode?: string; // 'slate-contrast' | 'soft-warm'
+}
+
 export interface StoreConfig {
   isOpen: boolean;
   isCurrentlyOpen: boolean;
@@ -314,6 +398,8 @@ export interface StoreConfig {
   minOrderAmount: number;
   freeDeliveryThreshold: number;
   deliveryFee: number;
+  logoUrl?: string;
+  theme?: ThemeConfig;
   upiVpa: string;
   payeeName: string;
   supportPhone?: string;
@@ -322,6 +408,8 @@ export interface StoreConfig {
   cancellationWindowMinutes?: number;
   allowDirectRiderContact?: boolean;
   nonReturnableNotice?: string;
+  fssaiLicense?: string;
+  showDemoAccountsOnLogin?: boolean;
   webhookSecret?: string;
   enableSmsAlerts?: boolean;
   enableWhatsAppAlerts?: boolean;
@@ -340,7 +428,7 @@ export interface MessageLog {
   _id?: string;
   orderId?: string | null;
   orderNumber?: string;
-  channel: 'sms' | 'whatsapp';
+  channel: 'sms' | 'whatsapp' | 'push';
   recipientPhone: string;
   eventType: string;
   messageBody: string;
@@ -520,4 +608,33 @@ export interface GstReportData {
   slabs: GstSlabSummary[];
   invoices: GstInvoiceLedgerEntry[];
 }
+
+export interface PushSummaryResponse {
+  totalUsers?: number;
+  totalTokens: number;
+  usersWithTokens: number;
+  optedInPromotions?: number;
+  optedInPromos?: number;
+  optedInOrderUpdates: number;
+  orderOptInRate?: number;
+  promoOptInRate?: number;
+  recentPushDispatches?: number;
+}
+
+export interface BroadcastPromoPayload {
+  title: string;
+  body: string;
+  link?: string;
+  couponCode?: string;
+}
+
+export interface BroadcastPromoResponse {
+  message: string;
+  recipientsCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  promoTitle: string;
+  couponCode?: string;
+}
+
 

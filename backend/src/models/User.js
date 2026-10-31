@@ -15,6 +15,28 @@ const userSchema = new mongoose.Schema(
     permissionGrants: { type: [String], default: [] },
     permissionRevokes: { type: [String], default: [] },
     isActive: { type: Boolean, default: true },
+    cashInHand: { type: Number, default: 0, min: 0 },
+    cashSettlements: [
+      {
+        amount: { type: Number, required: true },
+        settledAt: { type: Date, default: Date.now },
+        settledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        receiptNumber: { type: String, default: '' },
+        note: { type: String, default: '' },
+      },
+    ],
+    notificationPreferences: {
+      orderUpdates: { type: Boolean, default: true },
+      promotionalAlerts: { type: Boolean, default: true },
+    },
+    fcmTokens: [
+      {
+        token: { type: String, required: true },
+        device: { type: String, default: 'web' },
+        createdAt: { type: Date, default: Date.now },
+        lastUsedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

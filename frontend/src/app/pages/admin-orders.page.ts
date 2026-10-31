@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Order, OrderStatus, User } from '../core/models';
+import { FlatClaim, Order, OrderStatus, User } from '../core/models';
 import { AdminService } from '../core/admin.service';
 import { ShopService } from '../core/shop.service';
 import { ToastService } from '../core/toast.service';
@@ -16,13 +16,33 @@ import { STATUS_LABEL } from '../shared/status';
   template: `
     <div class="section-head mb-3">
       <div>
-        <h2>Orders & Payment Verification</h2>
-        <p class="muted mb-0">Track dark-store orders and review customer uploaded transaction receipts</p>
+        <h2>Dark Store Operations & Orders</h2>
+        <p class="muted mb-0">Pick & pack orders, verify payments, review item claims & reconcile rider COD cash</p>
       </div>
     </div>
 
-    <!-- FILTER TOOLBAR -->
-    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+    <!-- MAIN MODULE TABS -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button class="btn btn-sm" [class.btn-dark]="activeTab() === 'orders'" [class.btn-outline-dark]="activeTab() !== 'orders'" (click)="activeTab.set('orders')">
+        <i class="bi bi-box-seam me-1"></i> Orders & Packing Desk
+      </button>
+      <button class="btn btn-sm" [class.btn-dark]="activeTab() === 'claims'" [class.btn-outline-dark]="activeTab() !== 'claims'" (click)="switchToClaims()">
+        <i class="bi bi-shield-exclamation me-1"></i> Claims & Refunds Queue
+        @if (pendingClaimsCount() > 0) {
+          <span class="badge bg-danger rounded-pill ms-1">{{ pendingClaimsCount() }}</span>
+        }
+      </button>
+      <button class="btn btn-sm" [class.btn-dark]="activeTab() === 'riders'" [class.btn-outline-dark]="activeTab() !== 'riders'" (click)="activeTab.set('riders')">
+        <i class="bi bi-wallet2 me-1"></i> Rider Cash Drawers (COD)
+        @if (totalRiderCash() > 0) {
+          <span class="badge bg-info-subtle text-info-emphasis ms-1">{{ totalRiderCash() | inr }}</span>
+        }
+      </button>
+    </div>
+
+    @if (activeTab() === 'orders') {
+      <!-- FILTER TOOLBAR -->
+      <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
       <select class="form-select w-auto" [(ngModel)]="status" (change)="load()">
         <option value="">All order statuses</option>
         @for (item of statuses; track item) { <option [value]="item">{{ label(item) }}</option> }
@@ -135,8 +155,34 @@ import { STATUS_LABEL } from '../shared/status';
                 </button>
               }
               @if (order.status === 'confirmed') {
-                <button class="btn btn-sm btn-dark" type="button" (click)="move(order, 'packed')">
-                  Mark Packed
+                <button class="btn btn-sm btn-dark" type="button" (click)="openPickerChecklist(order)">
+                  <i class="bi bi-box-seam me-1"></i> Pick & Pack
+                </button>
+              }
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="printThermalBagSlip(order)">
+                <i class="bi bi-printer me-1"></i> Bag Slip
+              </button>
+              @if (order.picking?.isPacked) {
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-bag-check-fill me-1"></i> Bag #{{ order.picking?.bagBarcode || 'Packed' }}
+                </span>
+              }
+              @if (order.deliveryOtp?.code) {
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" title="Customer Delivery OTP">
+                  <i class="bi bi-key-fill me-1"></i> OTP: {{ order.deliveryOtp?.code }}
+                  @if (order.deliveryOtp?.isVerified) {
+                    <i class="bi bi-check-circle-fill text-success ms-1" title="Verified at doorstep"></i>
+                  }
+                </span>
+              }
+              @if (order.status === 'out_for_delivery' && !order.deliveryOtp?.isVerified) {
+                <button class="btn btn-sm btn-outline-warning" type="button" (click)="openAdminBypass(order)">
+                  <i class="bi bi-shield-exclamation me-1"></i> OTP Bypass
+                </button>
+              }
+              @if (order.claims?.length) {
+                <button class="btn btn-sm btn-outline-danger" type="button" (click)="switchToClaimsForOrder(order.id)">
+                  <i class="bi bi-shield-exclamation me-1"></i> {{ order.claims?.length }} Claim(s)
                 </button>
               }
               @if (order.status === 'placed' || order.status === 'confirmed' || order.status === 'packed') {
@@ -144,7 +190,7 @@ import { STATUS_LABEL } from '../shared/status';
                   Cancel
                 </button>
               }
-              <select class="form-select form-select-sm w-auto" (change)="assign(order, $event)">
+              <select class="form-select form-select-sm w-auto ms-auto" (change)="assign(order, $event)">
                 <option value="">Assign delivery partner</option>
                 @for (partner of partners(); track partner.id) {
                   <option [value]="partner.id" [selected]="isAssigned(order, partner.id)">{{ partner.name }}</option>
@@ -155,6 +201,147 @@ import { STATUS_LABEL } from '../shared/status';
         }
       }
     </div>
+    } @else if (activeTab() === 'claims') {
+      <!-- CLAIMS & REFUNDS QUEUE VIEW -->
+      <div class="panel mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h3 class="mb-0">Customer Item Claims & Refunds</h3>
+            <p class="muted small mb-0">Review photos, spoiled/missing item reports, and approve instant UPI refunds</p>
+          </div>
+          <button class="btn btn-sm btn-outline-dark" (click)="loadClaims()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Claims
+          </button>
+        </div>
+
+        @if (loadingClaims()) {
+          <div class="p-4 text-center text-muted">Checking claims queue…</div>
+        } @else if (!claims().length) {
+          <div class="p-4 text-center text-muted border rounded-3 bg-light">
+            <i class="bi bi-shield-check fs-2 text-success d-block mb-1"></i>
+            No customer claims filed. Zero disputed orders!
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th>Item Claimed</th>
+                  <th>Issue & Reason</th>
+                  <th>Proof</th>
+                  <th>Refund</th>
+                  <th>Status</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of claims(); track c.claimId) {
+                  <tr>
+                    <td>
+                      <strong>{{ c.orderNumber }}</strong>
+                      <div class="text-muted" style="font-size: 0.7rem;">{{ c.createdAt | date:'d MMM, h:mm a' }}</div>
+                    </td>
+                    <td>
+                      <div>{{ c.customerName }}</div>
+                      @if (c.customerPhone) { <div class="text-muted font-monospace" style="font-size: 0.7rem;">{{ c.customerPhone }}</div> }
+                    </td>
+                    <td>
+                      <strong class="text-dark">{{ c.productName }}</strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border">{{ formatClaimReason(c.reason) }}</span>
+                      @if (c.comments) {
+                        <div class="text-secondary fst-italic mt-1" style="font-size: 0.72rem;">"{{ c.comments }}"</div>
+                      }
+                    </td>
+                    <td>
+                      @if (c.photoUrl) {
+                        <img [src]="c.photoUrl" alt="Proof" class="rounded border" style="width: 44px; height: 44px; object-fit: cover; cursor: pointer;" (click)="previewPhoto(c.photoUrl)" />
+                      } @else {
+                        <span class="text-muted" style="font-size: 0.72rem;">No photo</span>
+                      }
+                    </td>
+                    <td>
+                      <strong class="text-danger">{{ c.refundAmount | inr }}</strong>
+                    </td>
+                    <td>
+                      <span class="badge" [class.bg-warning-subtle]="c.status === 'pending'" [class.text-warning-emphasis]="c.status === 'pending'" [class.bg-success-subtle]="c.status === 'approved'" [class.text-success]="c.status === 'approved'" [class.bg-danger-subtle]="c.status === 'rejected'" [class.text-danger]="c.status === 'rejected'">
+                        {{ c.status.toUpperCase() }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      @if (c.status === 'pending') {
+                        <div class="d-inline-flex gap-1">
+                          <button class="btn btn-sm btn-success" type="button" (click)="resolveClaim(c, 'approved')">
+                            <i class="bi bi-check-lg me-1"></i> Approve
+                          </button>
+                          <button class="btn btn-sm btn-outline-danger" type="button" (click)="resolveClaim(c, 'rejected')">
+                            <i class="bi bi-x-lg me-1"></i> Decline
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="text-muted small">Resolved</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    } @else if (activeTab() === 'riders') {
+      <!-- RIDER COD CASH DRAWERS VIEW -->
+      <div class="panel mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h3 class="mb-0">Rider COD Cash Drawers & Settlement</h3>
+            <p class="muted small mb-0">Reconcile cash collected from Cash on Delivery orders at end of shift</p>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          @for (p of partners(); track p.id) {
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="p-3 border rounded-3 bg-white h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                      <i class="bi bi-person-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <strong class="d-block">{{ p.name }}</strong>
+                      <span class="text-muted small">{{ p.phone || 'No phone' }}</span>
+                    </div>
+                  </div>
+                  <span class="badge" [class.bg-warning]="(p.cashInHand || 0) > 0" [class.text-dark]="(p.cashInHand || 0) > 0" [class.bg-light]="!(p.cashInHand || 0)" [class.text-muted]="!(p.cashInHand || 0)">
+                    {{ (p.cashInHand || 0) > 0 ? 'Cash Pending' : 'Clear' }}
+                  </span>
+                </div>
+
+                <div class="p-2 bg-light rounded text-center my-3">
+                  <span class="text-muted small text-uppercase fw-semibold d-block">Cash in Hand to Deposit</span>
+                  <h3 class="fw-bold my-1" [class.text-dark]="(p.cashInHand || 0) > 0" [class.text-muted]="!(p.cashInHand || 0)">
+                    {{ (p.cashInHand || 0) | inr }}
+                  </h3>
+                </div>
+
+                <button
+                  class="btn btn-sm w-100"
+                  [class.btn-dark]="(p.cashInHand || 0) > 0"
+                  [class.btn-outline-secondary]="!(p.cashInHand || 0)"
+                  [disabled]="!(p.cashInHand || 0)"
+                  (click)="openSettleModal(p)">
+                  <i class="bi bi-check2-circle me-1"></i> Settle Shift Cash Deposit
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
 
     <!-- ADMIN RECEIPT REVIEW MODAL -->
     @if (selectedOrder(); as ord) {
@@ -312,6 +499,180 @@ import { STATUS_LABEL } from '../shared/status';
         </div>
       </div>
     }
+
+    <!-- PICK & PACK CHECKLIST MODAL -->
+    @if (pickerOrder(); as pOrd) {
+      <div class="review-modal-backdrop" (click)="pickerOrder.set(null)">
+        <div class="review-modal-content" style="max-width: 600px;" (click)="$event.stopPropagation()">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="h6 fw-bold mb-0">
+              <i class="bi bi-box-seam text-dark me-1"></i>
+              Dark Store Picker Checklist: {{ pOrd.orderNumber }}
+            </h5>
+            <button type="button" class="btn-close" (click)="pickerOrder.set(null)"></button>
+          </div>
+
+          <div class="p-3">
+            <div class="p-2 bg-light rounded-3 border mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <small class="text-muted d-block">Delivery To:</small>
+                <strong>{{ customer(pOrd) }}</strong> · {{ pOrd.address.line1 }}
+              </div>
+              @if (pOrd.notes) {
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                  Note: {{ pOrd.notes }}
+                </span>
+              }
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Dark Store Bag Barcode / Tag</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                <input class="form-control font-monospace" [(ngModel)]="pickerBagBarcode" placeholder="ZB-BAG-XXXX" />
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label small fw-bold mb-0">Check Items into Bag ({{ pickerItemsChecked().length }}/{{ pOrd.items.length }})</label>
+              <button class="btn btn-sm btn-link p-0 text-decoration-none small" (click)="checkAllPickerItems()">Check All</button>
+            </div>
+
+            <div class="d-flex flex-column gap-2 mb-3" style="max-height: 240px; overflow-y: auto;">
+              @for (it of pOrd.items; track it.productId) {
+                <div class="p-2 border rounded-3 d-flex align-items-center justify-content-between gap-2 cursor-pointer"
+                  [class.bg-success-subtle]="isPickerItemChecked(it.productId)"
+                  [class.bg-white]="!isPickerItemChecked(it.productId)"
+                  (click)="togglePickerItem(it.productId)">
+                  <div class="d-flex align-items-center gap-2">
+                    <input type="checkbox" class="form-check-input mt-0" [checked]="isPickerItemChecked(it.productId)" (click)="$event.stopPropagation()" (change)="togglePickerItem(it.productId)" />
+                    <span class="fs-5">{{ it.emoji }}</span>
+                    <div>
+                      <strong class="d-block small">{{ it.name }}</strong>
+                      <span class="text-muted" style="font-size: 0.72rem;">{{ it.quantity }} {{ it.unit }} · ₹{{ it.price * it.quantity }}</span>
+                    </div>
+                  </div>
+                  @if (isPickerItemChecked(it.productId)) {
+                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-dark flex-grow-1" type="button" (click)="printThermalBagSlip(pOrd)">
+                <i class="bi bi-printer me-1"></i> Print Bag Slip (80mm)
+              </button>
+              <button class="btn btn-sm btn-success flex-grow-1 fw-bold" type="button" [disabled]="packingInProgress() || !isAllPickerItemsChecked()" (click)="confirmPackOrder()">
+                @if (packingInProgress()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span> Packing…
+                } @else {
+                  <i class="bi bi-check2-all me-1"></i> Mark Packed & Ready
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- RIDER CASH SETTLEMENT MODAL -->
+    @if (settlePartner(); as sPartner) {
+      <div class="review-modal-backdrop" (click)="settlePartner.set(null)">
+        <div class="review-modal-content" style="max-width: 440px;" (click)="$event.stopPropagation()">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="h6 fw-bold mb-0">
+              <i class="bi bi-cash-coin text-success me-1"></i>
+              Settle COD Cash Deposit
+            </h5>
+            <button type="button" class="btn-close" (click)="settlePartner.set(null)"></button>
+          </div>
+
+          <div class="p-3">
+            <div class="p-3 bg-light rounded-3 border text-center mb-3">
+              <strong class="d-block">{{ sPartner.name }}</strong>
+              <small class="text-muted">Total Pending in Hand: <b>{{ sPartner.cashInHand || 0 | inr }}</b></small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Deposit Amount Received (₹)</label>
+              <input type="number" class="form-control" [(ngModel)]="settleAmount" min="1" [max]="sPartner.cashInHand || 1" />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Receipt / Cashier Note</label>
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="settleNote" placeholder="e.g. End of evening shift deposit at counter" />
+            </div>
+
+            <button
+              class="btn btn-success w-100 fw-bold"
+              type="button"
+              [disabled]="settlingCash() || settleAmount <= 0"
+              (click)="confirmSettleCash()">
+              @if (settlingCash()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Settling…
+              } @else {
+                <i class="bi bi-check-circle-fill me-1"></i> Confirm & Issue Settlement Receipt
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- ADMIN OTP EMERGENCY BYPASS MODAL -->
+    @if (bypassOrder(); as bOrder) {
+      <div class="review-modal-backdrop" (click)="bypassOrder.set(null)">
+        <div class="review-modal-content" style="max-width: 460px;" (click)="$event.stopPropagation()">
+          <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-dark text-white rounded-top">
+            <h5 class="h6 fw-bold mb-0 d-flex align-items-center gap-2">
+              <i class="bi bi-shield-exclamation text-warning"></i>
+              Dark Store Admin OTP Bypass
+            </h5>
+            <button type="button" class="btn-close btn-close-white" (click)="bypassOrder.set(null)"></button>
+          </div>
+          <div class="p-3">
+            <p class="small text-muted mb-2">
+              Authorize doorstep delivery without customer OTP for <strong>{{ bOrder.orderNumber }}</strong> ({{ bOrder.address.fullName }}).
+            </p>
+            <div class="p-2 mb-3 bg-light rounded border small">
+              <div class="d-flex justify-content-between">
+                <span>Customer OTP:</span>
+                <strong class="font-monospace text-primary fs-6">{{ bOrder.deliveryOtp?.code || 'None' }}</strong>
+              </div>
+              <div class="d-flex justify-content-between text-muted mt-1">
+                <span>Phone:</span>
+                <span>{{ bOrder.address.phone }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-muted mt-1">
+                <span>Order Total:</span>
+                <strong>{{ bOrder.total | inr }}</strong>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small fw-bold">Audit Reason for Bypass</label>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="e.g. Customer phone discharged, verbal verification"
+                [(ngModel)]="bypassReason"
+              />
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary btn-sm" (click)="bypassOrder.set(null)">Cancel</button>
+              <button
+                type="button"
+                class="btn btn-warning btn-sm fw-bold"
+                [disabled]="!bypassReason.trim() || submittingBypass()"
+                (click)="submitAdminBypass()">
+                @if (submittingBypass()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                Authorize & Mark Delivered
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     .receipt-admin-badge-strip {
@@ -342,13 +703,33 @@ export class AdminOrdersPage {
   private readonly shop = inject(ShopService);
   private readonly toasts = inject(ToastService);
 
+  readonly activeTab = signal<'orders' | 'claims' | 'riders'>('orders');
   readonly orders = signal<Order[]>([]);
   readonly partners = signal<User[]>([]);
+  readonly claims = signal<FlatClaim[]>([]);
   readonly loading = signal(false);
+  readonly loadingClaims = signal(false);
   readonly reviewing = signal(false);
+
+  readonly pendingClaimsCount = computed(() => this.claims().filter((c) => c.status === 'pending').length);
+  readonly totalRiderCash = computed(() => this.partners().reduce((sum, p) => sum + (p.cashInHand || 0), 0));
+
+  readonly pickerOrder = signal<Order | null>(null);
+  readonly pickerItemsChecked = signal<string[]>([]);
+  pickerBagBarcode = '';
+  readonly packingInProgress = signal(false);
+
+  readonly settlePartner = signal<User | null>(null);
+  settleAmount = 0;
+  settleNote = 'End-of-shift COD deposit settled';
+  readonly settlingCash = signal(false);
 
   readonly selectedOrder = signal<Order | null>(null);
   readonly zoomed = signal(false);
+
+  readonly bypassOrder = signal<Order | null>(null);
+  bypassReason = '';
+  readonly submittingBypass = signal(false);
 
   status = '';
   receiptFilter = '';
@@ -357,9 +738,41 @@ export class AdminOrdersPage {
 
   readonly statuses: OrderStatus[] = ['placed', 'confirmed', 'packed', 'out_for_delivery', 'delivered', 'cancelled'];
 
+  openAdminBypass(order: Order) {
+    this.bypassOrder.set(order);
+    this.bypassReason = 'Customer device offline / verbal confirmation';
+  }
+
+  async submitAdminBypass() {
+    const order = this.bypassOrder();
+    if (!order || !this.bypassReason.trim()) return;
+
+    this.submittingBypass.set(true);
+    try {
+      await this.shop.adminBypassDeliveryOtp(order.id, this.bypassReason.trim());
+      this.toasts.show(`Order ${order.orderNumber} successfully marked delivered with admin authorization!`);
+      this.bypassOrder.set(null);
+      await this.load();
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.submittingBypass.set(false);
+    }
+  }
+
   constructor() {
     void this.load();
-    void this.admin.users({ role: 'delivery' }).then((page) => this.partners.set(page.items));
+    void this.refreshPartners();
+    void this.loadClaims();
+  }
+
+  async refreshPartners() {
+    try {
+      const page = await this.admin.users({ role: 'delivery' });
+      this.partners.set(page.items);
+    } catch {
+      // silently ignored
+    }
   }
 
   label(status: string) {
@@ -439,7 +852,7 @@ export class AdminOrdersPage {
   async submitReview(order: Order, decision: 'approve' | 'reject') {
     this.reviewing.set(true);
     try {
-      const updated = await this.admin.reviewReceipt(order.id, decision, this.reviewNote);
+      await this.admin.reviewReceipt(order.id, decision, this.reviewNote);
       this.toasts.show(decision === 'approve' ? 'Receipt approved and order confirmed!' : 'Receipt marked as rejected.');
       this.closeReceiptReview();
       await this.load();
@@ -447,6 +860,244 @@ export class AdminOrdersPage {
       this.toasts.error(errorMessage(error));
     } finally {
       this.reviewing.set(false);
+    }
+  }
+
+  // --- CLAIMS QUEUE & REFUNDS ---
+  formatClaimReason(reason: string): string {
+    switch (reason) {
+      case 'damaged_spoiled': return 'Damaged / Spoiled';
+      case 'missing_item': return 'Missing Item';
+      case 'expired': return 'Expired Product';
+      case 'wrong_item': return 'Wrong Item Delivered';
+      case 'poor_quality': return 'Poor Quality';
+      default: return reason || 'Other';
+    }
+  }
+
+  switchToClaims() {
+    this.activeTab.set('claims');
+    void this.loadClaims();
+  }
+
+  switchToClaimsForOrder(orderId: string) {
+    this.activeTab.set('claims');
+    void this.loadClaims();
+  }
+
+  async loadClaims() {
+    this.loadingClaims.set(true);
+    try {
+      const list = await this.shop.listAdminClaims();
+      this.claims.set(list);
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.loadingClaims.set(false);
+    }
+  }
+
+  previewPhoto(url: string) {
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(`<img src="${url}" style="max-width:100%; height:auto; margin:auto; display:block;" />`);
+    }
+  }
+
+  async resolveClaim(claim: FlatClaim, action: 'approved' | 'rejected') {
+    const note = prompt(
+      action === 'approved'
+        ? `Approve refund of ₹${claim.refundAmount} for ${claim.productName}? Optional note:`
+        : `Decline refund for ${claim.productName}? Reason:`,
+      action === 'approved' ? 'Approved for instant customer refund' : 'Condition unverified'
+    );
+    if (note === null) return;
+    try {
+      await this.shop.resolveClaim(claim.orderId, claim.claimId, { action, adminNote: note });
+      this.toasts.show(action === 'approved' ? `Refund of ₹${claim.refundAmount} approved!` : 'Claim declined.');
+      await this.loadClaims();
+      await this.load();
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    }
+  }
+
+  // --- DARK STORE PICK & PACK ---
+  openPickerChecklist(order: Order) {
+    this.pickerOrder.set(order);
+    this.pickerItemsChecked.set(order.picking?.itemsChecked || []);
+    this.pickerBagBarcode = order.picking?.bagBarcode || `ZB-BAG-${order.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '001'}`;
+  }
+
+  togglePickerItem(productId: string) {
+    const current = this.pickerItemsChecked();
+    if (current.includes(productId)) {
+      this.pickerItemsChecked.set(current.filter((id) => id !== productId));
+    } else {
+      this.pickerItemsChecked.set([...current, productId]);
+    }
+  }
+
+  isPickerItemChecked(productId: string): boolean {
+    return this.pickerItemsChecked().includes(productId);
+  }
+
+  checkAllPickerItems() {
+    const ord = this.pickerOrder();
+    if (!ord) return;
+    this.pickerItemsChecked.set(ord.items.map((it) => it.productId));
+  }
+
+  isAllPickerItemsChecked(): boolean {
+    const ord = this.pickerOrder();
+    if (!ord || !ord.items.length) return false;
+    const checked = this.pickerItemsChecked();
+    return ord.items.every((it) => checked.includes(it.productId));
+  }
+
+  async confirmPackOrder() {
+    const ord = this.pickerOrder();
+    if (!ord) return;
+    this.packingInProgress.set(true);
+    try {
+      await this.shop.packOrder(ord.id, {
+        bagBarcode: this.pickerBagBarcode.trim() || undefined,
+        itemsChecked: this.pickerItemsChecked(),
+      });
+      this.toasts.show(`Order #${ord.orderNumber} marked packed & ready!`);
+      this.pickerOrder.set(null);
+      await this.load();
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.packingInProgress.set(false);
+    }
+  }
+
+  printThermalBagSlip(order: Order) {
+    const slipWin = window.open('', '_blank', 'width=380,height=600');
+    if (!slipWin) {
+      this.toasts.error('Popup blocked. Allow popups to print thermal slip.');
+      return;
+    }
+    const bagBarcode = order.picking?.bagBarcode || `ZB-BAG-${order.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '001'}`;
+    const custName = this.customer(order);
+    const dateStr = new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+    const itemsRows = order.items.map((it, idx) => `
+      <tr>
+        <td style="padding:4px 0; border-bottom:1px dashed #ddd;">${idx + 1}. [ ] ${it.name}</td>
+        <td style="text-align:center; padding:4px 0; border-bottom:1px dashed #ddd;">${it.quantity} ${it.unit}</td>
+        <td style="text-align:right; padding:4px 0; border-bottom:1px dashed #ddd;">₹${it.price * it.quantity}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Packing Slip #${order.orderNumber}</title>
+        <style>
+          @page { size: 80mm auto; margin: 4mm; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #000;
+            width: 72mm;
+            margin: 0 auto;
+            padding: 4px;
+          }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .divider { border-top: 1px dashed #000; margin: 6px 0; }
+          .double-divider { border-top: 2px solid #000; margin: 6px 0; }
+          .barcode { font-size: 16px; letter-spacing: 4px; padding: 4px 0; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <div class="bold" style="font-size:16px;">⚡ ZAP BASKET</div>
+          <div style="font-size:10px;">Dark Store Packing & Delivery Slip</div>
+          <div class="barcode bold">*${bagBarcode}*</div>
+          <div>Bag ID: ${bagBarcode}</div>
+        </div>
+        <div class="divider"></div>
+        <div><b>Order:</b> #${order.orderNumber}</div>
+        <div><b>Time:</b> ${dateStr}</div>
+        <div><b>Pay Mode:</b> ${order.paymentMethod.toUpperCase()} (${order.paymentStatus.toUpperCase()})</div>
+        <div class="divider"></div>
+        <div><b>Customer:</b> ${custName}</div>
+        <div><b>Address:</b> ${order.address.line1}, ${order.address.line2 || ''}</div>
+        <div><b>City/PIN:</b> ${order.address.city} - ${order.address.pincode}</div>
+        ${order.notes ? `<div style="background:#eee; padding:2px; margin-top:4px;"><b>Note:</b> ${order.notes}</div>` : ''}
+        <div class="divider"></div>
+        <div class="bold center">CHECKLIST (${order.items.length} ITEMS)</div>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left;">Item</th>
+              <th style="text-align:center;">Qty</th>
+              <th style="text-align:right;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Subtotal:</span>
+          <span>₹${order.subtotal}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Delivery Fee:</span>
+          <span>₹${order.deliveryFee}</span>
+        </div>
+        <div class="divider"></div>
+        <div class="bold" style="display:flex; justify-content:space-between; font-size:14px;">
+          <span>TOTAL:</span>
+          <span>₹${order.total}</span>
+        </div>
+        <div class="double-divider"></div>
+        <div class="center" style="font-size:10px;">
+          <div>Packed at: ${order.picking?.packedAt ? new Date(order.picking.packedAt).toLocaleTimeString() : new Date().toLocaleTimeString()}</div>
+          <div>Thank you for shopping on ZapBasket!</div>
+        </div>
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+    slipWin.document.write(html);
+    slipWin.document.close();
+  }
+
+  // --- RIDER CASH SETTLEMENT ---
+  openSettleModal(partner: User) {
+    this.settlePartner.set(partner);
+    this.settleAmount = partner.cashInHand || 0;
+    this.settleNote = 'End-of-shift COD deposit settled';
+  }
+
+  async confirmSettleCash() {
+    const partner = this.settlePartner();
+    if (!partner || this.settleAmount <= 0) return;
+    this.settlingCash.set(true);
+    try {
+      const res = await this.shop.settleRiderCash(partner.id, {
+        amount: this.settleAmount,
+        note: this.settleNote,
+      });
+      this.toasts.show(`Cash settled! Receipt #${res.receiptNumber} issued for ₹${res.settlement.amount}.`);
+      this.settlePartner.set(null);
+      await this.refreshPartners();
+    } catch (err) {
+      this.toasts.error(errorMessage(err));
+    } finally {
+      this.settlingCash.set(false);
     }
   }
 }
