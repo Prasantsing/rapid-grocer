@@ -169,23 +169,50 @@ export class ThemeService {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  private ensureAccessibleLightText(hex: string): string {
+    const cleanHex = hex.replace('#', '');
+    const num = parseInt(cleanHex.length === 3 ? cleanHex.split('').map(c => c + c).join('') : cleanHex, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    // Calculate relative luminance according to WCAG
+    const sR = r / 255;
+    const sG = g / 255;
+    const sB = b / 255;
+    const lum = 0.2126 * (sR <= 0.03928 ? sR / 12.92 : Math.pow((sR + 0.055) / 1.055, 2.4)) +
+                0.7152 * (sG <= 0.03928 ? sG / 12.92 : Math.pow((sG + 0.055) / 1.055, 2.4)) +
+                0.0722 * (sB <= 0.03928 ? sB / 12.92 : Math.pow((sB + 0.055) / 1.055, 2.4));
+
+    // If too bright for white background (contrast < 4.5:1, luminance > 0.179), darken significantly
+    if (lum > 0.179) {
+      const darkR = Math.max(0, Math.round(r * 0.45));
+      const darkG = Math.max(0, Math.round(g * 0.45));
+      const darkB = Math.max(0, Math.round(b * 0.45));
+      return '#' + [darkR, darkG, darkB].map(v => v.toString(16).padStart(2, '0')).join('');
+    }
+    return hex;
+  }
+
   applyPaletteToDom(primary: string, accent: string): void {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
+    const isLightTheme = this.theme() === 'light';
+
+    const leafText = isLightTheme ? this.ensureAccessibleLightText(primary) : primary;
 
     root.style.setProperty('--leaf', primary);
-    root.style.setProperty('--leaf-text', primary);
-    root.style.setProperty('--leaf-glow', this.hexToRgba(primary, 0.22));
+    root.style.setProperty('--leaf-text', leafText);
+    root.style.setProperty('--leaf-glow', this.hexToRgba(primary, isLightTheme ? 0.16 : 0.25));
     root.style.setProperty('--stepper-bg', primary);
 
     root.style.setProperty('--copper', accent);
     root.style.setProperty('--copper-light', accent);
-    root.style.setProperty('--copper-glow', this.hexToRgba(accent, 0.18));
+    root.style.setProperty('--copper-glow', this.hexToRgba(accent, isLightTheme ? 0.12 : 0.18));
 
-    root.style.setProperty('--mobile-nav-active-text', primary);
-    root.style.setProperty('--mobile-nav-active-bg', this.hexToRgba(primary, 0.12));
+    root.style.setProperty('--mobile-nav-active-text', isLightTheme ? leafText : '#ffffff');
+    root.style.setProperty('--mobile-nav-active-bg', this.hexToRgba(primary, isLightTheme ? 0.1 : 0.18));
 
-    // Update buttons in light theme
+    // Update buttons & highlights
     root.style.setProperty('--accent-brand', primary);
     root.style.setProperty('--accent-highlight', accent);
   }
@@ -229,13 +256,18 @@ export class ThemeService {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
+    root.setAttribute('data-bs-theme', theme);
     document.body?.classList.remove('theme-light', 'theme-dark');
     document.body?.classList.add(`theme-${theme}`);
+    document.body?.setAttribute('data-bs-theme', theme);
+
+    // Re-synchronize palette text colors with current theme contrast
+    this.applyPaletteToDom(this.primaryColor(), this.accentColor());
 
     // Update meta theme-color for mobile status bars
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', theme === 'dark' ? '#0b0f15' : '#ffffff');
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#0b0f15' : '#f8fafc');
     }
   }
 }

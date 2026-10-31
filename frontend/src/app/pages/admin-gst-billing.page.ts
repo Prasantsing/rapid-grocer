@@ -153,7 +153,7 @@ import { InrPipe } from '../shared/inr.pipe';
           </div>
         </div>
 
-        <div class="p-3 mb-4 rounded border d-flex justify-content-between align-items-center" style="background: #f8fafc;">
+        <div class="p-3 mb-4 rounded border d-flex justify-content-between align-items-center gst-highlight-box">
           <div>
             <h5 class="mb-0 fw-bold">Total GST Tax Liability (CGST + SGST)</h5>
             <small class="text-muted">Total tax collected on behalf of Government for this period</small>

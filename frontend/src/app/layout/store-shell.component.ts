@@ -128,7 +128,7 @@ import { InrPipe } from '../shared/inr.pipe';
 
       <!-- Live Store Operational Status Banner -->
       @if (shop.storeConfig() && !shop.storeConfig()?.isCurrentlyOpen) {
-        <div class="store-closed-banner bg-warning-subtle text-dark border-top border-bottom px-3 py-1 text-center small">
+        <div class="store-closed-banner bg-warning-subtle text-warning-emphasis border-top border-bottom px-3 py-1 text-center small">
           <i class="bi bi-clock-history me-1 text-warning-emphasis"></i>
           <span>{{ shop.storeConfig()?.closedReason || 'Store currently closed. Delivery resumes during operating hours.' }}</span>
         </div>

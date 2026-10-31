@@ -45,10 +45,10 @@ import { OrderTrackingMapComponent } from '../shared/order-tracking-map.componen
             <i class="bi bi-shield-lock-fill text-primary fs-5"></i>
             <span class="text-uppercase small fw-bold text-primary" style="letter-spacing: 0.05em;">Doorstep Delivery Verification Code</span>
           </div>
-          <div class="display-5 fw-bold font-monospace text-dark my-1" style="letter-spacing: 0.3em;">
+          <div class="display-5 fw-bold font-monospace text-ink my-1" style="letter-spacing: 0.3em;">
             {{ current.deliveryOtp?.code || '••••' }}
           </div>
-          <p class="small text-secondary mb-2" style="font-size: 0.82rem;">
+          <p class="small text-muted mb-2" style="font-size: 0.82rem;">
             Please share this 4-digit code with your ZapBasket delivery partner at your door to accept your items.
           </p>
           <div class="d-flex justify-content-center align-items-center gap-2">
