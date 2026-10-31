@@ -143,6 +143,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/admin-settings.page').then((m) => m.AdminSettingsPage),
       },
+      {
+        path: 'theme',
+        loadComponent: () =>
+          import('./pages/theme-settings.component').then((m) => m.ThemeSettingsComponent),
+      },
+      {
+        path: 'theme-settings',
+        redirectTo: 'theme',
+        pathMatch: 'full',
+      },
     ],
   },
   {

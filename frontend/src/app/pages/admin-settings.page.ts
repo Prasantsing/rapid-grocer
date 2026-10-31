@@ -239,13 +239,21 @@ import { ThemeService } from '../core/theme.service';
                     </div>
                   </div>
                   <div class="d-flex align-items-center gap-2">
+                    <a
+                      routerLink="/admin/theme"
+                      class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-2xs"
+                      title="Open full-featured Theme Settings Component"
+                    >
+                      <i class="bi bi-palette-fill"></i>
+                      <span>Dedicated Theme Studio</span>
+                    </a>
                     <button
                       type="button"
                       class="btn btn-outline-secondary btn-sm"
                       (click)="resetDefaultTheme()"
                       title="Reset to default Emerald Velocity theme"
                     >
-                      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Emerald Theme
+                      <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                     </button>
                   </div>
                 </div>

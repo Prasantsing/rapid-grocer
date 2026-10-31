@@ -67,6 +67,7 @@ import { ShopService } from '../core/shop.service';
           <a routerLink="/admin/coupons" routerLinkActive="on"><i class="bi bi-ticket"></i> <span>Coupons</span></a>
           <a routerLink="/admin/users" routerLinkActive="on"><i class="bi bi-people"></i> <span>People</span></a>
           <a routerLink="/admin/reports" routerLinkActive="on"><i class="bi bi-bar-chart"></i> <span>Reports</span></a>
+          <a routerLink="/admin/theme" routerLinkActive="on"><i class="bi bi-palette"></i> <span>Theme</span></a>
           <a routerLink="/admin/settings" routerLinkActive="on"><i class="bi bi-sliders"></i> <span>Settings</span></a>
           <a routerLink="/" class="d-none d-md-flex"><i class="bi bi-shop"></i> <span>Open store</span></a>
         </div>
