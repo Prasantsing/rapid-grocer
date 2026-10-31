@@ -674,17 +674,93 @@ import { ThemeService } from '../core/theme.service';
             <!-- 4. Delivery Radius & Store Hub -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
               <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="p-2 rounded-3 bg-info-subtle text-info-emphasis">
-                    <i class="bi bi-geo-alt-fill fs-5"></i>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info-subtle text-info-emphasis">
+                      <i class="bi bi-geo-alt-fill fs-5"></i>
+                    </div>
+                    <div>
+                      <h5 class="fw-bold mb-0">Delivery Radius & Store Location</h5>
+                      <small class="text-muted">Geofenced delivery perimeter from fulfillment hub</small>
+                    </div>
                   </div>
-                  <div>
-                    <h5 class="fw-bold mb-0">Delivery Radius & Store Location</h5>
-                    <small class="text-muted">Geofenced delivery perimeter from fulfillment hub</small>
-                  </div>
+                  <!-- Auto Detect Location Button -->
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-2 shadow-sm"
+                    (click)="detectStoreLocation()"
+                    [disabled]="isDetectingLocation()"
+                    title="Auto-detect current GPS coordinates of the store hub via browser geolocation"
+                  >
+                    @if (isDetectingLocation()) {
+                      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                      <span>Detecting GPS...</span>
+                    } @else {
+                      <i class="bi bi-crosshair fs-6"></i>
+                      <span class="fw-semibold">Auto Detect Location</span>
+                    }
+                  </button>
                 </div>
               </div>
               <div class="card-body p-4 pt-2">
+                <!-- Location Detection Success / Status Alert -->
+                @if (detectedLocationInfo()) {
+                  <div class="alert alert-success border-0 bg-success-subtle text-success-emphasis p-3 rounded-3 mb-3 small d-flex flex-wrap align-items-center justify-content-between gap-2 shadow-xs">
+                    <div class="d-flex align-items-start gap-2">
+                      <i class="bi bi-check-circle-fill text-success fs-5 mt-0.5"></i>
+                      <div>
+                        <div class="fw-bold">GPS Coordinates Detected Successfully!</div>
+                        <div class="font-monospace text-dark mt-0.5" style="font-size: 0.82rem;">
+                          Latitude: <b>{{ detectedLocationInfo()!.lat }}</b> | Longitude: <b>{{ detectedLocationInfo()!.lng }}</b>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.74rem;">
+                          Accuracy: ±{{ detectedLocationInfo()!.accuracy }}m &bull; Acquired at {{ detectedLocationInfo()!.timestamp }}
+                          @if (detectedLocationInfo()!.addressResolved) {
+                            &bull; Address reverse-geocoded
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 ms-auto">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-1"
+                        (click)="copyCoordinates()"
+                        title="Copy coordinates to clipboard"
+                      >
+                        <i class="bi bi-clipboard me-1"></i> Copy
+                      </button>
+                      <a
+                        [href]="'https://www.google.com/maps?q=' + formData.storeLocation.lat + ',' + formData.storeLocation.lng"
+                        target="_blank"
+                        rel="noopener"
+                        class="btn btn-xs btn-success text-white rounded-pill px-2.5 py-1 text-decoration-none"
+                      >
+                        <i class="bi bi-box-arrow-up-right me-1"></i> View on Map
+                      </a>
+                    </div>
+                  </div>
+                }
+
+                <!-- Location Detection Error Banner -->
+                @if (locationDetectionError()) {
+                  <div class="alert alert-warning border-0 bg-warning-subtle text-warning-emphasis p-3 rounded-3 mb-3 small d-flex align-items-start justify-content-between gap-2">
+                    <div class="d-flex align-items-start gap-2">
+                      <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-0.5"></i>
+                      <div>
+                        <div class="fw-bold">Location Auto-Detection Notice</div>
+                        <div>{{ locationDetectionError() }}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-close btn-sm"
+                      (click)="locationDetectionError.set(null)"
+                      aria-label="Dismiss"
+                    ></button>
+                  </div>
+                }
+
                 <!-- Radius Slider -->
                 <div class="mb-3">
                   <div class="d-flex justify-content-between align-items-center mb-1">
@@ -711,7 +787,10 @@ import { ThemeService } from '../core/theme.service';
 
                 <!-- Hub Location Fields -->
                 <div class="mb-3">
-                  <label for="hubAddress" class="form-label small fw-semibold">Store Hub Address</label>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="hubAddress" class="form-label small fw-semibold mb-0">Store Hub Address</label>
+                    <span class="text-muted" style="font-size: 0.72rem;">Physical dispatch or dark store address</span>
+                  </div>
                   <input
                     id="hubAddress"
                     type="text"
@@ -723,31 +802,77 @@ import { ThemeService } from '../core/theme.service';
 
                 <div class="row g-2 mb-3">
                   <div class="col-6">
-                    <label for="hubLat" class="form-label small fw-semibold">Hub Latitude</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="hubLat" class="form-label small fw-semibold mb-0">Hub Latitude</label>
+                      <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.65rem;">lat</span>
+                    </div>
                     <input
                       id="hubLat"
                       type="number"
-                      step="0.0001"
+                      step="0.000001"
                       class="form-control font-monospace small"
                       [(ngModel)]="formData.storeLocation.lat"
+                      placeholder="12.9352"
                     />
                   </div>
                   <div class="col-6">
-                    <label for="hubLng" class="form-label small fw-semibold">Hub Longitude</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="hubLng" class="form-label small fw-semibold mb-0">Hub Longitude</label>
+                      <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.65rem;">lng</span>
+                    </div>
                     <input
                       id="hubLng"
                       type="number"
-                      step="0.0001"
+                      step="0.000001"
                       class="form-control font-monospace small"
                       [(ngModel)]="formData.storeLocation.lng"
+                      placeholder="77.6245"
                     />
+                  </div>
+                </div>
+
+                <!-- Action Toolbar for Location -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 bg-light-subtle rounded-3 border mb-3">
+                  <div class="d-flex align-items-center gap-1.5 text-muted small">
+                    <i class="bi bi-geo-alt text-primary"></i>
+                    <span class="font-monospace" style="font-size: 0.75rem;">
+                      {{ formData.storeLocation.lat || 0 }}, {{ formData.storeLocation.lng || 0 }}
+                    </span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1"
+                      (click)="detectStoreLocation()"
+                      [disabled]="isDetectingLocation()"
+                    >
+                      <i class="bi bi-crosshair me-1"></i> Detect Current GPS
+                    </button>
+                    <a
+                      [href]="'https://www.google.com/maps?q=' + formData.storeLocation.lat + ',' + formData.storeLocation.lng"
+                      target="_blank"
+                      rel="noopener"
+                      class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 text-decoration-none"
+                    >
+                      <i class="bi bi-map me-1"></i> Check on Maps
+                    </a>
                   </div>
                 </div>
 
                 <!-- Radius Tester Box -->
                 <div class="p-3 rounded-3 bg-light border">
-                  <div class="fw-semibold small text-dark mb-1">
-                    <i class="bi bi-compass me-1 text-primary"></i> Test Address Distance
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="fw-semibold small text-dark">
+                      <i class="bi bi-compass me-1 text-primary"></i> Test Address Distance
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-xs text-decoration-none p-0 text-muted"
+                      (click)="testCoords = formData.storeLocation.lat + ', ' + formData.storeLocation.lng"
+                      title="Fill with current store coordinates"
+                    >
+                      Use Hub Lat/Lng
+                    </button>
                   </div>
                   <div class="input-group input-group-sm mb-2">
                     <input
@@ -1475,6 +1600,17 @@ export class AdminSettingsPage implements OnInit {
   testCoords = '12.9352, 77.6245';
   readonly testResult = signal<{ distanceKm: number; eligible: boolean } | null>(null);
 
+  // Auto-detect store location state
+  readonly isDetectingLocation = signal(false);
+  readonly detectedLocationInfo = signal<{
+    lat: number;
+    lng: number;
+    accuracy: number;
+    timestamp: string;
+    addressResolved?: string;
+  } | null>(null);
+  readonly locationDetectionError = signal<string | null>(null);
+
   readonly logoInputMode = signal<'upload' | 'url'>('upload');
   readonly logoPreview = signal<string>('brand-logo-white.svg');
   readonly isUploadingLogo = signal<boolean>(false);
@@ -1682,6 +1818,9 @@ export class AdminSettingsPage implements OnInit {
           lat: data.storeLocation?.lat ?? 12.9352,
           lng: data.storeLocation?.lng ?? 77.6245,
           address: data.storeLocation?.address || 'Koramangala 4th Block, Bengaluru',
+          city: data.storeLocation?.city || '',
+          state: data.storeLocation?.state || '',
+          pincode: data.storeLocation?.pincode || '',
         },
       };
       this.logoPreview.set(this.formData.logoUrl);
@@ -1751,6 +1890,116 @@ export class AdminSettingsPage implements OnInit {
       });
     } catch (err) {
       this.toasts.error(errorMessage(err, 'Could not check distance'));
+    }
+  }
+
+  async detectStoreLocation() {
+    this.locationDetectionError.set(null);
+
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      const err = 'Geolocation is not supported by your current browser.';
+      this.locationDetectionError.set(err);
+      this.toasts.error(err);
+      return;
+    }
+
+    this.isDetectingLocation.set(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = Number(pos.coords.latitude.toFixed(6));
+          const lng = Number(pos.coords.longitude.toFixed(6));
+          const accuracy = Math.round(pos.coords.accuracy);
+          const timeStr = new Date().toLocaleTimeString();
+
+          this.formData.storeLocation = {
+            ...this.formData.storeLocation,
+            lat,
+            lng,
+          };
+          this.testCoords = `${lat}, ${lng}`;
+
+          this.detectedLocationInfo.set({
+            lat,
+            lng,
+            accuracy,
+            timestamp: timeStr,
+          });
+
+          // Attempt reverse geocoding to resolve street address, city, state, pincode
+          try {
+            const resp = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+              {
+                headers: {
+                  Accept: 'application/json',
+                },
+              }
+            );
+            if (resp.ok) {
+              const geoData = await resp.json();
+              if (geoData) {
+                const addr = geoData.address || {};
+                const road = addr.road || addr.street || addr.pedestrian || addr.suburb || '';
+                const neighborhood = addr.neighbourhood || addr.suburb || addr.city_district || '';
+                const city = addr.city || addr.town || addr.village || addr.county || '';
+                const state = addr.state || '';
+                const postcode = addr.postcode || '';
+
+                const formatted =
+                  [road, neighborhood, city, state, postcode].filter(Boolean).join(', ') ||
+                  geoData.display_name;
+
+                if (formatted) {
+                  this.formData.storeLocation.address = formatted;
+                  if (city) this.formData.storeLocation.city = city;
+                  if (state) this.formData.storeLocation.state = state;
+                  if (postcode) this.formData.storeLocation.pincode = postcode;
+
+                  this.detectedLocationInfo.update((curr) =>
+                    curr ? { ...curr, addressResolved: formatted } : null
+                  );
+                }
+              }
+            }
+          } catch (fetchErr) {
+            console.warn('Reverse geocode lookup warning:', fetchErr);
+          }
+
+          this.toasts.show(`GPS coordinates detected: ${lat}, ${lng} (±${accuracy}m)`);
+        } finally {
+          this.isDetectingLocation.set(false);
+        }
+      },
+      (err) => {
+        let msg = 'Failed to detect location coordinates.';
+        if (err.code === 1) {
+          msg = 'Location permission was denied. Please allow location access in your browser address bar permissions and retry.';
+        } else if (err.code === 2) {
+          msg = 'Location position is unavailable. Please verify device GPS or network connection.';
+        } else if (err.code === 3) {
+          msg = 'Location acquisition timed out. Please try again.';
+        }
+        this.locationDetectionError.set(msg);
+        this.toasts.error(msg);
+        this.isDetectingLocation.set(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
+  }
+
+  copyCoordinates() {
+    if (this.formData.storeLocation?.lat && this.formData.storeLocation?.lng) {
+      const coordStr = `${this.formData.storeLocation.lat}, ${this.formData.storeLocation.lng}`;
+      if (navigator.clipboard) {
+        void navigator.clipboard.writeText(coordStr);
+        this.toasts.show(`Copied coordinates: ${coordStr}`);
+      }
     }
   }
 }
