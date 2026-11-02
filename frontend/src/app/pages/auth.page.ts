@@ -117,10 +117,17 @@ interface DemoPersona {
             <div class="form-top-nav">
               <a routerLink="/" class="back-link">
                 <i class="bi bi-arrow-left"></i>
-                <span>Back to Store</span>
+                <span class="d-none d-sm-inline">Back to Store</span>
+                <span class="d-inline d-sm-none">Store</span>
+              </a>
+              <a routerLink="/" class="mobile-brand-mark d-flex align-items-center gap-2 text-decoration-none d-lg-none">
+                <span class="brand-bolt-sm">⚡</span>
+                <span class="brand-title-sm">ZapBasket</span>
               </a>
               <span class="ssl-chip">
-                <i class="bi bi-shield-lock-fill text-success"></i> 256-Bit Encrypted
+                <i class="bi bi-shield-lock-fill text-success"></i>
+                <span class="d-none d-sm-inline">256-Bit Encrypted</span>
+                <span class="d-inline d-sm-none">Secure</span>
               </span>
             </div>
 
@@ -378,20 +385,27 @@ interface DemoPersona {
     }
 
     .auth-grid {
-      display: grid;
-      grid-template-columns: 1fr;
+      display: flex;
+      flex-direction: column;
       min-height: 100vh;
       width: 100%;
     }
 
-    @media (min-width: 992px) {
-      .auth-grid {
-        grid-template-columns: 1.05fr 0.95fr;
-      }
+    /* On mobile / small screens (< 992px), display the login/signup form at the TOP (up) */
+    .auth-form-card {
+      order: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+      background: #fbf9f4;
     }
 
-    /* Left Showcase Styling */
+    /* Marketing showcase displays below the login form on mobile */
     .auth-showcase {
+      order: 2;
+      width: 100%;
       background: linear-gradient(160deg, #072a20 0%, #0d4a37 50%, #0a3728 100%);
       color: #f6f1e4;
       padding: 3rem 3.5rem;
@@ -400,6 +414,22 @@ interface DemoPersona {
       display: flex;
       flex-direction: column;
       justify-content: center;
+    }
+
+    @media (min-width: 992px) {
+      .auth-grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+      }
+
+      /* Desktop: Showcase on the left (order 1), Form on the right (order 2) */
+      .auth-showcase {
+        order: 1;
+      }
+
+      .auth-form-card {
+        order: 2;
+      }
     }
 
     .auth-showcase::before {
@@ -653,7 +683,32 @@ interface DemoPersona {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 0.5rem;
       margin-bottom: 1.5rem;
+    }
+
+    .mobile-brand-mark {
+      color: #1c1915;
+    }
+
+    .brand-bolt-sm {
+      width: 28px;
+      height: 28px;
+      background: #f0b429;
+      color: #1c1915;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      box-shadow: 0 2px 6px rgba(240, 180, 41, 0.35);
+    }
+
+    .brand-title-sm {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1c1915;
+      letter-spacing: -0.02em;
     }
 
     .back-link {
