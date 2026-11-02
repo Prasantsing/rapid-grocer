@@ -24,93 +24,7 @@ interface DemoPersona {
   template: `
     <div class="auth-page-container">
       <div class="auth-grid">
-        <!-- Left Side: Brand Showcase & Trust Credentials -->
-        <aside class="auth-showcase">
-          <div class="showcase-content">
-            <!-- Brand Badge -->
-            <a routerLink="/" class="showcase-brand">
-              <span class="brand-bolt">⚡</span>
-              <span class="brand-title">ZapBasket</span>
-            </a>
-
-            <div class="showcase-hero">
-              <div class="eyebrow-pill">
-                <i class="bi bi-clock-history me-1"></i> 12-Minute Hyperlocal Delivery
-              </div>
-              <h1 class="showcase-heading">The fastest grocery run in Bengaluru.</h1>
-              <p class="showcase-subhead">
-                Handpicked farm-fresh produce, morning dairy, artisan bakery, and pantry staples delivered straight from our dark store network in minutes.
-              </p>
-            </div>
-
-            <!-- Operational Proof Metric Cards -->
-            <div class="metric-cards-grid">
-              <div class="metric-card">
-                <div class="metric-val text-accent">12m</div>
-                <div class="metric-label">Average fulfillment</div>
-                <div class="metric-detail">From click to your doorstep</div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-val text-accent">15k+</div>
-                <div class="metric-label">Daily fresh orders</div>
-                <div class="metric-detail">Dispatched across 25 nodes</div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-val text-accent">4.9 ★</div>
-                <div class="metric-label">Customer score</div>
-                <div class="metric-detail">Over 42,000+ happy homes</div>
-              </div>
-            </div>
-
-            <!-- Freshness & Quality Pillars -->
-            <div class="trust-pillars">
-              <div class="pillar-item">
-                <div class="pillar-icon"><i class="bi bi-shield-check"></i></div>
-                <div>
-                  <strong>100% Freshness Guarantee</strong>
-                  <p>Not fresh? Instant no-questions-asked refund directly to your UPI.</p>
-                </div>
-              </div>
-              <div class="pillar-item">
-                <div class="pillar-icon"><i class="bi bi-thermometer-snow"></i></div>
-                <div>
-                  <strong>Cold-Chain Protected</strong>
-                  <p>Insulated carrier bags keep milk, butter, and berries chilled en route.</p>
-                </div>
-              </div>
-              <div class="pillar-item">
-                <div class="pillar-icon"><i class="bi bi-box-seam"></i></div>
-                <div>
-                  <strong>Eco-Friendly Paper Bags</strong>
-                  <p>Food-grade, biodegradable packaging with sealed tamper-evident tags.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Customer Testimonial Social Proof -->
-            <div class="customer-quote-box">
-              <div class="quote-stars">
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-              </div>
-              <p class="quote-text">
-                "ZapBasket delivers fresh coriander, bread, and milk before my chai even comes to a boil in the morning. Truly unmatched speed in Indiranagar."
-              </p>
-              <div class="quote-author">
-                <span class="author-avatar">👩🏽</span>
-                <div>
-                  <div class="author-name">Priya N.</div>
-                  <div class="author-meta">Verified Customer · Indiranagar</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <!-- Right Side: Professional Authentication Portal -->
+        <!-- Main Authentication Portal (Placed first in DOM for mobile top rendering) -->
         <main class="auth-form-card">
           <div class="form-wrapper">
             <!-- Header Top Bar -->
@@ -373,6 +287,92 @@ interface DemoPersona {
             </div>
           </div>
         </main>
+
+        <!-- Brand Showcase & Trust Credentials (Rendered below login form on mobile, on left on desktop) -->
+        <aside class="auth-showcase">
+          <div class="showcase-content">
+            <!-- Brand Badge -->
+            <a routerLink="/" class="showcase-brand">
+              <span class="brand-bolt">⚡</span>
+              <span class="brand-title">ZapBasket</span>
+            </a>
+
+            <div class="showcase-hero">
+              <div class="eyebrow-pill">
+                <i class="bi bi-clock-history me-1"></i> 12-Minute Hyperlocal Delivery
+              </div>
+              <h1 class="showcase-heading">The fastest grocery run in Bengaluru.</h1>
+              <p class="showcase-subhead">
+                Handpicked farm-fresh produce, morning dairy, artisan bakery, and pantry staples delivered straight from our dark store network in minutes.
+              </p>
+            </div>
+
+            <!-- Operational Proof Metric Cards -->
+            <div class="metric-cards-grid">
+              <div class="metric-card">
+                <div class="metric-val text-accent">12m</div>
+                <div class="metric-label">Average fulfillment</div>
+                <div class="metric-detail">From click to your doorstep</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-val text-accent">15k+</div>
+                <div class="metric-label">Daily fresh orders</div>
+                <div class="metric-detail">Dispatched across 25 nodes</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-val text-accent">4.9 ★</div>
+                <div class="metric-label">Customer score</div>
+                <div class="metric-detail">Over 42,000+ happy homes</div>
+              </div>
+            </div>
+
+            <!-- Freshness & Quality Pillars -->
+            <div class="trust-pillars">
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-shield-check"></i></div>
+                <div>
+                  <strong>100% Freshness Guarantee</strong>
+                  <p>Not fresh? Instant no-questions-asked refund directly to your UPI.</p>
+                </div>
+              </div>
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-thermometer-snow"></i></div>
+                <div>
+                  <strong>Cold-Chain Protected</strong>
+                  <p>Insulated carrier bags keep milk, butter, and berries chilled en route.</p>
+                </div>
+              </div>
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-box-seam"></i></div>
+                <div>
+                  <strong>Eco-Friendly Paper Bags</strong>
+                  <p>Food-grade, biodegradable packaging with sealed tamper-evident tags.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Customer Testimonial Social Proof -->
+            <div class="customer-quote-box">
+              <div class="quote-stars">
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+              </div>
+              <p class="quote-text">
+                "ZapBasket delivers fresh coriander, bread, and milk before my chai even comes to a boil in the morning. Truly unmatched speed in Indiranagar."
+              </p>
+              <div class="quote-author">
+                <span class="author-avatar">👩🏽</span>
+                <div>
+                  <div class="author-name">Priya N.</div>
+                  <div class="author-meta">Verified Customer · Indiranagar</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   `,
@@ -382,11 +382,15 @@ interface DemoPersona {
       background: #fbf9f4;
       display: flex;
       flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
     }
 
     .auth-grid {
       display: flex;
       flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
       min-height: 100vh;
       width: 100%;
     }
@@ -396,10 +400,23 @@ interface DemoPersona {
       order: 1;
       width: 100%;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 2.5rem 1.5rem;
+      justify-content: flex-start;
+      padding: 1.25rem 1rem 2rem;
       background: #fbf9f4;
+      flex: 0 0 auto;
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e8e3d6;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(28, 25, 21, 0.05);
+      padding: 2.25rem 2rem;
     }
 
     /* Marketing showcase displays below the login form on mobile */
@@ -408,12 +425,13 @@ interface DemoPersona {
       width: 100%;
       background: linear-gradient(160deg, #072a20 0%, #0d4a37 50%, #0a3728 100%);
       color: #f6f1e4;
-      padding: 3rem 3.5rem;
+      padding: 2.5rem 1.75rem;
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      flex: 1 0 auto;
     }
 
     @media (min-width: 992px) {
@@ -422,13 +440,20 @@ interface DemoPersona {
         grid-template-columns: 1.05fr 0.95fr;
       }
 
-      /* Desktop: Showcase on the left (order 1), Form on the right (order 2) */
+      /* Desktop: Showcase on the left (column 1), Form on the right (column 2) */
       .auth-showcase {
         order: 1;
+        grid-column: 1;
+        grid-row: 1;
+        padding: 3rem 3.5rem;
       }
 
       .auth-form-card {
         order: 2;
+        grid-column: 2;
+        grid-row: 1;
+        justify-content: center;
+        padding: 2.5rem 2rem;
       }
     }
 
@@ -643,31 +668,13 @@ interface DemoPersona {
       color: rgba(246, 241, 228, 0.6);
     }
 
-    /* Right Form Side */
-    .auth-form-card {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2.5rem 1.5rem;
-      background: #fbf9f4;
-    }
-
-    .form-wrapper {
-      width: 100%;
-      max-width: 460px;
-      background: #ffffff;
-      border: 1px solid #e8e3d6;
-      border-radius: 24px;
-      box-shadow: 0 10px 30px rgba(28, 25, 21, 0.05);
-      padding: 2.25rem 2rem;
-    }
-
     @media (max-width: 576px) {
       .auth-form-card {
-        padding: 1.25rem 0.85rem;
+        padding: 0.75rem 0.65rem 1.5rem;
+        justify-content: flex-start;
       }
       .form-wrapper {
-        padding: 1.75rem 1.25rem;
+        padding: 1.5rem 1.15rem;
         border-radius: 20px;
       }
       .auth-showcase {
