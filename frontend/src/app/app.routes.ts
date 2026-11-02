@@ -67,8 +67,14 @@ export const routes: Routes = [
         canActivate: [authGuard],
       },
       {
+        path: 'profile',
+        loadComponent: () => import('./pages/user-profile.page').then((m) => m.UserProfilePage),
+        canActivate: [authGuard],
+      },
+      {
         path: 'account',
-        loadComponent: () => import('./pages/account.page').then((m) => m.AccountPage),
+        loadComponent: () => import('./pages/user-profile.page').then((m) => m.UserProfilePage),
+        canActivate: [authGuard],
       },
       { path: 'legal', redirectTo: 'legal/terms', pathMatch: 'full' },
       {

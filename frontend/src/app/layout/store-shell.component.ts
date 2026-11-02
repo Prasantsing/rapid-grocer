@@ -57,11 +57,12 @@ import { InrPipe } from '../shared/inr.pipe';
           <details class="account-menu">
             <summary class="location-chip">{{ user.name.split(' ')[0] }}</summary>
             <div class="panel account-pop">
-              @if (user.role === 'admin') { <a routerLink="/admin">Store desk</a> }
-              @if (user.role === 'delivery') { <a routerLink="/delivery">Deliveries</a> }
-              <a routerLink="/account">Account</a>
-              <a routerLink="/orders">Orders</a>
-              <button type="button" (click)="logout()">Log out</button>
+              @if (user.role === 'admin') { <a routerLink="/admin"><i class="bi bi-speedometer2 me-1"></i> Store desk</a> }
+              @if (user.role === 'delivery') { <a routerLink="/delivery"><i class="bi bi-bicycle me-1"></i> Deliveries</a> }
+              <a routerLink="/profile"><i class="bi bi-person-circle me-1"></i> My Profile</a>
+              <a routerLink="/profile" [queryParams]="{ tab: 'orders' }"><i class="bi bi-receipt me-1"></i> Orders</a>
+              <a routerLink="/profile" [queryParams]="{ tab: 'addresses' }"><i class="bi bi-geo-alt me-1"></i> Addresses</a>
+              <button type="button" (click)="logout()"><i class="bi bi-box-arrow-right me-1"></i> Log out</button>
             </div>
           </details>
         } @else {
