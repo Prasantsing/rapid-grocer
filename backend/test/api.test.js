@@ -146,10 +146,14 @@ describe('ZapBasket API', () => {
       .send({ status: 'out_for_delivery' });
     assert.equal(out.status, 200);
 
+    const freshOrder = await request(app).get(`/api/v1/orders/${order.id}`).set(auth(customer.token));
+    const otp = freshOrder.body.data.deliveryOtp?.code;
+    assert.ok(otp, 'delivery OTP should be generated');
+
     const delivered = await request(app)
-      .patch(`/api/v1/orders/${order.id}/status`)
+      .post(`/api/v1/orders/${order.id}/verify-delivery-otp`)
       .set(auth(rider.token))
-      .send({ status: 'delivered', note: 'Handed to Aisha' });
+      .send({ otp });
     assert.equal(delivered.status, 200);
     assert.equal(delivered.body.data.status, 'delivered');
 

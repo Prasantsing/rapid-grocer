@@ -172,6 +172,13 @@ router.post(
   orderController.verifyDeliveryOtp
 );
 router.post(
+  '/orders/:id/verify-delivery-otp',
+  authenticate,
+  authorizeAny(P.ORDERS_DELIVER, P.ORDERS_MANAGE),
+  validate(schemas.verifyDeliveryOtpSchema),
+  orderController.verifyDeliveryOtp
+);
+router.post(
   '/orders/:id/resend-otp',
   authenticate,
   authorizeAny(P.ORDERS_READ_OWN, P.ORDERS_DELIVER, P.ORDERS_MANAGE),
