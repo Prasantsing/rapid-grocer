@@ -41,11 +41,30 @@ router.get('/health', (_req, res) => {
     data: {
       status: isConnected ? 'ok' : 'degraded',
       service: 'zapbasket-api',
+      environment: env.nodeEnv,
+      port: env.port,
+      appDomain: env.appDomain,
+      apiBaseUrl: env.apiBaseUrl,
       database: {
         status: isConnected ? 'connected' : 'disconnected',
         provider: isRemote ? 'MongoDB Atlas (prasant.kfrkp3c.mongodb.net)' : 'Embedded MongoDB Engine',
       },
+      corsOrigins: env.clientOrigins,
       time: new Date().toISOString(),
+    },
+  });
+});
+
+router.get('/config', (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      appName: 'ZapBasket',
+      environment: env.nodeEnv,
+      port: env.port,
+      domain: env.appDomain,
+      apiBaseUrl: env.apiBaseUrl,
+      allowedOrigins: env.clientOrigins,
     },
   });
 });

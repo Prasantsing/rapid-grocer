@@ -30,8 +30,23 @@ function required(name, devFallback) {
   return devFallback;
 }
 
-const clientOrigin = process.env.CLIENT_ORIGIN
-  || 'http://127.0.0.1:43121,http://localhost:43121,http://localhost:3000,http://127.0.0.1:3000';
+const defaultOrigins = [
+  'http://localhost:4200',
+  'http://127.0.0.1:4200',
+  'http://localhost:43121',
+  'http://127.0.0.1:43121',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'capacitor://localhost',
+  'http://localhost',
+];
+
+const customOrigins = (process.env.CLIENT_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const combinedOrigins = Array.from(new Set([...defaultOrigins, ...customOrigins]));
 
 const defaultAppPort = 3000;
 const rawPort = process.env.APP_PORT || process.env.PORT;
@@ -49,6 +64,8 @@ const env = {
   isTest,
   nodeEnv: process.env.NODE_ENV || 'development',
   port: resolvedPort,
+  appDomain: process.env.APP_DOMAIN || `localhost:${resolvedPort}`,
+  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${resolvedPort}/api/v1`,
   mongoUri: resolvedMongoUri,
   useMemoryMongo: process.env.USE_MEMORY_MONGO === 'true',
   seedOnBoot: process.env.SEED_ON_BOOT !== undefined
@@ -62,7 +79,7 @@ const env = {
   },
   cookieSecure: process.env.COOKIE_SECURE === 'true',
   cookieSameSite: process.env.COOKIE_SAMESITE || 'lax',
-  clientOrigins: clientOrigin.split(',').map((origin) => origin.trim()).filter(Boolean),
+  clientOrigins: combinedOrigins,
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID || '',
     keySecret: process.env.RAZORPAY_KEY_SECRET || '',

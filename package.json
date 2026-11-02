@@ -9,10 +9,13 @@
   "scripts": {
     "build:frontend": "npm run build --prefix frontend",
     "build": "node -e \"if(!require('fs').existsSync('frontend/dist/frontend/browser/index.html')){require('child_process').execSync('npm run build:frontend',{stdio:'inherit'})}\"",
+    "dev:all": "concurrently -k -n \"API,WEB\" -c \"cyan.bold,magenta.bold\" \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:local": "npm run dev:all",
     "dev:api": "npm run dev --prefix backend",
     "dev:web": "npm start --prefix frontend",
     "dev": "node server.ts",
     "start": "node server.ts",
+    "start:unified": "node server.ts",
     "seed": "npm run seed --prefix backend",
     "test": "npm test --prefix backend",
     "cap:sync": "npm run build && npx cap sync android",
@@ -25,5 +28,8 @@
     "@capacitor/cli": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@google/genai": "^2.30.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
   }
 }

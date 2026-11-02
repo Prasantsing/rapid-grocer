@@ -3,6 +3,7 @@ import { provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
+import { apiInterceptor } from './core/api.interceptor';
 import { authInterceptor } from './core/auth.interceptor';
 import { AuthService } from './core/auth.service';
 import { GlobalChunkErrorHandler } from './core/chunk-error.handler';
@@ -12,7 +13,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([apiInterceptor, authInterceptor])),
     provideAppInitializer(() => inject(AuthService).bootstrap()),
     { provide: ErrorHandler, useClass: GlobalChunkErrorHandler },
   ],
