@@ -1,16 +1,16 @@
 /**
  * ZapBasket Development Environment Configuration
  *
- * - apiUrl: Base path or full URL for REST API endpoints.
- *   Default '/api/v1' enables seamless reverse-proxying and same-origin unified server calls.
- *   Set to 'http://localhost:3000/api/v1' when running independent frontend dev server on port 4200.
+ * Configured with the active AI Studio Cloud Run development deployment URL.
  */
 export const environment = {
   production: false,
   apiUrl: '/api/v1',
-  backendBaseUrl: 'http://localhost:3000',
-  appDomain: 'localhost:4200',
-  wsUrl: 'ws://localhost:3000',
+  backendBaseUrl: 'https://ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  appDomain: 'ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  deployUrl: 'https://ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  prodDeployUrl: 'https://ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  wsUrl: 'wss://ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
   defaultThemePreset: 'emerald',
   defaultPrimaryColor: '#059669',
   defaultAccentColor: '#ea580c',

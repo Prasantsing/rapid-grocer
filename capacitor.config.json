@@ -3,12 +3,18 @@
   "appName": "ZapBasket",
   "webDir": "frontend/dist/frontend/browser",
   "server": {
+    "url": "https://ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app",
+    "cleartext": false,
     "androidScheme": "https",
-    "cleartext": true
+    "allowNavigation": [
+      "ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app",
+      "ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app",
+      "*.run.app"
+    ]
   },
   "android": {
     "allowMixedContent": true,
     "captureInput": true,
-    "webContentsDebuggingEnabled": false
+    "webContentsDebuggingEnabled": true
   }
 }

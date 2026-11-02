@@ -6,8 +6,9 @@ import { environment } from '../../environments/environment';
  *
  * Ensures all API calls dynamically resolve their target base URL and domain based on:
  * 1. Runtime window override (e.g. Capacitor mobile runtime window.__ZAP_API_URL__)
- * 2. environment.apiUrl / environment.backendBaseUrl
- * 3. Relative path fallback (/api/v1) for unified Express host deployment
+ * 2. Native Capacitor mobile container environment (routes to environment.backendBaseUrl)
+ * 3. environment.apiUrl / environment.backendBaseUrl
+ * 4. Relative path fallback (/api/v1) for unified Express host deployment on Cloud Run
  */
 export const apiInterceptor: HttpInterceptorFn = (req, next) => {
   let targetUrl = req.url;
@@ -20,20 +21,30 @@ export const apiInterceptor: HttpInterceptorFn = (req, next) => {
       customBase = (window as any).__ZAP_API_URL__ || (window as any).__ZAP_API_BASE_URL__ || '';
     }
 
+    // 2. Check if running inside Capacitor Android/iOS native mobile container
+    const isCapacitorNative =
+      typeof window !== 'undefined' &&
+      (Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
+        window.location.protocol === 'capacitor:' ||
+        window.location.protocol === 'ionic:');
+
     if (customBase && /^https?:\/\//i.test(customBase)) {
       const cleanBase = customBase.replace(/\/+$/, '');
-      // If customBase includes /api/v1, replace /api/v1 with cleanBase
       if (cleanBase.endsWith('/api/v1')) {
         targetUrl = targetUrl.replace(/^\/api\/v1/, cleanBase);
       } else {
         targetUrl = `${cleanBase}${targetUrl}`;
       }
+    } else if (isCapacitorNative && environment.backendBaseUrl) {
+      // Native mobile builds must use absolute deployment URL
+      const cleanBase = environment.backendBaseUrl.replace(/\/+$/, '');
+      targetUrl = `${cleanBase}${targetUrl}`;
     } else if (environment.apiUrl && /^https?:\/\//i.test(environment.apiUrl)) {
-      // 2. Absolute URL configured in environment.ts
+      // Absolute URL configured in environment.ts
       const cleanBase = environment.apiUrl.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
       targetUrl = `${cleanBase}${targetUrl}`;
     } else if (environment.backendBaseUrl && /^https?:\/\//i.test(environment.backendBaseUrl) && !environment.production) {
-      // In independent dev server mode when running frontend on separate port without reverse proxy
+      // Standalone development server on separate port without reverse proxy
       const isDevServerSeparatePort =
         typeof window !== 'undefined' &&
         window.location.port !== '' &&
@@ -41,7 +52,6 @@ export const apiInterceptor: HttpInterceptorFn = (req, next) => {
         !window.location.hostname.includes('.run.app');
 
       if (isDevServerSeparatePort && (window.location.port === '4200' || window.location.port === '43121')) {
-        // If user is directly testing on standalone port 4200 without proxy
         const cleanBase = environment.backendBaseUrl.replace(/\/+$/, '');
         targetUrl = `${cleanBase}${targetUrl}`;
       }

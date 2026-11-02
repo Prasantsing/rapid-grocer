@@ -31,6 +31,8 @@ function required(name, devFallback) {
 }
 
 const defaultOrigins = [
+  'https://ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  'https://ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
   'http://localhost:4200',
   'http://127.0.0.1:4200',
   'http://localhost:43121',
@@ -64,8 +66,10 @@ const env = {
   isTest,
   nodeEnv: process.env.NODE_ENV || 'development',
   port: resolvedPort,
-  appDomain: process.env.APP_DOMAIN || `localhost:${resolvedPort}`,
-  apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${resolvedPort}/api/v1`,
+  appDomain: process.env.APP_DOMAIN || 'ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  devAppDomain: process.env.DEV_APP_DOMAIN || 'ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app',
+  apiBaseUrl: process.env.API_BASE_URL || 'https://ais-pre-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app/api/v1',
+  devApiBaseUrl: process.env.DEV_API_BASE_URL || 'https://ais-dev-qfbqgpbtt4bz4x553spzj2-351656031843.asia-northeast1.run.app/api/v1',
   mongoUri: resolvedMongoUri,
   useMemoryMongo: process.env.USE_MEMORY_MONGO === 'true',
   seedOnBoot: process.env.SEED_ON_BOOT !== undefined
