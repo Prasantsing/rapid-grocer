@@ -4,17 +4,18 @@ import { AuthService } from '../core/auth.service';
 import { ShopService } from '../core/shop.service';
 import { ThemeService } from '../core/theme.service';
 import { ToastService } from '../core/toast.service';
+import { ProductQuickViewService } from '../core/product-quick-view.service';
 import { errorMessage } from '../core/http-error';
 import { Product } from '../core/models';
 import { InrPipe } from './inr.pipe';
 
 @Component({
   selector: 'app-product-card',
-  imports: [RouterLink, InrPipe],
+  imports: [InrPipe],
   template: `
     <article class="tile">
       <div class="tile-media-wrap">
-        <a class="tile-art" [routerLink]="['/p', product().slug]" [style.background]="getArtBackground()">
+        <div class="tile-art" role="button" tabindex="0" (click)="openQuickView($event)" (keydown.enter)="openQuickView($event)" [style.background]="getArtBackground()">
           @if (product().imageUrl && !imgFailed()) {
             <img [src]="product().imageUrl" [alt]="product().name" class="product-thumb" (error)="imgFailed.set(true)" loading="lazy" />
           } @else {
@@ -23,7 +24,7 @@ import { InrPipe } from './inr.pipe';
           @if (product().discountPercent > 0) {
             <span class="off">{{ product().discountPercent }}% off</span>
           }
-        </a>
+        </div>
         @if (auth.user()?.role === 'customer' || !auth.user()) {
           <button class="wish" type="button" (click)="toggleWish()" [attr.aria-label]="wished() ? 'Remove from wishlist' : 'Save to wishlist'">
             <i class="bi" [class.bi-heart-fill]="wished()" [class.bi-heart]="!wished()"></i>
@@ -51,7 +52,7 @@ import { InrPipe } from './inr.pipe';
 
       <div class="tile-body">
         <p class="unit">{{ product().unit }}</p>
-        <a class="product-title" [routerLink]="['/p', product().slug]">{{ product().name }}</a>
+        <div class="product-title" role="button" tabindex="0" (click)="openQuickView($event)" (keydown.enter)="openQuickView($event)">{{ product().name }}</div>
         <div class="price-row">
           <strong class="price-main">{{ product().price | inr }}</strong>
           @if (product().mrp > product().price) {
@@ -66,6 +67,7 @@ export class ProductCard {
   readonly product = input.required<Product>();
   readonly auth = inject(AuthService);
   readonly themeService = inject(ThemeService);
+  readonly quickView = inject(ProductQuickViewService);
   private readonly shop = inject(ShopService);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
@@ -73,6 +75,14 @@ export class ProductCard {
   readonly imgFailed = signal(false);
   readonly qty = computed(() => this.shop.cart()?.items.find((item) => item.productId === this.product().id)?.quantity ?? 0);
   readonly wished = computed(() => this.shop.wishlistIds().includes(this.product().id));
+
+  openQuickView(event?: Event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    this.quickView.open(this.product());
+  }
 
   getArtBackground(): string {
     if (this.product().imageUrl && !this.imgFailed()) {

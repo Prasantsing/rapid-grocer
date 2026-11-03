@@ -7,11 +7,21 @@ import { ThemeService } from '../core/theme.service';
 import { ToastService } from '../core/toast.service';
 import { SearchBarComponent } from '../shared/search-bar.component';
 import { PwaInstallComponent } from '../shared/pwa-install.component';
+import { ProductBottomSheetComponent } from '../shared/product-bottom-sheet.component';
+import { FloatingMiniCartComponent } from '../shared/floating-mini-cart.component';
 import { InrPipe } from '../shared/inr.pipe';
 
 @Component({
   selector: 'app-store-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, SearchBarComponent, PwaInstallComponent, InrPipe],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    SearchBarComponent,
+    PwaInstallComponent,
+    ProductBottomSheetComponent,
+    FloatingMiniCartComponent,
+  ],
   template: `
     <header class="store-header">
       <!-- Desktop & Tablet Navigation Row (md and up) -->
@@ -235,79 +245,11 @@ import { InrPipe } from '../shared/inr.pipe';
       </div>
     </footer>
 
-    <!-- Floating Quick Action Pill (Mobile, Tablet, Desktop) -->
-    @if ((shop.cart()?.itemCount || 0) > 0) {
-      <aside
-        class="floating-cart-bar"
-        [class.on-cart-page]="isCart()"
-        [class.on-checkout-page]="isCheckout()"
-        aria-label="Quick Action"
-      >
-        @if (isCheckout()) {
-          <!-- Inside Checkout Page: Always-Visible Pay Pill (Like Floating Cart) -->
-          <button
-            type="button"
-            class="floating-cart-inner floating-pay-btn"
-            (click)="triggerPay()"
-            [disabled]="shop.placingOrder()"
-            aria-label="Pay now"
-          >
-            <div class="d-flex align-items-center gap-2">
-              <div class="floating-cart-badge">
-                <i class="bi bi-lightning-charge-fill text-warning"></i>
-                <span>{{ shop.cart()?.itemCount }} {{ shop.cart()?.itemCount === 1 ? 'item' : 'items' }}</span>
-              </div>
-              <span class="floating-cart-divider">·</span>
-              <strong class="floating-cart-total">{{ (shop.cart()?.total || 0) | inr }}</strong>
-            </div>
-            <div class="floating-cart-cta">
-              @if (shop.placingOrder()) {
-                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                <span>Placing order…</span>
-              } @else if (shop.paymentMethod() === 'upi') {
-                <span>Pay with UPI ⚡</span>
-              } @else if (shop.paymentMethod() === 'cod') {
-                <span>Place Order · Pay at Door →</span>
-              } @else {
-                <span>Pay via Cards →</span>
-              }
-            </div>
-          </button>
-        } @else if (isCart()) {
-          <!-- Inside Cart Page: Show "Proceed to Checkout" -->
-          <a routerLink="/checkout" class="floating-cart-inner">
-            <div class="d-flex align-items-center gap-2">
-              <div class="floating-cart-badge">
-                <i class="bi bi-bag-check-fill"></i>
-                <span>{{ shop.cart()?.itemCount }} {{ shop.cart()?.itemCount === 1 ? 'item' : 'items' }}</span>
-              </div>
-              <span class="floating-cart-divider">·</span>
-              <strong class="floating-cart-total">{{ (shop.cart()?.total || 0) | inr }}</strong>
-            </div>
-            <div class="floating-cart-cta">
-              <span>Proceed to Checkout</span>
-              <i class="bi bi-arrow-right"></i>
-            </div>
-          </a>
-        } @else {
-          <!-- Outside Cart: Show "View Cart" -->
-          <a routerLink="/cart" class="floating-cart-inner">
-            <div class="d-flex align-items-center gap-2">
-              <div class="floating-cart-badge">
-                <i class="bi bi-basket2-fill"></i>
-                <span>{{ shop.cart()?.itemCount }} {{ shop.cart()?.itemCount === 1 ? 'item' : 'items' }}</span>
-              </div>
-              <span class="floating-cart-divider">·</span>
-              <strong class="floating-cart-total">{{ (shop.cart()?.total || 0) | inr }}</strong>
-            </div>
-            <div class="floating-cart-cta">
-              <span>View Cart</span>
-              <i class="bi bi-arrow-right"></i>
-            </div>
-          </a>
-        }
-      </aside>
-    }
+    <!-- Floating Persistent Mini-Cart Pill with Instant Slide-to-Checkout Slider -->
+    <app-floating-mini-cart />
+
+    <!-- Mobile Native Bottom Sheet Drawer for Product Quick View -->
+    <app-product-bottom-sheet />
 
     @if (!isCheckout()) {
       <nav class="mobile-nav" role="navigation" aria-label="Mobile Navigation">
@@ -328,9 +270,9 @@ import { InrPipe } from '../shared/inr.pipe';
           </div>
           <span>Cart</span>
         </a>
-        <a routerLink="/account" routerLinkActive="on">
+        <a routerLink="/profile" routerLinkActive="on">
           <i class="bi bi-person"></i>
-          <span>You</span>
+          <span>Profile</span>
         </a>
       </nav>
     }
