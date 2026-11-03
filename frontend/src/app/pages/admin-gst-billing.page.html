@@ -1,0 +1,376 @@
+    <!-- Top Action Bar (hidden when printing) -->
+    <div class="section-head mb-3 no-print">
+      <div>
+        <h2>GST Business Statement & Billing Desk</h2>
+        <p class="muted mb-0">Consolidated single-page tax statement, HSN classification, and downloadable retail invoices</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-outline-dark d-inline-flex align-items-center gap-1" type="button" (click)="exportCsv()">
+          <i class="bi bi-filetype-csv"></i> Export CSV
+        </button>
+        <button
+          class="btn btn-dark d-inline-flex align-items-center gap-1"
+          type="button"
+          style="background: #0e6b4f; border-color: #0e6b4f"
+          (click)="downloadStatement()"
+        >
+          <i class="bi bi-download"></i> Download Statement Bill
+        </button>
+        <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-1" type="button" (click)="printStatement()" title="Direct Print">
+          <i class="bi bi-printer"></i> Print
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter & Accounting Period Bar (hidden when printing) -->
+    <div class="panel mb-3 p-3 no-print">
+      <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <!-- Period Preset Buttons -->
+        <div class="btn-group btn-group-sm" role="group">
+          <button
+            type="button"
+            class="btn"
+            [class.btn-dark]="selectedPeriod() === 'today'"
+            [class.btn-outline-dark]="selectedPeriod() !== 'today'"
+            (click)="setPeriod('today')"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-dark]="selectedPeriod() === 'this_week'"
+            [class.btn-outline-dark]="selectedPeriod() !== 'this_week'"
+            (click)="setPeriod('this_week')"
+          >
+            This Week
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-dark]="selectedPeriod() === 'this_month'"
+            [class.btn-outline-dark]="selectedPeriod() !== 'this_month'"
+            (click)="setPeriod('this_month')"
+          >
+            This Month
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-dark]="selectedPeriod() === 'last_month'"
+            [class.btn-outline-dark]="selectedPeriod() !== 'last_month'"
+            (click)="setPeriod('last_month')"
+          >
+            Last Month
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-dark]="selectedPeriod() === 'custom'"
+            [class.btn-outline-dark]="selectedPeriod() !== 'custom'"
+            (click)="setPeriod('custom')"
+          >
+            Custom Range
+          </button>
+        </div>
+
+        <!-- Custom Date Range Picker (shown when custom is selected) -->
+        @if (selectedPeriod() === 'custom') {
+          <div class="d-flex gap-2 align-items-center">
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="customFrom" />
+            <span class="muted">to</span>
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="customTo" />
+            <button class="btn btn-sm btn-dark" type="button" (click)="load()">Apply</button>
+          </div>
+        }
+
+        <div class="muted small">
+          Active Range: <strong>{{ report()?.period?.startDate | date:'mediumDate' }}</strong> — <strong>{{ report()?.period?.endDate | date:'mediumDate' }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Printable & Downloadable Official GST Statement Document Container -->
+    <div class="gst-document-sheet panel p-4 bg-white" id="gstPrintArea">
+      <!-- Official Business Letterhead -->
+      <div class="gst-letterhead border-bottom pb-3 mb-3">
+        <div class="row align-items-start">
+          <div class="col-8">
+            <h3 class="mb-0 fw-bold">{{ store()?.businessName }}</h3>
+            <p class="text-muted small mb-1">Trade Name: <strong>{{ store()?.tradeName }}</strong> · CIN: {{ store()?.cin }}</p>
+            <p class="small mb-1">{{ store()?.address }}</p>
+            <p class="small mb-0 text-muted">
+              Email: {{ store()?.email }} | Phone: {{ store()?.phone }} | FSSAI: {{ store()?.fssaiLicense }}
+            </p>
+          </div>
+          <div class="col-4 text-end">
+            <span class="badge bg-dark text-white p-2 mb-2 fs-6">GST TAX INVOICE STATEMENT</span>
+            <div class="font-monospace small">
+              <div><strong>GSTIN:</strong> {{ store()?.gstin }}</div>
+              <div><strong>State:</strong> {{ store()?.state }} (Code: {{ store()?.stateCode }})</div>
+              <div><strong>Tax Type:</strong> {{ store()?.taxType }}</div>
+              <div><strong>Generated:</strong> {{ todayDate | date:'medium' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Summary Cards -->
+      @if (report()?.summary; as s) {
+        <div class="stat-grid mb-4">
+          <div class="panel stat border">
+            <span>Gross Business Turnover</span>
+            <strong class="text-dark">{{ s.totalGrossTurnover | inr }}</strong>
+            <small class="muted">Across {{ s.totalOrders }} completed orders</small>
+          </div>
+          <div class="panel stat border">
+            <span>Taxable Value (Pre-Tax)</span>
+            <strong class="text-primary">{{ s.totalTaxableValue | inr }}</strong>
+            <small class="muted">Net revenue base for GST</small>
+          </div>
+          <div class="panel stat border">
+            <span>CGST (Central Tax)</span>
+            <strong class="text-success">{{ s.totalCgst | inr }}</strong>
+            <small class="muted">50% Central share</small>
+          </div>
+          <div class="panel stat border">
+            <span>SGST (State Tax)</span>
+            <strong class="text-success">{{ s.totalSgst | inr }}</strong>
+            <small class="muted">50% Karnataka state share</small>
+          </div>
+        </div>
+
+        <div class="p-3 mb-4 rounded border d-flex justify-content-between align-items-center gst-highlight-box">
+          <div>
+            <h5 class="mb-0 fw-bold">Total GST Tax Liability (CGST + SGST)</h5>
+            <small class="text-muted">Total tax collected on behalf of Government for this period</small>
+          </div>
+          <div class="text-end">
+            <strong class="fs-3 text-success font-monospace">{{ s.totalGstCollected | inr }}</strong>
+          </div>
+        </div>
+      }
+
+      <!-- HSN & Tax Slab Breakdown Table -->
+      <div class="mb-4">
+        <h5 class="fw-bold mb-2">1. HSN / GST Rate Slab Summary</h5>
+        <div class="table-wrap">
+          <table class="plain border">
+            <thead class="table-light">
+              <tr>
+                <th>GST Rate Slab</th>
+                <th>HSN Codes</th>
+                <th class="text-center">Units Sold</th>
+                <th class="text-end">Taxable Amount</th>
+                <th class="text-end">CGST (₹)</th>
+                <th class="text-end">SGST (₹)</th>
+                <th class="text-end">Total Tax (₹)</th>
+                <th class="text-end">Gross Total (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (slab of report()?.slabs || []; track slab.rate) {
+                <tr>
+                  <td>
+                    <strong>{{ slab.rate }}%</strong>
+                    <div class="muted small">{{ slab.label }}</div>
+                  </td>
+                  <td class="font-monospace small">{{ slab.hsn }}</td>
+                  <td class="text-center font-monospace">{{ slab.itemsCount }}</td>
+                  <td class="text-end font-monospace">{{ slab.taxableValue | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ slab.cgst | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ slab.sgst | inr }}</td>
+                  <td class="text-end font-monospace fw-bold text-success">{{ slab.totalTax | inr }}</td>
+                  <td class="text-end font-monospace fw-bold">{{ slab.gross | inr }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="table-light fw-bold">
+              @if (report()?.summary; as s) {
+                <tr>
+                  <td colspan="3">Consolidated Totals</td>
+                  <td class="text-end font-monospace">{{ s.totalTaxableValue | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ s.totalCgst | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ s.totalSgst | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ s.totalGstCollected | inr }}</td>
+                  <td class="text-end font-monospace">{{ s.totalGrossTurnover | inr }}</td>
+                </tr>
+              }
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Transaction Invoices Ledger Table -->
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="fw-bold mb-0">2. Order-by-Order Retail Tax Ledger</h5>
+          <span class="muted small">Total: {{ (report()?.invoices || []).length }} Invoices</span>
+        </div>
+
+        @if ((report()?.invoices || []).length === 0) {
+          <div class="text-center p-4 border rounded bg-light">
+            <p class="muted mb-0">No delivered orders found in this period range.</p>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="plain border">
+              <thead class="table-light">
+                <tr>
+                  <th>Invoice No.</th>
+                  <th>Date & Time</th>
+                  <th>Customer (B2C)</th>
+                  <th>Payment</th>
+                  <th class="text-end">Taxable (₹)</th>
+                  <th class="text-end">CGST (₹)</th>
+                  <th class="text-end">SGST (₹)</th>
+                  <th class="text-end">Total GST (₹)</th>
+                  <th class="text-end">Total Bill (₹)</th>
+                  <th class="text-center no-print" style="min-width: 140px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (inv of report()?.invoices || []; track inv.id) {
+                  <tr>
+                    <td class="font-monospace fw-semibold">{{ inv.invoiceNumber }}</td>
+                    <td class="small">{{ inv.createdAt | date:'short' }}</td>
+                    <td>
+                      <div>{{ inv.customerName }}</div>
+                      @if (inv.customerPhone) {
+                        <small class="muted">{{ inv.customerPhone }}</small>
+                      }
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark border">{{ inv.paymentMethod }}</span>
+                    </td>
+                    <td class="text-end font-monospace">{{ inv.taxableAmount | inr }}</td>
+                    <td class="text-end font-monospace text-muted">{{ inv.cgstAmount | inr }}</td>
+                    <td class="text-end font-monospace text-muted">{{ inv.sgstAmount | inr }}</td>
+                    <td class="text-end font-monospace fw-semibold text-success">{{ inv.totalGst | inr }}</td>
+                    <td class="text-end font-monospace fw-bold">{{ inv.grossAmount | inr }}</td>
+                    <td class="text-center no-print">
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button
+                          type="button"
+                          class="btn btn-outline-dark py-0 px-2"
+                          (click)="viewInvoiceModal(inv)"
+                          title="View Bill Details"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-dark py-0 px-2 d-inline-flex align-items-center gap-1"
+                          (click)="downloadInvoice(inv)"
+                          title="Download Tax Invoice Bill"
+                        >
+                          <i class="bi bi-download"></i> Bill
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <!-- Legal Declaration & Signature Footer -->
+      <div class="gst-declaration pt-3 border-top mt-4">
+        <div class="row align-items-end">
+          <div class="col-8 small text-muted">
+            <p class="mb-1"><strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct under Indian Goods and Services Tax Rules, 2017.</p>
+            <p class="mb-0">Whether tax is payable on reverse charge basis: <strong>No</strong></p>
+          </div>
+          <div class="col-4 text-end">
+            <div style="height: 48px;"></div>
+            <div class="border-top pt-1 small fw-bold">
+              For {{ store()?.businessName }}<br />
+              <span class="text-muted fw-normal">Authorized Signatory</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Individual Order Invoice Modal -->
+    @if (activeInvoice()) {
+      <div class="modal-sheet no-print" (click)="closeInvoiceModal()">
+        <div class="sheet bg-white p-4" (click)="$event.stopPropagation()" style="max-width: 680px;">
+          <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-3">
+            <div>
+              <h4 class="mb-0 fw-bold">Tax Invoice: {{ activeInvoice()?.invoiceNumber }}</h4>
+              <p class="muted small mb-0">Order: {{ activeInvoice()?.orderNumber }} · {{ activeInvoice()?.createdAt | date:'medium' }}</p>
+            </div>
+            <button type="button" class="btn-close" (click)="closeInvoiceModal()"></button>
+          </div>
+
+          <div class="row mb-3 small">
+            <div class="col-6">
+              <strong>Billed To:</strong>
+              <div>{{ activeInvoice()?.customerName }}</div>
+              <div>Phone: {{ activeInvoice()?.customerPhone || 'N/A' }}</div>
+              <div>Destination: {{ activeInvoice()?.customerCity }}</div>
+            </div>
+            <div class="col-6 text-end">
+              <strong>Billed By:</strong>
+              <div>{{ store()?.businessName }}</div>
+              <div>GSTIN: {{ store()?.gstin }}</div>
+              <div>Payment: {{ activeInvoice()?.paymentMethod }} ({{ activeInvoice()?.paymentStatus }})</div>
+            </div>
+          </div>
+
+          <table class="table table-sm border small mb-3">
+            <thead class="table-light">
+              <tr>
+                <th>Item</th>
+                <th>HSN</th>
+                <th>Qty</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Taxable</th>
+                <th class="text-end">GST</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (it of activeInvoice()?.items || []; track it.name) {
+                <tr>
+                  <td>{{ it.name }}</td>
+                  <td class="font-monospace">{{ it.hsn }}</td>
+                  <td>{{ it.quantity }} {{ it.unit }}</td>
+                  <td class="text-end font-monospace">{{ it.rate | inr }}</td>
+                  <td class="text-end font-monospace">{{ it.taxableAmount | inr }}</td>
+                  <td class="text-end font-monospace text-success">{{ it.totalGst | inr }} ({{ it.gstRate }}%)</td>
+                  <td class="text-end font-monospace fw-semibold">{{ it.grossAmount | inr }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot class="table-light fw-bold">
+              <tr>
+                <td colspan="4">Total Bill</td>
+                <td class="text-end font-monospace">{{ activeInvoice()?.taxableAmount | inr }}</td>
+                <td class="text-end font-monospace text-success">{{ activeInvoice()?.totalGst | inr }}</td>
+                <td class="text-end font-monospace">{{ activeInvoice()?.grossAmount | inr }}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-2">
+            <button type="button" class="btn btn-outline-secondary" (click)="closeInvoiceModal()">Close</button>
+            <button type="button" class="btn btn-outline-dark d-inline-flex align-items-center gap-1" (click)="printStatement()">
+              <i class="bi bi-printer"></i> Print
+            </button>
+            <button
+              type="button"
+              class="btn btn-dark d-inline-flex align-items-center gap-1"
+              style="background: #0e6b4f; border-color: #0e6b4f"
+              (click)="downloadInvoice()"
+            >
+              <i class="bi bi-download"></i> Download Invoice Bill
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  

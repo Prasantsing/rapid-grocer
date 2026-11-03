@@ -1,0 +1,54 @@
+    @if (shouldShow()) {
+      <aside
+        class="floating-mini-cart-container"
+        role="region"
+        aria-label="Floating cart action bar"
+      >
+        <div
+          class="mini-cart-pill"
+          [class.sliding]="isDragging()"
+          (click)="onPillTap()"
+        >
+          <!-- Left Info: Item count, 12m Badge & Price -->
+          <div class="cart-info-side">
+            <div class="d-flex align-items-center gap-2">
+              <span class="lightning-badge">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> 12m
+              </span>
+              <span class="item-count-text">
+                {{ itemCount() }} {{ itemCount() === 1 ? 'ITEM' : 'ITEMS' }}
+              </span>
+            </div>
+
+            <div class="d-flex align-items-baseline gap-1 mt-1">
+              <strong class="cart-total-text">{{ total() | inr }}</strong>
+              @if (savings() > 0) {
+                <span class="cart-savings-badge">
+                  Save {{ savings() | inr }}
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Right Action: Interactive "Slide / Tap to Checkout" Slider -->
+          <div
+            class="checkout-slider-track"
+            (touchstart)="onTouchStart($event)"
+            (touchmove)="onTouchMove($event)"
+            (touchend)="onTouchEnd()"
+            (click)="onSliderClick($event)"
+          >
+            <div
+              class="slider-thumb"
+              [style.transform]="'translateX(' + sliderOffset() + 'px)'"
+            >
+              <i class="bi bi-arrow-right-short"></i>
+            </div>
+            <span class="slider-label">
+              {{ isDragging() ? 'Release to Order' : 'Slide to Checkout' }}
+            </span>
+          </div>
+        </div>
+      </aside>
+    }
+  

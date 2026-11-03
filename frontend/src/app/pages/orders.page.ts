@@ -11,35 +11,7 @@ import { OrderProgressBarComponent } from '../shared/order-progress-bar.componen
 @Component({
   selector: 'app-orders-page',
   imports: [RouterLink, InrPipe, DatePipe, OrderProgressBarComponent],
-  template: `
-    <div class="section-head"><h2>Orders</h2></div>
-    @if (loading()) {
-      <p class="muted">Looking up your runs…</p>
-    } @else if (error()) {
-      <div class="empty panel"><p>{{ error() }}</p></div>
-    } @else if (orders().length === 0) {
-      <div class="empty panel"><h2>No orders yet</h2><a routerLink="/">Fill a basket</a></div>
-    } @else {
-      <div class="d-grid gap-3">
-        @for (order of orders(); track order.id) {
-          <a class="panel order-card text-reset text-decoration-none" [routerLink]="['/orders', order.id]">
-            <div class="d-flex justify-content-between gap-3 mb-2">
-              <div>
-                <strong>{{ order.orderNumber }}</strong>
-                <p class="muted mb-0">{{ order.createdAt | date:'d MMM, h:mm a' }} · {{ order.items.length }} items</p>
-              </div>
-              <div class="text-end">
-                <span [class]="'status-pill ' + order.status">{{ label(order.status) }}</span>
-                <div class="mt-1 fw-bold">{{ order.total | inr }}</div>
-              </div>
-            </div>
-            <!-- Compact progress bar for fast visual tracking -->
-            <app-order-progress-bar [order]="order" [status]="order.status" [compact]="true" />
-          </a>
-        }
-      </div>
-    }
-  `,
+  templateUrl: './orders.page.html',
 })
 export class OrdersPage {
   private readonly shop = inject(ShopService);

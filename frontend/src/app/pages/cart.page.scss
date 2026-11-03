@@ -1,0 +1,21 @@
+    .quick-add-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.65rem;
+    }
+    .quick-add-card {
+      transition: all 0.15s ease;
+    }
+    .quick-add-card:hover {
+      border-color: #0e6b4f !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    }
+    .quick-art {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 1.15rem;
+    }
+  

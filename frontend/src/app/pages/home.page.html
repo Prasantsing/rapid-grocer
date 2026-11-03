@@ -1,0 +1,96 @@
+    @if (!categorySlug() && !term()) {
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Koramangala · tonight</p>
+          <h1>Groceries at the door before the chai cools.</h1>
+          <p class="muted mb-0">Milk, bananas, and the onion you forgot. Packed from a dark store a few streets away.</p>
+        </div>
+        <aside class="slot-card">
+          <p class="eyebrow">Next slot</p>
+          <strong>{{ slot() }}</strong>
+          <p class="mb-0 mt-2">Most baskets arrive in about 12 minutes. Free delivery over ₹299.</p>
+        </aside>
+      </section>
+    }
+
+    <div class="rail">
+      <a class="cat-pill" routerLink="/" [queryParams]="term() ? { q: term() } : {}" [class.active]="!categorySlug()"><span>✨</span><b>All</b></a>
+      @for (category of categories(); track category.id) {
+        <a class="cat-pill" [routerLink]="['/c', category.slug]" [queryParams]="term() ? { q: term() } : {}" [class.active]="category.slug === categorySlug()">
+          <span>{{ category.emoji }}</span>
+          <b>{{ category.name }}</b>
+        </a>
+      }
+    </div>
+
+    @if (categorySlug() || term()) {
+      <div class="active-filter-strip">
+        <div class="strip-items">
+          <span class="strip-label"><i class="bi bi-funnel-fill"></i> Filtering by:</span>
+          @if (categorySlug()) {
+            <span class="filter-chip">
+              <span>Aisle: <b>{{ currentCategoryName() }}</b></span>
+              <a [routerLink]="['/']" [queryParams]="term() ? { q: term() } : {}" class="chip-remove" aria-label="Remove category filter">&times;</a>
+            </span>
+          }
+          @if (term()) {
+            <span class="filter-chip">
+              <span>Search: <b>"{{ term() }}"</b></span>
+              <a [routerLink]="categorySlug() ? ['/c', categorySlug()] : ['/']" class="chip-remove" aria-label="Clear search term">&times;</a>
+            </span>
+          }
+        </div>
+        <a routerLink="/" class="clear-all-link">Clear all</a>
+      </div>
+    }
+
+    <div class="section-head">
+      <div>
+        <h2>{{ heading() }}</h2>
+        <p class="muted mb-0">{{ products().length }} on the shelf</p>
+      </div>
+      <select class="form-select w-auto" [value]="sort()" (change)="setSort($event)">
+        <option value="newest">Newest</option>
+        <option value="price_asc">Price: low</option>
+        <option value="price_desc">Price: high</option>
+        <option value="name">Name</option>
+      </select>
+    </div>
+
+    @if (loading()) {
+      <div class="product-grid" aria-label="Loading groceries">
+        @for (i of skeletonItems; track i) {
+          <app-product-card-skeleton />
+        }
+      </div>
+    } @else if (error()) {
+      <div class="empty panel">
+        <h2>The aisle did not load</h2>
+        <p>{{ error() }}</p>
+        <button class="btn btn-dark" type="button" (click)="load()">Try again</button>
+      </div>
+    } @else if (products().length === 0) {
+      <div class="empty panel">
+        <h2>Nothing matched</h2>
+        @if (term() && categorySlug()) {
+          <p>No groceries found for "<b>{{ term() }}</b>" in {{ currentCategoryName() }}.</p>
+          <div class="d-flex gap-2 justify-content-center mt-3">
+            <a class="btn btn-sm btn-outline-dark" [routerLink]="['/']" [queryParams]="{ q: term() }">Search all aisles for "{{ term() }}"</a>
+            <a class="btn btn-sm btn-dark" routerLink="/">Browse all products</a>
+          </div>
+        } @else if (term()) {
+          <p>No groceries matched "<b>{{ term() }}</b>". Try banana, milk, or oats.</p>
+          <a class="btn btn-sm btn-dark mt-2" routerLink="/">Show all products</a>
+        } @else {
+          <p>This aisle is currently empty.</p>
+          <a class="btn btn-sm btn-dark mt-2" routerLink="/">Browse other aisles</a>
+        }
+      </div>
+    } @else {
+      <div class="product-grid">
+        @for (product of products(); track product.id) {
+          <app-product-card [product]="product" />
+        }
+      </div>
+    }
+  

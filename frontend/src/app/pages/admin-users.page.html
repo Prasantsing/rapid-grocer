@@ -1,0 +1,96 @@
+    <div class="section-head">
+      <h2>People</h2>
+      <button class="btn btn-dark" type="button" (click)="creating.set(true)">Add person</button>
+    </div>
+    <div class="d-flex gap-2 mb-3">
+      <select class="form-select w-auto" (change)="filter($event)">
+        <option value="">All roles</option>
+        <option value="customer">Customers</option>
+        <option value="delivery">Delivery</option>
+        <option value="admin">Admins</option>
+      </select>
+    </div>
+    <div class="panel table-wrap d-none d-md-block">
+      <table class="plain">
+        <thead><tr><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>{{ user.name }}<div class="muted">{{ user.email }}</div></td>
+              <td>{{ user.role }}</td>
+              <td>{{ user.isActive ? 'Active' : 'Disabled' }}</td>
+              <td class="text-end"><button class="btn btn-sm btn-outline-dark" type="button" (click)="edit(user)">Access</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile Stacked Touch Cards (< 768px) -->
+    <div class="d-md-none mobile-card-list">
+      @for (user of users(); track user.id) {
+        <div class="admin-touch-card">
+          <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <div>
+              <strong class="admin-card-title">{{ user.name }}</strong>
+              <div class="muted small">{{ user.email }}</div>
+            </div>
+            <span class="badge bg-light text-dark border text-capitalize">{{ user.role }}</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+            <span class="status-pill" [class.cancelled]="!user.isActive">{{ user.isActive ? 'Active' : 'Disabled' }}</span>
+            <button class="btn btn-sm btn-outline-dark px-3 py-1" type="button" (click)="edit(user)">
+              <i class="bi bi-shield-lock me-1"></i>Access
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+    @if (creating()) {
+      <div class="modal-sheet" (click)="creating.set(false)">
+        <form class="sheet" [formGroup]="createForm" (click)="$event.stopPropagation()" (ngSubmit)="create()">
+          <h3>New account</h3>
+          <input class="form-control mb-2" placeholder="Name" formControlName="name" />
+          <input class="form-control mb-2" placeholder="Email" formControlName="email" />
+          <input class="form-control mb-2" placeholder="Mobile" formControlName="phone" />
+          <input class="form-control mb-2" placeholder="Password" formControlName="password" />
+          <select class="form-select mb-3" formControlName="role">
+            <option value="delivery">Delivery partner</option>
+            <option value="customer">Customer</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button class="btn btn-dark" type="submit" [disabled]="createForm.invalid">Create</button>
+        </form>
+      </div>
+    }
+    @if (selected(); as user) {
+      <div class="modal-sheet" (click)="selected.set(null)">
+        <form class="sheet" [formGroup]="editForm" (click)="$event.stopPropagation()" (ngSubmit)="save()">
+          <h3>{{ user.name }}</h3>
+          <p class="muted">Effective now: {{ user.permissions.join(', ') }}</p>
+          <select class="form-select mb-2" formControlName="role">
+            <option value="customer">Customer</option>
+            <option value="delivery">Delivery</option>
+            <option value="admin">Admin</option>
+          </select>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="userActive" formControlName="isActive" />
+            <label class="form-check-label" for="userActive">Active</label>
+          </div>
+          <p class="eyebrow">Extra permissions</p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            @for (permission of catalog(); track permission) {
+              <button class="btn btn-sm" type="button" [class.btn-dark]="has('permissionGrants', permission)" [class.btn-outline-dark]="!has('permissionGrants', permission)" (click)="toggle('permissionGrants', permission)">{{ permission }}</button>
+            }
+          </div>
+          <p class="eyebrow">Revoke</p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            @for (permission of catalog(); track permission) {
+              <button class="btn btn-sm" type="button" [class.btn-danger]="has('permissionRevokes', permission)" [class.btn-outline-dark]="!has('permissionRevokes', permission)" (click)="toggle('permissionRevokes', permission)">{{ permission }}</button>
+            }
+          </div>
+          <button class="btn btn-dark" type="submit">Save access</button>
+        </form>
+      </div>
+    }
+  

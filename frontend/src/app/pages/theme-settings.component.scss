@@ -1,0 +1,58 @@
+    .theme-settings-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .theme-card {
+      background: var(--card, #ffffff);
+      border: 1px solid var(--card-border, #e2e8f0) !important;
+      border-radius: 1rem;
+    }
+
+    .preset-card {
+      background: var(--card-subtle, #f8fafc);
+      border-color: var(--line, #e2e8f0) !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+
+    .preset-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      border-color: var(--primary-color, #059669) !important;
+    }
+
+    .preset-card.active-preset {
+      background: var(--card, #ffffff);
+      border-color: var(--primary-color, #059669) !important;
+      box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 5, 150, 105), 0.25);
+    }
+
+    .color-picker-box {
+      background: var(--card-subtle, #f8fafc);
+      border-color: var(--line, #e2e8f0) !important;
+    }
+
+    .cursor-pointer {
+      cursor: pointer;
+    }
+
+    .form-control-color::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    .form-control-color::-webkit-color-swatch {
+      border: none;
+      border-radius: 50%;
+    }
+
+    .shadow-2xs {
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .css-code-box {
+      background: #0f172a !important;
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  

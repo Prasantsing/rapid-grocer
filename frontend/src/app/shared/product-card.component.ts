@@ -12,56 +12,7 @@ import { InrPipe } from './inr.pipe';
 @Component({
   selector: 'app-product-card',
   imports: [InrPipe],
-  template: `
-    <article class="tile">
-      <div class="tile-media-wrap">
-        <div class="tile-art" role="button" tabindex="0" (click)="openQuickView($event)" (keydown.enter)="openQuickView($event)" [style.background]="getArtBackground()">
-          @if (product().imageUrl && !imgFailed()) {
-            <img [src]="product().imageUrl" [alt]="product().name" class="product-thumb" (error)="imgFailed.set(true)" loading="lazy" />
-          } @else {
-            <span class="emoji">{{ product().emoji }}</span>
-          }
-          @if (product().discountPercent > 0) {
-            <span class="off">{{ product().discountPercent }}% off</span>
-          }
-        </div>
-        @if (auth.user()?.role === 'customer' || !auth.user()) {
-          <button class="wish" type="button" (click)="toggleWish()" [attr.aria-label]="wished() ? 'Remove from wishlist' : 'Save to wishlist'">
-            <i class="bi" [class.bi-heart-fill]="wished()" [class.bi-heart]="!wished()"></i>
-          </button>
-        }
-
-        <!-- Myntra-style Add to Basket action button downside of image -->
-        <div class="card-action-bar">
-          @if (product().stock < 1) {
-            <span class="sold-badge">Sold out</span>
-          } @else if (qty() === 0) {
-            <button class="add-basket-btn" type="button" [disabled]="busy()" (click)="add()">
-              <i class="bi bi-basket2-fill"></i>
-              <span>ADD</span>
-            </button>
-          } @else {
-            <div class="card-stepper">
-              <button type="button" [disabled]="busy()" (click)="change(qty() - 1)" aria-label="Decrease quantity">−</button>
-              <span class="stepper-count">{{ qty() }}</span>
-              <button type="button" [disabled]="busy()" (click)="change(qty() + 1)" aria-label="Increase quantity">+</button>
-            </div>
-          }
-        </div>
-      </div>
-
-      <div class="tile-body">
-        <p class="unit">{{ product().unit }}</p>
-        <div class="product-title" role="button" tabindex="0" (click)="openQuickView($event)" (keydown.enter)="openQuickView($event)">{{ product().name }}</div>
-        <div class="price-row">
-          <strong class="price-main">{{ product().price | inr }}</strong>
-          @if (product().mrp > product().price) {
-            <s class="price-mrp">{{ product().mrp | inr }}</s>
-          }
-        </div>
-      </div>
-    </article>
-  `,
+  templateUrl: './product-card.component.html',
 })
 export class ProductCard {
   readonly product = input.required<Product>();

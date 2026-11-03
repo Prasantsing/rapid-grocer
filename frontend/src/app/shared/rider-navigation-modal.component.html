@@ -1,0 +1,215 @@
+    <div class="rider-modal-backdrop" (click)="closeModal()">
+      <div class="rider-modal-dialog" (click)="$event.stopPropagation()">
+        <!-- MODAL HEADER -->
+        <div class="rider-modal-header bg-dark text-white px-3 py-2 d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success text-white px-2 py-1 fs-6">
+              <i class="bi bi-compass me-1"></i> Rider Navigation
+            </span>
+            <span class="text-white-50 font-monospace small">#{{ order.orderNumber }}</span>
+          </div>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
+        </div>
+
+        <div class="rider-modal-body p-0">
+          <!-- METRIC STRIP: ETA, DISTANCE, GPS SOURCE -->
+          <div class="bg-light border-bottom p-2 px-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <div class="d-flex align-items-center gap-1">
+                <span class="text-muted small">ETA:</span>
+                <span class="badge bg-primary fs-6 px-2 py-1">
+                  <i class="bi bi-stopwatch me-1"></i>{{ etaMinutes() }} mins
+                </span>
+              </div>
+              <div class="d-flex align-items-center gap-1">
+                <span class="text-muted small">Distance:</span>
+                <strong class="text-dark">{{ distanceKm() }} km</strong>
+              </div>
+            </div>
+
+            <!-- GPS Origin Status & Refresh -->
+            <div class="d-flex align-items-center gap-2">
+              @if (isUsingLiveGps()) {
+                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                  <span class="gps-pulse-dot"></span> Live GPS Active
+                </span>
+              } @else {
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                  <i class="bi bi-shop me-1"></i> Hub Origin (Fallback)
+                </span>
+              }
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm py-0 px-2"
+                style="font-size: 0.75rem;"
+                title="Re-query device GPS"
+                [disabled]="gpsLoading()"
+                (click)="requestLiveGps()">
+                <i class="bi bi-arrow-clockwise" [class.spin]="gpsLoading()"></i> Refresh GPS
+              </button>
+            </div>
+          </div>
+
+          <!-- LANDMARK & CUSTOMER SPOTLIGHT (CRITICAL FOR RIDERS) -->
+          <div class="p-3 bg-warning-subtle border-bottom">
+            <div class="d-flex align-items-start gap-2">
+              <div class="fs-4 text-warning-emphasis lh-1 mt-1">
+                <i class="bi bi-signpost-2-fill"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+                  <strong class="text-warning-emphasis">
+                    {{ order.address.landmark ? 'Landmark: ' + order.address.landmark : 'Customer Location Guide' }}
+                  </strong>
+                  <span class="badge bg-dark text-white font-monospace" style="font-size: 0.72rem;">
+                    PIN: {{ order.address.pincode }}
+                  </span>
+                </div>
+
+                <div class="text-dark small mt-1">
+                  <strong>{{ order.address.fullName }}</strong> ·
+                  <a [href]="'tel:' + order.address.phone" class="text-dark fw-bold text-decoration-none">
+                    <i class="bi bi-telephone-fill text-success me-1"></i>{{ order.address.phone }}
+                  </a>
+                </div>
+
+                <div class="text-secondary small mt-1">
+                  <i class="bi bi-geo-alt me-1"></i>
+                  {{ order.address.line1 }}@if (order.address.line2) {, {{ order.address.line2 }}}, {{ order.address.city }}
+                </div>
+
+                @if (order.notes) {
+                  <div class="mt-2 py-1 px-2 rounded bg-white border border-warning-subtle small text-dark">
+                    <i class="bi bi-card-text text-warning me-1"></i>
+                    <strong>Delivery Note:</strong> {{ order.notes }}
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- ONE-TAP ACTION BAR -->
+          <div class="p-2 px-3 bg-white border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="d-flex flex-wrap gap-2">
+              <!-- Universal Google Maps Launch Button -->
+              <a
+                [href]="googleMapsNavUrl()"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-cursor-fill"></i> Open in Google Maps
+                <span class="badge bg-white text-primary ms-1" style="font-size: 0.65rem;">Two-Wheeler</span>
+              </a>
+
+              <!-- Call Customer -->
+              <a
+                [href]="'tel:' + order.address.phone"
+                class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1">
+                <i class="bi bi-telephone-outbound-fill"></i> Call Customer
+              </a>
+
+              <!-- WhatsApp Quick Ping -->
+              <a
+                [href]="whatsappUrl()"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-outline-success btn-sm fw-semibold d-inline-flex align-items-center gap-1">
+                <i class="bi bi-whatsapp"></i> WhatsApp Ping
+              </a>
+            </div>
+
+            <!-- Quick Run Status Toggle -->
+            <div class="d-flex gap-2">
+              @if (order.status === 'packed') {
+                <button type="button" class="btn btn-warning btn-sm fw-bold" (click)="updateStatus('out_for_delivery')">
+                  <i class="bi bi-bicycle me-1"></i> I'm On The Way
+                </button>
+              }
+              @if (order.status === 'out_for_delivery') {
+                <button type="button" class="btn btn-success btn-sm fw-bold" (click)="updateStatus('delivered')">
+                  <i class="bi bi-check2-circle me-1"></i> Mark Delivered
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- INTERACTIVE OPENSTREETMAP DISPLAY -->
+          <div class="map-wrapper position-relative">
+            <div #mapContainer id="rider-osm-map" class="w-100" style="height: 320px; background-color: #f1f5f9;"></div>
+
+            <!-- Map Floating Controls & Info -->
+            <div class="position-absolute top-0 end-0 p-2 z-3" style="pointer-events: none;">
+              <span class="badge bg-white text-dark shadow-sm border" style="pointer-events: auto; opacity: 0.95;">
+                <i class="bi bi-layers me-1 text-primary"></i> Free OpenStreetMap & OSRM
+              </span>
+            </div>
+
+            <div class="position-absolute bottom-0 start-0 p-2 z-3" style="pointer-events: none;">
+              <button
+                type="button"
+                class="btn btn-light btn-sm shadow-sm border py-1 px-2"
+                style="pointer-events: auto; font-size: 0.75rem;"
+                (click)="recenterMap()">
+                <i class="bi bi-arrows-angle-expand me-1"></i> Fit Route
+              </button>
+            </div>
+
+            @if (routeLoading()) {
+              <div class="position-absolute top-50 start-50 translate-middle bg-white px-3 py-2 rounded-3 shadow border text-center z-3">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                <span class="small fw-semibold">Calculating best free route…</span>
+              </div>
+            }
+          </div>
+
+          <!-- STEP-BY-STEP ROAD GUIDANCE (EXPANDABLE) -->
+          <div class="p-3 bg-white border-top">
+            <button
+              type="button"
+              class="btn btn-link p-0 text-decoration-none text-dark w-100 d-flex justify-content-between align-items-center"
+              (click)="showSteps.set(!showSteps())">
+              <span class="fw-bold small d-inline-flex align-items-center gap-1">
+                <i class="bi bi-turn-right text-primary"></i>
+                Turn-by-turn Road Directions ({{ steps().length }} maneuvers)
+              </span>
+              <i class="bi" [class.bi-chevron-down]="!showSteps()" [class.bi-chevron-up]="showSteps()"></i>
+            </button>
+
+            @if (showSteps()) {
+              <div class="mt-2 border rounded p-2 bg-light-subtle" style="max-height: 180px; overflow-y: auto;">
+                @if (!steps().length) {
+                  <p class="text-muted small mb-0">Direct route plotted. Follow the green route line on the map above.</p>
+                } @else {
+                  <ul class="list-unstyled mb-0 small">
+                    @for (step of steps(); track $index; let i = $index) {
+                      <li class="py-1 d-flex gap-2 border-bottom border-light">
+                        <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.68rem; height: fit-content;">
+                          {{ i + 1 }}
+                        </span>
+                        <div class="flex-grow-1">
+                          <span class="text-dark fw-medium">{{ step.instruction }}</span>
+                          @if (step.distanceMeters > 0) {
+                            <div class="text-muted font-monospace" style="font-size: 0.7rem;">
+                              for {{ formatMeters(step.distanceMeters) }}
+                            </div>
+                          }
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- MODAL FOOTER -->
+        <div class="modal-footer bg-light px-3 py-2 border-top d-flex justify-content-between">
+          <small class="text-muted" style="font-size: 0.72rem;">
+            <i class="bi bi-shield-check text-success me-1"></i> Zero-cost routing via OpenStreetMap & Project-OSRM
+          </small>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  

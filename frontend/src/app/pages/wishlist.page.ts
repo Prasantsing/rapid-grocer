@@ -7,20 +7,7 @@ import { ProductCard } from '../shared/product-card.component';
 @Component({
   selector: 'app-wishlist-page',
   imports: [ProductCard, RouterLink],
-  template: `
-    <div class="section-head"><h2>Saved</h2></div>
-    @if (loading()) {
-      <p class="muted">Opening your list…</p>
-    } @else if (products().length === 0) {
-      <div class="empty panel"><h2>Nothing saved yet</h2><a routerLink="/">Find something worth keeping</a></div>
-    } @else {
-      <div class="product-grid">
-        @for (product of products(); track product.id) {
-          <app-product-card [product]="product" />
-        }
-      </div>
-    }
-  `,
+  templateUrl: './wishlist.page.html',
 })
 export class WishlistPage {
   private readonly shop = inject(ShopService);

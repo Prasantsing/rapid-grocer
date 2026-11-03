@@ -1,0 +1,181 @@
+    <div class="upi-overlay" (click)="onBackdropClick($event)">
+      <div class="upi-sheet" role="dialog" aria-modal="true" aria-labelledby="upi-dialog-title">
+        <!-- Close Button -->
+        @if (status() !== 'success') {
+          <button type="button" class="sheet-close-btn" (click)="requestClose()" aria-label="Close UPI payment">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        }
+
+        <!-- SUCCESS STATE -->
+        @if (status() === 'success') {
+          <div class="text-center py-4 px-3">
+            <div class="success-sparkle-circle mb-3 mx-auto">
+              <i class="bi bi-check2-circle text-success fs-1"></i>
+            </div>
+            <h3 id="upi-dialog-title" class="fw-bold mb-1 text-ink">Payment Successful!</h3>
+            <p class="fs-4 fw-bold text-success mb-2">{{ details.amount | inr }}</p>
+            <p class="text-muted small mb-3">
+              Order #<b>{{ details.orderNumber }}</b> has been verified and confirmed.<br>
+              Our partner is packing your items now.
+            </p>
+            <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill bg-success-subtle text-success small mb-4">
+              <span class="spinner-border spinner-border-sm" role="status"></span>
+              <span>Redirecting to live order tracking in {{ redirectCountdown() }}s…</span>
+            </div>
+            <div>
+              <button type="button" class="btn btn-success w-100 py-2 fw-semibold" (click)="finishRedirect()">
+                Track Order Live Now →
+              </button>
+            </div>
+          </div>
+        } @else {
+          <!-- ACTIVE PAYMENT STATE -->
+          <div class="upi-content">
+            <!-- Header -->
+            <div class="text-center mb-3">
+              <div class="d-inline-flex align-items-center gap-2 px-2 py-1 rounded-pill bg-light border small text-muted mb-2">
+                <i class="bi bi-shield-check text-success"></i>
+                <span>100% Secure UPI · ZapBasket Verified</span>
+              </div>
+              <h3 id="upi-dialog-title" class="h5 fw-bold mb-1 text-ink">Pay with UPI</h3>
+              <div class="pay-amount-hero">{{ details.amount | inr }}</div>
+              <div class="text-muted small">
+                Order #<b>{{ details.orderNumber }}</b> · Payee: <b>{{ details.payeeName || 'ZapBasket' }}</b>
+              </div>
+            </div>
+
+            <!-- Mobile: Direct 1-Tap UPI App Launch Buttons -->
+            <div class="mb-3">
+              <div class="text-muted small fw-semibold mb-2 text-start">
+                <i class="bi bi-phone me-1 text-primary"></i> 1-Tap UPI Apps:
+              </div>
+              <div class="upi-app-grid">
+                <a
+                  [href]="details.gpayUri || details.genericUri"
+                  class="upi-app-card gpay-card"
+                  (click)="onAppClicked('Google Pay')"
+                >
+                  <div class="upi-app-icon gpay-icon">
+                    <span class="gpay-g">G</span><span class="gpay-pay">Pay</span>
+                  </div>
+                  <span class="upi-app-name">Google Pay</span>
+                </a>
+
+                <a
+                  [href]="details.phonepeUri || details.genericUri"
+                  class="upi-app-card phonepe-card"
+                  (click)="onAppClicked('PhonePe')"
+                >
+                  <div class="upi-app-icon phonepe-icon">
+                    <i class="bi bi-p-circle-fill"></i>
+                  </div>
+                  <span class="upi-app-name">PhonePe</span>
+                </a>
+
+                <a
+                  [href]="details.paytmUri || details.genericUri"
+                  class="upi-app-card paytm-card"
+                  (click)="onAppClicked('Paytm')"
+                >
+                  <div class="upi-app-icon paytm-icon">
+                    <span>Paytm</span>
+                  </div>
+                  <span class="upi-app-name">Paytm</span>
+                </a>
+
+                <a
+                  [href]="details.genericUri"
+                  class="upi-app-card any-upi-card"
+                  (click)="onAppClicked('Any UPI')"
+                >
+                  <div class="upi-app-icon any-icon">
+                    <i class="bi bi-lightning-charge-fill text-warning"></i>
+                  </div>
+                  <span class="upi-app-name">Other UPI</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- QR Code Section for Scanning / Desktop -->
+            <div class="qr-box-container mb-3 text-center">
+              <div class="qr-wrapper">
+                <img
+                  [src]="qrImageUrl()"
+                  alt="Scan UPI QR Code to Pay"
+                  class="qr-code-img"
+                  width="168"
+                  height="168"
+                  loading="eager"
+                />
+              </div>
+              <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                <span class="vpa-badge font-monospace">{{ details.upiId }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary py-0 px-2 copy-btn"
+                  (click)="copyVpa()"
+                  title="Copy UPI ID"
+                >
+                  <i class="bi" [class.bi-clipboard]="!vpaCopied()" [class.bi-check-lg]="vpaCopied()"></i>
+                  <span class="ms-1" style="font-size: 0.72rem;">{{ vpaCopied() ? 'Copied' : 'Copy' }}</span>
+                </button>
+              </div>
+              <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+                Scan with GPay, PhonePe, Paytm, BHIM, or any banking app
+              </div>
+            </div>
+
+            <!-- Primary Action Buttons -->
+            <div class="d-flex flex-column gap-2">
+              <button
+                type="button"
+                class="btn btn-success btn-lg w-100 fw-bold py-2 d-flex align-items-center justify-content-center gap-2"
+                [disabled]="isVerifying()"
+                (click)="confirmPaymentCompleted()"
+              >
+                @if (isVerifying()) {
+                  <span class="spinner-border spinner-border-sm" role="status"></span>
+                  <span>Verifying Payment…</span>
+                } @else {
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span>I Have Paid — Confirm Order</span>
+                }
+              </button>
+
+              <!-- Helpful Fallbacks -->
+              <div class="d-flex align-items-center justify-content-between gap-2 mt-1">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm flex-grow-1 py-1"
+                  [disabled]="isSwitching()"
+                  (click)="switchToCod()"
+                >
+                  @if (isSwitching()) {
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    <span>Switching…</span>
+                  } @else {
+                    <i class="bi bi-cash me-1"></i> Pay with Cash on Delivery
+                  }
+                </button>
+
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm py-1 px-2"
+                  [disabled]="isCancelling()"
+                  (click)="cancelAndRestoreCart()"
+                  title="Cancel this order and keep your basket items"
+                >
+                  @if (isCancelling()) {
+                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                  } @else {
+                    <i class="bi bi-x-circle me-1"></i> Cancel
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  

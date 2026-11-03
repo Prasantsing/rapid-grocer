@@ -1,0 +1,242 @@
+    .user-profile-layout {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    /* Hero Profile Card */
+    .profile-hero-card {
+      background: #ffffff;
+      border: 1px solid #e8e3d6;
+      border-radius: 24px;
+      padding: 1.75rem 2rem;
+      box-shadow: 0 4px 20px rgba(28, 25, 21, 0.04);
+    }
+
+    .profile-avatar-wrapper {
+      position: relative;
+    }
+
+    .avatar-initials {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #0e6b4f 0%, #072a20 100%);
+      color: #f6f1e4;
+      display: grid;
+      place-items: center;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(14, 107, 79, 0.25);
+    }
+
+    .avatar-role-badge {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      background: #ffffff;
+      border-radius: 50%;
+      padding: 2px;
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+
+    .bg-emerald-subtle {
+      background-color: #d1fae5;
+    }
+
+    .text-emerald {
+      color: #065f46;
+    }
+
+    .border-emerald-subtle {
+      border-color: #a7f3d0;
+    }
+
+    /* Stats Grid */
+    .profile-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .profile-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .profile-hero-card {
+        padding: 1.25rem 1.25rem;
+      }
+    }
+
+    .stat-box {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.75rem 1rem;
+      border-radius: 16px;
+      background: #fbf9f4;
+      border: 1px solid #f0ebe1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .stat-box:hover {
+      background: #ffffff;
+      border-color: #0e6b4f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(14, 107, 79, 0.08);
+    }
+
+    .stat-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .stat-value {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1c1915;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.74rem;
+      color: #7b7466;
+      font-weight: 500;
+    }
+
+    /* Tabs Segmented Control */
+    .profile-tabs-nav {
+      display: flex;
+      background: #f3efe4;
+      padding: 5px;
+      border-radius: 16px;
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: max-content;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border: 0;
+      background: transparent;
+      color: #6a6458;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.7rem 1.25rem;
+      border-radius: 12px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .tab-btn:hover {
+      color: #1c1915;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: #0e6b4f;
+      box-shadow: 0 2px 8px rgba(28, 25, 21, 0.08);
+    }
+
+    .tab-count-badge {
+      font-size: 0.72rem;
+      background: rgba(14, 107, 79, 0.12);
+      color: #0e6b4f;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    /* Order History Cards */
+    .order-history-card {
+      background: #ffffff;
+      border: 1px solid #e8e3d6;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(28, 25, 21, 0.03);
+      transition: all 0.2s ease;
+    }
+
+    .order-history-card:hover {
+      box-shadow: 0 6px 18px rgba(28, 25, 21, 0.07);
+      border-color: #d1c8b8;
+    }
+
+    .item-tag-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #fbf9f4;
+      border: 1px solid #e8e3d6;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+    }
+
+    .item-qty-badge {
+      font-weight: 700;
+      color: #0e6b4f;
+    }
+
+    .item-name-text {
+      max-width: 140px;
+      color: #3b362f;
+      font-weight: 500;
+    }
+
+    /* Address Cards */
+    .address-card {
+      transition: all 0.2s ease;
+    }
+
+    .address-card:hover {
+      border-color: #0e6b4f;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(14, 107, 79, 0.08);
+    }
+
+    .address-type-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: #f3efe4;
+      display: grid;
+      place-items: center;
+      color: #0e6b4f;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    /* Empty States */
+    .empty-state-panel {
+      background: #ffffff;
+      border: 1px dashed #d1c8b8;
+      border-radius: 24px;
+      padding: 3rem 1.5rem;
+    }
+
+    .empty-icon-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #fbf9f4;
+      display: grid;
+      place-items: center;
+    }
+
+    .max-w-sm {
+      max-width: 380px;
+    }
+  

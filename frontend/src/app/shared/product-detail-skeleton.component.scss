@@ -1,0 +1,17 @@
+    :host {
+      display: block;
+      width: 100%;
+    }
+
+    .product-detail-skeleton {
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .hero-media-box {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 1;
+      border-radius: var(--border-radius-lg, 1.35rem);
+    }
+  

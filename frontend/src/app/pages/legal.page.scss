@@ -1,0 +1,26 @@
+    .legal-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .legal-tab-btn {
+      color: #495057;
+      font-weight: 600;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+    .legal-tab-btn:hover {
+      background: #e9ecef;
+      color: #212529;
+    }
+    .legal-tab-btn.active {
+      background: #212529;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .legal-doc {
+      line-height: 1.65;
+    }
+  

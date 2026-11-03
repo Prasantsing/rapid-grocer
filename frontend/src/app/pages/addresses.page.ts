@@ -9,60 +9,7 @@ import { AddressFormComponent } from '../shared/address-form.component';
   selector: 'app-addresses-page',
   standalone: true,
   imports: [AddressFormComponent],
-  template: `
-    <div class="section-head">
-      <div>
-        <h2>Saved Addresses</h2>
-        <p class="muted mb-0">Delivery locations for fast 12-minute orders</p>
-      </div>
-      @if (editingId()) {
-        <button class="btn btn-outline-dark btn-sm" (click)="resetForm()">
-          <i class="bi bi-plus-lg me-1"></i> Add New Address
-        </button>
-      }
-    </div>
-    <div class="split">
-      <div>
-        @for (address of addresses(); track address.id) {
-          <article class="panel mb-3" [class.border-success]="editingId() === address.id">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <div class="d-flex align-items-center gap-2">
-                <strong>{{ address.label }}</strong>
-                @if (address.isDefault) {
-                  <span class="badge bg-success" style="font-size: 0.68rem;">DEFAULT</span>
-                }
-              </div>
-              <button class="btn btn-sm btn-link p-0 text-success fw-semibold" type="button" (click)="edit(address)">
-                <i class="bi bi-pencil-square me-1"></i>Edit
-              </button>
-            </div>
-            <p class="mb-1 fw-semibold">{{ address.fullName }} · {{ address.phone }}</p>
-            <p class="muted mb-2">{{ address.line1 }}, {{ address.city }}, {{ address.state }} {{ address.pincode }}</p>
-            <div class="d-flex justify-content-between align-items-center">
-              <button class="btn btn-sm btn-outline-danger" type="button" (click)="remove(address)">Remove</button>
-              @if (!address.isDefault) {
-                <button class="btn btn-sm btn-link text-muted p-0" type="button" (click)="makeDefault(address)">Make default</button>
-              }
-            </div>
-          </article>
-        }
-        @if (!addresses().length) {
-          <div class="empty panel">
-            <h2>No address yet</h2>
-            <p>Add your first delivery address using GPS or manual details.</p>
-          </div>
-        }
-      </div>
-      <div class="panel">
-        <h3 class="mb-3">{{ editingId() ? 'Edit Address' : 'Add New Address' }}</h3>
-        <app-address-form
-          [initialAddress]="editingAddress()"
-          (saved)="onAddressSaved($event)"
-          (cancelled)="resetForm()"
-        />
-      </div>
-    </div>
-  `,
+  templateUrl: './addresses.page.html',
 })
 export class AddressesPage {
   private readonly shop = inject(ShopService);

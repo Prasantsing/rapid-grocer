@@ -1,0 +1,22 @@
+    .receipt-admin-badge-strip {
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .review-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(4px);
+      z-index: 2100;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .review-modal-content {
+      background: #ffffff;
+      border-radius: 18px;
+      max-width: 780px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+    }
+  

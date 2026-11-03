@@ -1,0 +1,210 @@
+    @if (quickView.isOpen() && quickView.activeProduct(); as item) {
+      <div
+        class="bottom-sheet-backdrop"
+        [class.show]="quickView.isOpen()"
+        (click)="onBackdropClick($event)"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sheetProductTitle"
+      >
+        <div
+          class="bottom-sheet-drawer"
+          [class.open]="quickView.isOpen()"
+          (click)="$event.stopPropagation()"
+        >
+          <!-- Drag Handle Indicator -->
+          <div class="sheet-handle-bar" (click)="quickView.close()">
+            <span class="sheet-pull-handle"></span>
+          </div>
+
+          <!-- Sticky Top Header with Category & Close -->
+          <div class="sheet-header d-flex align-items-center justify-content-between px-4 pt-1 pb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-emerald-subtle text-emerald rounded-pill px-2 py-1 text-uppercase fw-bold" style="font-size: 0.7rem;">
+                {{ categoryName(item) }}
+              </span>
+              <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2 py-1 small">
+                <i class="bi bi-lightning-charge-fill me-1"></i> 12 Mins
+              </span>
+            </div>
+
+            <button
+              type="button"
+              class="btn-close sheet-close-btn"
+              (click)="quickView.close()"
+              aria-label="Close"
+            ></button>
+          </div>
+
+          <!-- Scrollable Body Content -->
+          <div class="sheet-body px-4 pb-4">
+            <!-- Product Visual Banner -->
+            <div class="sheet-visual-banner text-center mb-3 p-3 rounded-4" [style.background]="getHeroBg(item)">
+              @if (item.imageUrl && !imgFailed()) {
+                <img
+                  [src]="item.imageUrl"
+                  [alt]="item.name"
+                  class="sheet-product-img"
+                  (error)="imgFailed.set(true)"
+                />
+              } @else {
+                <span class="sheet-product-emoji">{{ item.emoji }}</span>
+              }
+
+              @if (item.discountPercent > 0) {
+                <span class="sheet-discount-badge">
+                  <i class="bi bi-tag-fill me-1"></i> {{ item.discountPercent }}% OFF
+                </span>
+              }
+            </div>
+
+            <!-- Title & Pricing Row -->
+            <div class="mb-3">
+              <h2 id="sheetProductTitle" class="sheet-title text-dark fw-bold mb-1">{{ item.name }}</h2>
+              <div class="d-flex align-items-center gap-2 text-muted small mb-2">
+                <span>{{ item.brand }}</span>
+                <span>•</span>
+                <span class="fw-semibold text-dark">{{ item.unit }}</span>
+                <span>•</span>
+                <span class="text-success"><i class="bi bi-shield-check me-1"></i>100% Fresh</span>
+              </div>
+
+              <div class="d-flex align-items-baseline gap-2">
+                <strong class="sheet-price-main fs-3 text-dark">{{ item.price | inr }}</strong>
+                @if (item.mrp > item.price) {
+                  <s class="text-muted fs-6">{{ item.mrp | inr }}</s>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                    Save {{ (item.mrp - item.price) | inr }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p class="sheet-desc text-secondary small leading-relaxed mb-4">
+              {{ item.description }}
+            </p>
+
+            <!-- Comprehensive Nutrition Facts Table -->
+            @if (nutrition(); as n) {
+              <div class="nutrition-card mb-4 p-3 rounded-4 border bg-light">
+                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-heart-pulse-fill text-danger"></i>
+                    <strong class="text-dark small text-uppercase fw-bold">Nutritional Facts</strong>
+                  </div>
+                  <span class="text-muted" style="font-size: 0.72rem;">Per {{ n.servingSize }}</span>
+                </div>
+
+                <div class="nutrition-grid">
+                  <div class="nutri-item">
+                    <span class="nutri-val">{{ n.calories }}</span>
+                    <span class="nutri-lbl">Calories (kcal)</span>
+                  </div>
+                  <div class="nutri-item">
+                    <span class="nutri-val">{{ n.protein }}g</span>
+                    <span class="nutri-lbl">Protein</span>
+                  </div>
+                  <div class="nutri-item">
+                    <span class="nutri-val">{{ n.carbs }}g</span>
+                    <span class="nutri-lbl">Carbohydrates</span>
+                  </div>
+                  <div class="nutri-item">
+                    <span class="nutri-val">{{ n.fat }}g</span>
+                    <span class="nutri-lbl">Total Fat</span>
+                  </div>
+                  @if (n.fiber) {
+                    <div class="nutri-item">
+                      <span class="nutri-val">{{ n.fiber }}g</span>
+                      <span class="nutri-lbl">Dietary Fiber</span>
+                    </div>
+                  }
+                  @if (n.calcium) {
+                    <div class="nutri-item">
+                      <span class="nutri-val">{{ n.calcium }}</span>
+                      <span class="nutri-lbl">Calcium</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Key Features & Trust Badges -->
+            <div class="sheet-trust-pillars mb-4">
+              <div class="pillar-row">
+                <i class="bi bi-snow text-info fs-5"></i>
+                <div class="small">
+                  <strong class="text-dark">Cold Chain Protected</strong>
+                  <span class="text-muted d-block">Maintained between 2°C – 4°C from dark store to your door.</span>
+                </div>
+              </div>
+              <div class="pillar-row">
+                <i class="bi bi-clock-history text-warning fs-5"></i>
+                <div class="small">
+                  <strong class="text-dark">12-Minute Fast Handoff</strong>
+                  <span class="text-muted d-block">Hand-picked within 90 seconds of ordering.</span>
+                </div>
+              </div>
+              <div class="pillar-row">
+                <i class="bi bi-award-fill text-success fs-5"></i>
+                <div class="small">
+                  <strong class="text-dark">FSSAI & Quality Tested</strong>
+                  <span class="text-muted d-block">Food safety certified with sealed tamper-evident bag.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Deep Link to Full Details Page -->
+            <div class="text-center pt-2 pb-4">
+              <a
+                [routerLink]="['/p', item.slug]"
+                (click)="quickView.close()"
+                class="text-decoration-none text-muted small fw-medium"
+              >
+                View Full Product Specs & Multi-Angle Photos <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Bottom Sticky Action Bar (Pill style) -->
+          <div class="sheet-action-footer p-3 bg-white border-top">
+            @if (item.stock < 1) {
+              <button class="btn btn-secondary w-100 py-3 rounded-pill fw-bold" disabled>
+                Currently Out of Stock
+              </button>
+            } @else if (qty() === 0) {
+              <button
+                type="button"
+                class="btn btn-dark w-100 py-3 rounded-pill fw-bold d-flex align-items-center justify-content-between px-4 shadow-sm"
+                [disabled]="busy()"
+                (click)="add(item)"
+              >
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-basket2-fill"></i>
+                  <span>ADD TO BASKET</span>
+                </div>
+                <span>{{ item.price | inr }}</span>
+              </button>
+            } @else {
+              <div class="d-flex align-items-center justify-content-between gap-3">
+                <div class="sheet-stepper d-flex align-items-center">
+                  <button type="button" class="stepper-btn" (click)="change(item, qty() - 1)">−</button>
+                  <span class="stepper-qty px-3 fw-bold fs-6">{{ qty() }}</span>
+                  <button type="button" class="stepper-btn" (click)="change(item, qty() + 1)">+</button>
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-success flex-grow-1 py-3 rounded-pill fw-bold d-flex align-items-center justify-content-between px-3 shadow-sm"
+                  (click)="viewCart()"
+                >
+                  <span>ADDED ({{ (item.price * qty()) | inr }})</span>
+                  <span>VIEW BASKET →</span>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  

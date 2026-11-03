@@ -1,0 +1,152 @@
+    <div class="voice-modal-backdrop" (click)="close()">
+      <div class="voice-modal-card" (click)="$event.stopPropagation()">
+        <!-- Header: Title & Close -->
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <span class="voice-logo-badge">
+              <i class="bi bi-mic-fill text-success"></i>
+            </span>
+            <div>
+              <h3 class="h6 fw-bold mb-0 text-ink">Voice Search</h3>
+              <small class="text-muted">Speak in your language to find groceries</small>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="close()"
+            aria-label="Close voice search"
+          ></button>
+        </div>
+
+        <!-- Language Selector Chips -->
+        <div class="mb-3">
+          <label class="form-label small text-muted mb-1 d-block fw-semibold" style="font-size: 0.72rem;">
+            SELECT SPOKEN LANGUAGE:
+          </label>
+          <div class="lang-chips-grid">
+            @for (lang of languages; track lang.code) {
+              <button
+                type="button"
+                class="lang-chip"
+                [class.active]="selectedLanguage().code === lang.code"
+                (click)="selectLanguage(lang)"
+              >
+                <span class="lang-flag">{{ lang.flag }}</span>
+                <span class="lang-name">{{ lang.nativeName }}</span>
+                <span class="lang-sub">{{ lang.name }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Listening Visualizer Stage -->
+        <div class="voice-stage text-center py-4 my-2 rounded-4">
+          <!-- Animated Sound Wave Rings -->
+          <div class="mic-pulsar-wrap mb-3">
+            <div
+              class="mic-pulse-ring"
+              [class.pulsing]="isListening()"
+              [class.processing]="isProcessing()"
+            ></div>
+            <div
+              class="mic-pulse-ring ring-2"
+              [class.pulsing]="isListening()"
+            ></div>
+            <button
+              type="button"
+              class="mic-action-btn"
+              [class.active]="isListening()"
+              (click)="toggleListening()"
+              [title]="isListening() ? 'Tap to pause' : 'Tap to start speaking'"
+            >
+              @if (isProcessing()) {
+                <span class="spinner-border spinner-border-sm text-dark" role="status"></span>
+              } @else {
+                <i class="bi" [class.bi-mic-fill]="isListening()" [class.bi-mic-mute-fill]="!isListening()"></i>
+              }
+            </button>
+          </div>
+
+          <!-- Animated Audio Waveform Bars (visible while listening) -->
+          @if (isListening()) {
+            <div class="waveform-bars d-flex justify-content-center align-items-center gap-1 mb-2">
+              <span class="wave-bar bar-1"></span>
+              <span class="wave-bar bar-2"></span>
+              <span class="wave-bar bar-3"></span>
+              <span class="wave-bar bar-4"></span>
+              <span class="wave-bar bar-5"></span>
+            </div>
+          }
+
+          <!-- Live Status & Transcript -->
+          <div class="status-box px-3">
+            @if (isListening()) {
+              <div class="listening-label text-success fw-bold">
+                <span class="pulse-dot"></span> Listening in {{ selectedLanguage().nativeName }}…
+              </div>
+              @if (liveTranscript()) {
+                <div class="live-transcript mt-2">
+                  "{{ liveTranscript() }}"
+                </div>
+              } @else {
+                <div class="transcript-placeholder mt-2 text-muted small">
+                  Say something like: <i>"{{ selectedLanguage().samplePrompt }}"</i>
+                </div>
+              }
+            } @else if (isProcessing()) {
+              <div class="processing-label text-primary fw-bold">
+                <i class="bi bi-stars me-1 text-warning"></i> Finding matching groceries…
+              </div>
+              <div class="live-transcript mt-1">"{{ liveTranscript() }}"</div>
+            } @else if (liveTranscript()) {
+              <div class="recognized-label text-success fw-bold">
+                <i class="bi bi-check-circle-fill me-1"></i> Recognized:
+              </div>
+              <div class="live-transcript mt-1 fw-bold fs-5 text-ink">
+                "{{ liveTranscript() }}"
+              </div>
+            } @else {
+              <div class="idle-label text-muted">
+                Tap the microphone to speak or pick a quick grocery phrase below
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Quick Sample Voice Prompts (Instant 1-Tap Testing) -->
+        <div class="sample-prompts-section mt-3 pt-2 border-top">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="text-muted small fw-semibold" style="font-size: 0.72rem;">
+              <i class="bi bi-lightning-charge-fill text-warning me-1"></i> QUICK VOICE EXAMPLES (1-TAP TEST)
+            </span>
+          </div>
+          <div class="sample-chips-wrap">
+            @for (sample of currentSamplePrompts(); track sample) {
+              <button
+                type="button"
+                class="sample-chip"
+                (click)="useSamplePrompt(sample)"
+              >
+                <i class="bi bi-chat-quote-fill me-1 text-success"></i>
+                <span>{{ sample }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Error & Fallback Banner (if permission denied or unsupported) -->
+        @if (errorMessage()) {
+          <div class="alert alert-warning py-2 px-3 small mt-3 mb-0 d-flex align-items-start gap-2">
+            <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0 mt-1"></i>
+            <div class="flex-grow-1">
+              <span>{{ errorMessage() }}</span>
+              <div class="mt-1">
+                <small class="text-muted">You can still tap any of the quick grocery examples above to search instantly.</small>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  

@@ -1,0 +1,141 @@
+    <div class="section-head"><div><p class="eyebrow">Today</p><h2>Store pulse</h2></div></div>
+    @if (error()) { <div class="panel">{{ error() }}</div> }
+    @if (data(); as dash) {
+      <!-- ACTIVE RECEIVING UPI ACCOUNT STRIP -->
+      <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 receiving-account-card">
+        <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-3">
+          <div class="d-flex align-items-start align-items-sm-center gap-3 w-100 min-w-0">
+            <div class="p-3 rounded-3 bg-success-subtle text-success flex-shrink-0">
+              <i class="bi bi-wallet2 fs-4"></i>
+            </div>
+            <div class="min-w-0 flex-grow-1">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="small fw-semibold text-muted text-uppercase">Receiving Money Account</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                  <i class="bi bi-check-circle-fill me-1"></i> Active
+                </span>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                <span class="fs-5 fw-bold font-monospace text-ink text-break">{{ shop.storeConfig()?.upiVpa || '9101516662@ybl' }}</span>
+                <span class="text-muted small text-truncate">· Payee: <b>{{ shop.storeConfig()?.payeeName || 'ZapBasket' }}</b></span>
+              </div>
+            </div>
+          </div>
+          <div class="w-100 w-sm-auto flex-shrink-0">
+            <a routerLink="/admin/settlement" class="btn btn-sm btn-dark w-100 d-inline-flex align-items-center justify-content-center gap-1 px-3 py-2">
+              <i class="bi bi-pencil-square"></i>
+              <span>Change Receiving Account</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid mb-3">
+        <article class="stat"><span>Revenue</span><strong>{{ dash.revenue | inr }}</strong></article>
+        <article class="stat"><span>Orders</span><strong>{{ dash.orders }}</strong></article>
+        <article class="stat"><span>Today</span><strong>{{ dash.todayOrders }}</strong><span>{{ dash.todayRevenue | inr }}</span></article>
+        <article class="stat"><span>Avg basket</span><strong>{{ dash.averageOrderValue | inr }}</strong></article>
+      </div>
+
+      <!-- CUSTOMER SATISFACTION & RIDER TIPS STRIP -->
+      @if (feedback(); as fb) {
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-4">
+            <div class="panel h-100 p-3">
+              <span class="text-muted small text-uppercase fw-semibold d-block">Store Quality Rating</span>
+              <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="fs-3 fw-bold text-warning">⭐ {{ fb.summary.avgStoreRating }}</span>
+                <span class="text-muted small">/ 5.0 ({{ fb.summary.totalRatings }} reviews)</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="panel h-100 p-3">
+              <span class="text-muted small text-uppercase fw-semibold d-block">Rider Delivery Rating</span>
+              <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="fs-3 fw-bold text-warning">⭐ {{ fb.summary.avgRiderRating }}</span>
+                <span class="text-muted small">/ 5.0 on-time benchmark</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="panel h-100 p-3">
+              <span class="text-muted small text-uppercase fw-semibold d-block">Rider Tips Disbursed</span>
+              <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="fs-3 fw-bold text-success">{{ fb.summary.totalTipsCollected | inr }}</span>
+                <span class="text-muted small">across {{ fb.summary.tipsCount }} tips</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="split">
+        <section class="panel">
+          <h3>Recent orders</h3>
+          @for (order of dash.recentOrders; track order.id) {
+            <a class="line-item text-reset" [routerLink]="['/admin/orders']">
+              <span>{{ order.orderNumber }}<br><small class="muted">{{ order.customer }} · {{ order.createdAt | date:'d MMM, h:mm a' }}</small></span>
+              <span [class]="'status-pill ' + order.status">{{ label(order.status) }}</span>
+            </a>
+          }
+        </section>
+        <section class="panel">
+          <h3>Running low</h3>
+          @for (item of dash.lowStock; track item.id) {
+            <p class="summary-row"><span>{{ item.emoji }} {{ item.name }}</span><strong>{{ item.stock }} left</strong></p>
+          }
+          <h3 class="mt-4">Status mix</h3>
+          @for (row of dash.ordersByStatus; track row.status) {
+            <p class="summary-row"><span>{{ label(row.status) }}</span><span>{{ row.count }}</span></p>
+          }
+        </section>
+      </div>
+
+      <!-- RECENT CUSTOMER FEEDBACK & REVIEWS STREAM -->
+      @if (feedback()?.recentFeedback?.length) {
+        <section class="panel mt-3">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">Recent Customer Reviews</h3>
+            <span class="badge bg-light text-secondary border">Live Feedback</span>
+          </div>
+          <div class="row g-3">
+            @for (rev of feedback()!.recentFeedback; track rev.orderId) {
+              <div class="col-12 col-md-6">
+                <div class="p-3 bg-light rounded-3 border h-100">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <strong>{{ rev.orderNumber }}</strong>
+                      <span class="text-muted small ms-2">· {{ rev.customerName }}</span>
+                    </div>
+                    <span class="text-warning small fw-bold">⭐ {{ rev.storeRating }}/5 Store</span>
+                  </div>
+                  @if (rev.riderRating) {
+                    <div class="small text-muted mb-1">
+                      Rider: <b>{{ rev.riderName }}</b> · ⭐ {{ rev.riderRating }}/5
+                      @if (rev.tipAmount > 0) {
+                        <span class="badge bg-success-subtle text-success ms-1">+₹{{ rev.tipAmount }} tip</span>
+                      }
+                    </div>
+                  }
+                  @if (rev.deliveryTags.length) {
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                      @for (t of rev.deliveryTags; track t) {
+                        <span class="badge bg-white text-dark border" style="font-size: 0.7rem;">{{ t }}</span>
+                      }
+                    </div>
+                  }
+                  @if (rev.comments) {
+                    <div class="small text-secondary fst-italic">"{{ rev.comments }}"</div>
+                  }
+                  <div class="text-end text-muted mt-2" style="font-size: 0.68rem;">
+                    {{ rev.submittedAt | date:'mediumDate' }}
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+  

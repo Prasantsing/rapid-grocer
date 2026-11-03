@@ -1,0 +1,23 @@
+      .tracking-card {
+        border: 1px solid rgba(14, 107, 79, 0.15);
+      }
+      .pulse-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 rgba(25, 135, 84, 0.7);
+        animation: pulseWave 1.8s infinite;
+      }
+      @keyframes pulseWave {
+        0% {
+          box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 10px rgba(25, 135, 84, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+        }
+      }
+    

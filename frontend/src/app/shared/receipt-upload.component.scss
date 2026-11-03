@@ -1,0 +1,68 @@
+    .receipt-verify-card {
+      border: 1px solid var(--line, #e2e8f0);
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+    .check-circle-icon {
+      width: 28px;
+      height: 28px;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    .dropzone-box {
+      border-color: #cbd5e1 !important;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .dropzone-box:hover, .dropzone-box.dragover {
+      background: #f1f5f9;
+      border-color: #0f172a !important;
+    }
+    .upload-icon-wrap {
+      width: 52px;
+      height: 52px;
+    }
+    .scanner-preview {
+      width: 140px;
+      height: 140px;
+      overflow: hidden;
+    }
+    .scanner-img, .scanner-placeholder {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .scan-laser {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, rgba(37,99,235,0) 0%, rgba(37,99,235,1) 50%, rgba(37,99,235,0) 100%);
+      box-shadow: 0 0 10px #2563eb, 0 0 18px #3b82f6;
+      animation: laserScan 1.6s ease-in-out infinite alternate;
+    }
+    @keyframes laserScan {
+      0% { top: 0%; }
+      100% { top: 96%; }
+    }
+    .slip-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 2500;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .slip-modal-content {
+      background: #ffffff;
+      border-radius: 16px;
+      max-width: 520px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+    }
+  

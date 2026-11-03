@@ -1,0 +1,86 @@
+    .product-detail-hero {
+      position: relative;
+      min-height: 320px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .product-hero-img {
+      max-width: 85%;
+      max-height: 280px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.08));
+      transition: transform 0.3s ease;
+    }
+
+    .product-hero-img:hover {
+      transform: scale(1.04);
+    }
+
+    .product-hero-badge {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background: #c2410c;
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+      box-shadow: 0 4px 10px rgba(194, 65, 12, 0.3);
+    }
+
+    .stepper-wrap {
+      border-color: var(--line, #e4dccb) !important;
+    }
+
+    /* Recommendation Carousels */
+    .recommendations-section {
+      position: relative;
+    }
+
+    .carousel-track {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.4rem 0.2rem 1.2rem 0.2rem;
+      scrollbar-width: thin;
+      scrollbar-color: #d8d0c2 transparent;
+      scroll-behavior: smooth;
+    }
+
+    .carousel-track::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .carousel-track::-webkit-scrollbar-thumb {
+      background: #d8d0c2;
+      border-radius: 999px;
+    }
+
+    .carousel-card-item {
+      flex: 0 0 205px;
+      max-width: 220px;
+      scroll-snap-align: start;
+    }
+
+    @media (max-width: 576px) {
+      .carousel-card-item {
+        flex: 0 0 165px;
+        max-width: 175px;
+      }
+    }
+
+    .carousel-nav-arrows button {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+    }
+  

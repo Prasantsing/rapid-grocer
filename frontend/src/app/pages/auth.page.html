@@ -1,0 +1,354 @@
+    <div class="auth-page-container">
+      <div class="auth-grid">
+        <!-- Main Authentication Portal (Placed first in DOM for mobile top rendering) -->
+        <main class="auth-form-card">
+          <div class="form-wrapper">
+            <!-- Header Top Bar -->
+            <div class="form-top-nav">
+              <a routerLink="/" class="back-link">
+                <i class="bi bi-arrow-left"></i>
+                <span class="d-none d-sm-inline">Back to Store</span>
+                <span class="d-inline d-sm-none">Store</span>
+              </a>
+              <a routerLink="/" class="mobile-brand-mark d-flex align-items-center gap-2 text-decoration-none d-lg-none">
+                <span class="brand-bolt-sm">⚡</span>
+                <span class="brand-title-sm">ZapBasket</span>
+              </a>
+              <span class="ssl-chip">
+                <i class="bi bi-shield-lock-fill text-success"></i>
+                <span class="d-none d-sm-inline">256-Bit Encrypted</span>
+                <span class="d-inline d-sm-none">Secure</span>
+              </span>
+            </div>
+
+            <!-- Mode Segmented Control -->
+            <div class="mode-segmented-control mb-4">
+              <button
+                type="button"
+                class="segment-btn"
+                [class.active]="mode() === 'login'"
+                (click)="switchMode('login')"
+              >
+                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+              </button>
+              <button
+                type="button"
+                class="segment-btn"
+                [class.active]="mode() === 'register'"
+                (click)="switchMode('register')"
+              >
+                <i class="bi bi-person-plus me-1"></i> Create Account
+              </button>
+            </div>
+
+            <div class="form-header mb-4">
+              <h2 class="form-title">
+                {{ mode() === 'register' ? 'Join ZapBasket' : 'Welcome back' }}
+              </h2>
+              <p class="form-subtext">
+                {{ mode() === 'register'
+                  ? 'Sign up in seconds for rapid grocery drops & exclusive member savings.'
+                  : 'Enter your credentials to access your basket, active deliveries, and saved items.' }}
+              </p>
+            </div>
+
+            <!-- Error Banner -->
+            @if (error()) {
+              <div class="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2 px-3 rounded-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                <div class="small flex-grow-1">{{ error() }}</div>
+                <button type="button" class="btn-close btn-close-sm" (click)="error.set('')" aria-label="Dismiss"></button>
+              </div>
+            }
+
+            <!-- Form -->
+            <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+              @if (mode() === 'register') {
+                <!-- Full Name Field -->
+                <div class="form-field-group mb-3">
+                  <label class="form-label fw-semibold text-dark" for="regName">Full Name</label>
+                  <div class="input-icon-wrap">
+                    <i class="bi bi-person field-icon"></i>
+                    <input
+                      id="regName"
+                      class="form-control form-control-lg input-with-icon"
+                      formControlName="name"
+                      placeholder="e.g. Rahul Sharma"
+                      autocomplete="name"
+                    />
+                  </div>
+                </div>
+
+                <!-- Mobile Number Field -->
+                <div class="form-field-group mb-3">
+                  <label class="form-label fw-semibold text-dark" for="regPhone">Mobile Number</label>
+                  <div class="input-icon-wrap">
+                    <span class="country-prefix">+91</span>
+                    <input
+                      id="regPhone"
+                      class="form-control form-control-lg input-with-prefix"
+                      formControlName="phone"
+                      placeholder="98765 43210"
+                      autocomplete="tel"
+                      maxlength="10"
+                    />
+                  </div>
+                  <span class="field-hint">Used for live SMS & WhatsApp delivery alerts.</span>
+                </div>
+
+                <!-- Email Address Field -->
+                <div class="form-field-group mb-3">
+                  <label class="form-label fw-semibold text-dark" for="regEmail">Email Address</label>
+                  <div class="input-icon-wrap">
+                    <i class="bi bi-envelope field-icon"></i>
+                    <input
+                      id="regEmail"
+                      type="email"
+                      class="form-control form-control-lg input-with-icon"
+                      formControlName="email"
+                      placeholder="rahul@example.com"
+                      autocomplete="email"
+                    />
+                  </div>
+                </div>
+              } @else {
+                <!-- Login Identifier Field -->
+                <div class="form-field-group mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label fw-semibold text-dark mb-0" for="loginIdentifier">
+                      Email or Mobile Number
+                    </label>
+                    <span class="text-muted small">Auto-detected</span>
+                  </div>
+                  <div class="input-icon-wrap">
+                    <i class="bi bi-person-badge field-icon"></i>
+                    <input
+                      id="loginIdentifier"
+                      class="form-control form-control-lg input-with-icon"
+                      formControlName="identifier"
+                      placeholder="e.g. 9876543210 or aisha@zapbasket.dev"
+                      autocomplete="username"
+                    />
+                  </div>
+                </div>
+              }
+
+              <!-- Password Field with Visibility Toggle -->
+              <div class="form-field-group mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label fw-semibold text-dark mb-0" for="authPassword">Password</label>
+                  @if (mode() === 'login') {
+                    <span class="text-muted small">Forgot password? Use demo credentials</span>
+                  }
+                </div>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-lock field-icon"></i>
+                  <input
+                    id="authPassword"
+                    [type]="showPassword() ? 'text' : 'password'"
+                    class="form-control form-control-lg input-with-icon input-with-eye"
+                    formControlName="password"
+                    placeholder="Enter your account password"
+                    autocomplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    class="eye-toggle-btn"
+                    (click)="togglePassword()"
+                    [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+                  >
+                    <i [class]="showPassword() ? 'bi bi-eye-slash-fill' : 'bi bi-eye-fill'"></i>
+                  </button>
+                </div>
+                @if (mode() === 'register') {
+                  <span class="field-hint">Must contain at least 8 characters with a letter and number.</span>
+                }
+              </div>
+
+              <!-- Primary Submit CTA -->
+              <button
+                class="btn btn-primary btn-lg w-100 py-3 fw-bold submit-btn mt-2"
+                type="submit"
+                [disabled]="busy()"
+              >
+                @if (busy()) {
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  <span>Verifying credentials…</span>
+                } @else {
+                  <span>
+                    {{ mode() === 'register' ? 'Create Free Account' : 'Sign In to ZapBasket' }}
+                    <i class="bi bi-arrow-right ms-1"></i>
+                  </span>
+                }
+              </button>
+            </form>
+
+            <!-- Mode Switch Prompt -->
+            <div class="text-center mt-3 pt-2">
+              @if (mode() === 'login') {
+                <span class="text-muted small">New to ZapBasket?</span>
+                <a class="fw-bold text-decoration-none text-primary ms-1 small" (click)="switchMode('register')" href="javascript:void(0)">
+                  Create an account
+                </a>
+              } @else {
+                <span class="text-muted small">Already have an account?</span>
+                <a class="fw-bold text-decoration-none text-primary ms-1 small" (click)="switchMode('login')" href="javascript:void(0)">
+                  Sign In instead
+                </a>
+              }
+            </div>
+
+            <!-- Quick Demo Desk Roles Switcher (Toggleable for Public Customers) -->
+            @if (mode() === 'login' && isDemoAllowed()) {
+              <div class="demo-personas-section mt-4 pt-3 border-top">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link text-decoration-none text-muted p-0 d-flex align-items-center gap-1"
+                    (click)="toggleDemoAccounts()"
+                  >
+                    <i class="bi bi-shield-lock text-warning"></i>
+                    <span class="fw-semibold small text-dark">Testing roles? Tap to reveal demo accounts</span>
+                    <i [class]="showDemoAccounts() ? 'bi bi-chevron-up ms-1' : 'bi bi-chevron-down ms-1'"></i>
+                  </button>
+                  <span class="badge bg-light text-muted border small">{{ showDemoAccounts() ? 'Active' : 'Hidden' }}</span>
+                </div>
+
+                @if (showDemoAccounts()) {
+                  <p class="text-secondary small mb-3">
+                    Click any demo persona to automatically populate verified credentials across customer, admin, or delivery portals:
+                  </p>
+
+                  <div class="demo-chips-grid">
+                    @for (persona of demoPersonas; track persona.email) {
+                      <button
+                        type="button"
+                        class="demo-persona-chip"
+                        [class.active]="selectedDemo() === persona.email"
+                        (click)="selectDemoPersona(persona)"
+                      >
+                        <div class="persona-avatar">{{ persona.avatarEmoji }}</div>
+                        <div class="persona-info">
+                          <div class="persona-name-row">
+                            <span class="persona-name">{{ persona.name }}</span>
+                            <span class="persona-badge" [class]="persona.role">{{ persona.badge }}</span>
+                          </div>
+                          <div class="persona-email">{{ persona.email }}</div>
+                        </div>
+                        <div class="persona-arrow">
+                          <i class="bi bi-box-arrow-in-right"></i>
+                        </div>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Trust Credentials & Security Guarantee Footer -->
+            <div class="auth-footer mt-4 pt-3 border-top text-center text-muted">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-2 small text-secondary">
+                <span><i class="bi bi-shield-check text-success me-1"></i> PCI-DSS Compliant</span>
+                <span>•</span>
+                <span><i class="bi bi-lock-fill text-primary me-1"></i> 256-Bit SSL</span>
+                <span>•</span>
+                <span><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Instant Sync</span>
+              </div>
+              <p class="legal-notice mb-0">
+                By continuing, you agree to ZapBasket's
+                <a routerLink="/terms" class="text-decoration-underline text-secondary">Terms of Service</a>
+                and
+                <a routerLink="/privacy" class="text-decoration-underline text-secondary">Privacy Policy</a>.
+              </p>
+            </div>
+          </div>
+        </main>
+
+        <!-- Brand Showcase & Trust Credentials (Rendered below login form on mobile, on left on desktop) -->
+        <aside class="auth-showcase">
+          <div class="showcase-content">
+            <!-- Brand Badge -->
+            <a routerLink="/" class="showcase-brand">
+              <span class="brand-bolt">⚡</span>
+              <span class="brand-title">ZapBasket</span>
+            </a>
+
+            <div class="showcase-hero">
+              <div class="eyebrow-pill">
+                <i class="bi bi-clock-history me-1"></i> 12-Minute Hyperlocal Delivery
+              </div>
+              <h1 class="showcase-heading">The fastest grocery run in Bengaluru.</h1>
+              <p class="showcase-subhead">
+                Handpicked farm-fresh produce, morning dairy, artisan bakery, and pantry staples delivered straight from our dark store network in minutes.
+              </p>
+            </div>
+
+            <!-- Operational Proof Metric Cards -->
+            <div class="metric-cards-grid">
+              <div class="metric-card">
+                <div class="metric-val text-accent">12m</div>
+                <div class="metric-label">Average fulfillment</div>
+                <div class="metric-detail">From click to your doorstep</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-val text-accent">15k+</div>
+                <div class="metric-label">Daily fresh orders</div>
+                <div class="metric-detail">Dispatched across 25 nodes</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-val text-accent">4.9 ★</div>
+                <div class="metric-label">Customer score</div>
+                <div class="metric-detail">Over 42,000+ happy homes</div>
+              </div>
+            </div>
+
+            <!-- Freshness & Quality Pillars -->
+            <div class="trust-pillars">
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-shield-check"></i></div>
+                <div>
+                  <strong>100% Freshness Guarantee</strong>
+                  <p>Not fresh? Instant no-questions-asked refund directly to your UPI.</p>
+                </div>
+              </div>
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-thermometer-snow"></i></div>
+                <div>
+                  <strong>Cold-Chain Protected</strong>
+                  <p>Insulated carrier bags keep milk, butter, and berries chilled en route.</p>
+                </div>
+              </div>
+              <div class="pillar-item">
+                <div class="pillar-icon"><i class="bi bi-box-seam"></i></div>
+                <div>
+                  <strong>Eco-Friendly Paper Bags</strong>
+                  <p>Food-grade, biodegradable packaging with sealed tamper-evident tags.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Customer Testimonial Social Proof -->
+            <div class="customer-quote-box">
+              <div class="quote-stars">
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+                <i class="bi bi-star-fill text-warning"></i>
+              </div>
+              <p class="quote-text">
+                "ZapBasket delivers fresh coriander, bread, and milk before my chai even comes to a boil in the morning. Truly unmatched speed in Indiranagar."
+              </p>
+              <div class="quote-author">
+                <span class="author-avatar">👩🏽</span>
+                <div>
+                  <div class="author-name">Priya N.</div>
+                  <div class="author-meta">Verified Customer · Indiranagar</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  

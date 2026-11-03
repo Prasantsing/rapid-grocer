@@ -1,0 +1,135 @@
+    .address-form-box {
+      width: 100%;
+    }
+
+    /* GPS Detector Card */
+    .gps-detector-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 100%);
+      border: 1.5px solid #bbf7d0;
+      border-radius: 14px;
+      padding: 0.95rem 1.15rem;
+    }
+
+    .gps-pin-icon {
+      color: #16a34a;
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .detected-area-name {
+      font-weight: 700;
+      color: #0e6b4f;
+      font-size: 0.95rem;
+    }
+
+    .detect-action-btn {
+      background: #0e6b4f;
+      border-color: #0e6b4f;
+      font-weight: 600;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+    }
+
+    .detect-action-btn:hover {
+      background: #0a3d2e;
+    }
+
+    .re-detect-btn {
+      background: #ffffff;
+      border-radius: 999px;
+      padding: 0.2rem 0.5rem;
+    }
+
+    .gps-status-loading {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      color: #0e6b4f;
+      font-weight: 550;
+      padding: 0.25rem 0;
+    }
+
+    /* Quick Chips */
+    .quick-chips {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .chip-btn {
+      background: #ffffff;
+      border: 1px solid #d1fae5;
+      color: #0e6b4f;
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .chip-btn:hover {
+      background: #0e6b4f;
+      color: #ffffff;
+    }
+
+    /* Labels */
+    .label-choice-btn {
+      flex: 1;
+      padding: 0.45rem 0.6rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--line, #e4dccb);
+      background: #ffffff;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--ink, #1c1915);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .label-choice-btn.active {
+      border-color: #0e6b4f;
+      background: #e8f5e9;
+      color: #0e6b4f;
+    }
+
+    /* House Input Highlight */
+    .house-input {
+      border: 2px solid #0e6b4f;
+      border-radius: 10px;
+      background: #ffffff;
+      font-size: 1rem;
+    }
+
+    .house-input:focus {
+      box-shadow: 0 0 0 4px rgba(14, 107, 79, 0.18);
+    }
+
+    /* Address Preview Strip */
+    .address-preview-strip {
+      background: #fbf9f4;
+      border: 1px dashed var(--line, #e4dccb);
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+    }
+
+    .preview-tag {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--muted, #6f675c);
+      margin-bottom: 0.2rem;
+    }
+
+    .preview-text {
+      font-size: 0.88rem;
+      color: var(--ink, #1c1915);
+      word-break: break-word;
+    }
+  

@@ -1,0 +1,108 @@
+    <div class="progress-bar-wrapper" [class.compact-mode]="compact()" [class.is-cancelled]="isCancelled()">
+      @if (isCancelled()) {
+        <!-- Cancelled Alert View -->
+        <div class="cancelled-card">
+          <div class="cancelled-icon">
+            <i class="bi bi-x-circle-fill"></i>
+          </div>
+          <div class="cancelled-details">
+            <strong class="cancelled-title">Order Cancelled</strong>
+            <p class="cancelled-desc">
+              {{ cancelNote() || 'This order was cancelled. Items and stocks have been returned.' }}
+            </p>
+          </div>
+          <span class="cancelled-pill">Cancelled</span>
+        </div>
+      } @else {
+        <!-- Full / Detailed Header Banner (non-compact) -->
+        @if (!compact()) {
+          <div class="status-headline-card">
+            <div class="headline-content">
+              <div class="live-indicator">
+                <span class="pulsing-dot" [class.is-delivered]="isDelivered()"></span>
+                <span class="indicator-text">{{ statusBannerText() }}</span>
+              </div>
+              <h3 class="current-stage-title">{{ currentStageTitle() }}</h3>
+              <p class="current-stage-subtitle">{{ currentStageSubtitle() }}</p>
+            </div>
+            @if (etaTime()) {
+              <div class="eta-pill">
+                <i class="bi bi-clock-history"></i>
+                <div class="eta-content">
+                  <span class="eta-label">{{ isDelivered() ? 'Delivered at' : 'Estimated arrival' }}</span>
+                  <strong class="eta-value">{{ etaTime() }}</strong>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Interactive Progress Steps Track -->
+        <div class="progress-track-container" role="progressbar" [attr.aria-valuenow]="progressPercent()" aria-valuemin="0" aria-valuemax="100">
+          <!-- Background Base Line -->
+          <div class="track-base">
+            <!-- Animated Active Progress Line Fill -->
+            <div
+              class="track-fill"
+              [style.width.%]="progressPercent()"
+              [class.complete]="isDelivered()"
+            ></div>
+          </div>
+
+          <!-- Step Indicators -->
+          <div class="steps-row">
+            @for (step of steps; track step.key; let i = $index) {
+              <div
+                class="step-node"
+                [class.completed]="isStepCompleted(step.key)"
+                [class.current]="isCurrentStep(step.key)"
+                [class.upcoming]="isStepUpcoming(step.key)"
+              >
+                <!-- Step Circle Badge -->
+                <div class="node-circle" [title]="step.label">
+                  @if (isStepCompleted(step.key)) {
+                    <i class="bi bi-check-lg check-icon"></i>
+                  } @else if (isCurrentStep(step.key)) {
+                    <span class="active-icon"><i class="bi" [class]="step.icon"></i></span>
+                  } @else {
+                    <span class="upcoming-icon"><i class="bi" [class]="step.icon"></i></span>
+                  }
+                </div>
+
+                <!-- Step Labels -->
+                <div class="node-label-group">
+                  <span class="node-name">{{ step.label }}</span>
+                  @if (!compact()) {
+                    <span class="node-time">
+                      {{ getStepTimestamp(step.key) || step.description }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Rider or Delivery Status Footer (Detailed Mode) -->
+        @if (!compact() && isOutForDelivery()) {
+          <div class="delivery-partner-card">
+            <div class="d-flex align-items-center gap-2">
+              <span class="rider-avatar">🛵</span>
+              <div>
+                <strong>Rider on the way</strong>
+                <p class="mb-0 text-muted small">
+                  {{ riderName() ? riderName() + ' is carrying your order.' : 'Your bag has left the store and is heading to your address.' }}
+                </p>
+              </div>
+            </div>
+            @if (riderPhone()) {
+              <a [href]="'tel:' + riderPhone()" class="call-rider-btn">
+                <i class="bi bi-telephone-fill"></i>
+                <span>Call Rider</span>
+              </a>
+            }
+          </div>
+        }
+      }
+    </div>
+  

@@ -1,0 +1,238 @@
+    <div class="section-head d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h2>Sales & Order Intelligence</h2>
+        <p class="text-muted mb-0 small">Monthly breakdown, date performance metrics, and product sales insights</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" (click)="refresh()" [disabled]="loading()">
+          <span class="bi bi-arrow-clockwise"></span>
+          {{ loading() ? 'Refreshing...' : 'Refresh' }}
+        </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+        <span class="bi bi-exclamation-triangle-fill"></span>
+        <div>{{ error() }}</div>
+      </div>
+    }
+
+    <!-- High-Level KPI Strip -->
+    @if (report(); as data) {
+      <div class="stat-grid mb-4">
+        <article class="stat rounded-3">
+          <span>Total Revenue</span>
+          <strong class="text-success">{{ data.revenue | inr }}</strong>
+          <small class="text-muted">{{ activePresetLabel() }}</small>
+        </article>
+        <article class="stat rounded-3">
+          <span>Total Orders</span>
+          <strong>{{ data.orders }}</strong>
+          <small class="text-muted">Avg: {{ dailyAvgOrders() }} orders / day</small>
+        </article>
+        <article class="stat rounded-3">
+          <span>Average Basket</span>
+          <strong>{{ data.averageOrderValue | inr }}</strong>
+          <small class="text-muted">{{ data.newCustomers }} new customers</small>
+        </article>
+        <article class="stat rounded-3">
+          <span>Peak Sales Day</span>
+          <strong class="text-primary" style="font-size: 1.25rem;">{{ peakDayInfo().label }}</strong>
+          <small class="text-muted">{{ peakDayInfo().revenue ? (peakDayInfo().revenue | inr) : 'No orders yet' }}</small>
+        </article>
+      </div>
+
+      <!-- Monthly Sales Calendar View -->
+      <div class="calendar-card mb-4">
+        <div class="calendar-header">
+          <div class="calendar-title-group">
+            <button class="calendar-nav-btn" (click)="prevMonth()" title="Previous Month" aria-label="Previous Month">
+              ‹
+            </button>
+            <h3>
+              <span class="bi bi-calendar3 text-success"></span>
+              {{ monthTitle() }}
+            </h3>
+            <button class="calendar-nav-btn" (click)="nextMonth()" title="Next Month" aria-label="Next Month">
+              ›
+            </button>
+            <button class="calendar-today-btn" (click)="jumpToToday()">
+              Today
+            </button>
+          </div>
+
+          <div class="calendar-presets">
+            <button 
+              type="button" 
+              class="calendar-preset-btn" 
+              [class.active]="activePreset() === 'this_month'"
+              (click)="setPreset('this_month')">
+              This Month
+            </button>
+            <button 
+              type="button" 
+              class="calendar-preset-btn" 
+              [class.active]="activePreset() === 'last_month'"
+              (click)="setPreset('last_month')">
+              Last Month
+            </button>
+            <button 
+              type="button" 
+              class="calendar-preset-btn" 
+              [class.active]="activePreset() === 'last_30_days'"
+              (click)="setPreset('last_30_days')">
+              Last 30 Days
+            </button>
+          </div>
+        </div>
+
+        <!-- Weekday Headers (Mon - Sun) -->
+        <div class="calendar-weekday-bar">
+          <div class="calendar-weekday">Mon</div>
+          <div class="calendar-weekday">Tue</div>
+          <div class="calendar-weekday">Wed</div>
+          <div class="calendar-weekday">Thu</div>
+          <div class="calendar-weekday">Fri</div>
+          <div class="calendar-weekday">Sat</div>
+          <div class="calendar-weekday text-danger">Sun</div>
+        </div>
+
+        <!-- 7-Column Days Grid -->
+        <div class="calendar-grid">
+          @for (cell of calendarCells(); track cell.dateStr) {
+            <div 
+              class="calendar-day-cell"
+              [class.calendar-day-overflow]="!cell.isCurrentMonth"
+              [class.calendar-day-today]="cell.isToday"
+              [class.calendar-day-selected]="cell.isSelected"
+              [class.calendar-day-has-sales]="cell.hasSales"
+              (click)="selectDay(cell)">
+              
+              <div class="calendar-cell-top">
+                <span class="calendar-date-num">{{ cell.dayNumber }}</span>
+                @if (cell.isToday) {
+                  <span class="calendar-today-badge">TODAY</span>
+                }
+              </div>
+
+              <div class="calendar-cell-body">
+                @if (cell.isCurrentMonth) {
+                  @if (cell.hasSales) {
+                    <span class="calendar-rev-badge" [title]="cell.revenue | inr">
+                      {{ formatCompact(cell.revenue) }}
+                    </span>
+                    <div class="calendar-order-meta">
+                      <span class="calendar-dot"></span>
+                      <span>{{ cell.orders }} {{ cell.orders === 1 ? 'order' : 'orders' }}</span>
+                    </div>
+                  } @else {
+                    <span class="calendar-empty-day">—</span>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Selected Day Spotlight Panel -->
+        @if (selectedDay(); as day) {
+          <div class="calendar-spotlight-card">
+            <div class="spotlight-header">
+              <div>
+                <h4>
+                  <span class="bi bi-calendar-event me-1 text-success"></span>
+                  {{ formatSelectedDate(day.dateStr) }}
+                  @if (day.isToday) {
+                    <span class="badge bg-success ms-2">Today</span>
+                  }
+                </h4>
+                <p class="text-muted small mb-0">Daily operational metrics and order distribution</p>
+              </div>
+              <div>
+                <a routerLink="/admin/orders" class="btn btn-sm btn-outline-success">
+                  <span class="bi bi-box-seam me-1"></span> View Orders
+                </a>
+              </div>
+            </div>
+
+            <div class="spotlight-grid">
+              <div class="spotlight-metric">
+                <div class="metric-label">Daily Revenue</div>
+                <div class="metric-value text-success">{{ day.revenue | inr }}</div>
+              </div>
+              <div class="spotlight-metric">
+                <div class="metric-label">Orders Placed</div>
+                <div class="metric-value">{{ day.orders }}</div>
+              </div>
+              <div class="spotlight-metric">
+                <div class="metric-label">Avg Order Basket</div>
+                <div class="metric-value">
+                  {{ day.orders > 0 ? (day.revenue / day.orders | inr) : '₹0' }}
+                </div>
+              </div>
+              <div class="spotlight-metric">
+                <div class="metric-label">Month Revenue Share</div>
+                <div class="metric-value text-primary">
+                  {{ dayRevenueShare(day.revenue) }}%
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Split Analytical Columns: Top Products & Orders By Status -->
+      <div class="split">
+        <section class="panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">
+              <span class="bi bi-trophy text-warning me-2"></span> Top Performing Products
+            </h3>
+            <span class="badge bg-light text-dark border">{{ data.topProducts.length }} items</span>
+          </div>
+
+          @if (data.topProducts.length === 0) {
+            <p class="text-muted small py-3">No product sales recorded in this timeframe.</p>
+          } @else {
+            @for (item of data.topProducts; track item.name) {
+              <div class="summary-row py-2 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold text-ink">{{ item.name }}</div>
+                  <small class="text-muted">{{ item.quantity }} units sold</small>
+                </div>
+                <strong class="text-ink">{{ item.revenue | inr }}</strong>
+              </div>
+            }
+          }
+        </section>
+
+        <section class="panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">
+              <span class="bi bi-pie-chart text-info me-2"></span> Orders By Status
+            </h3>
+            <span class="badge bg-light text-dark border">{{ data.orders }} total</span>
+          </div>
+
+          @if (data.ordersByStatus.length === 0) {
+            <p class="text-muted small py-3">No status data available.</p>
+          } @else {
+            @for (row of data.ordersByStatus; track row.status) {
+              <div class="summary-row py-2 border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="status-pill {{ row.status }} px-2 py-1 rounded small">
+                    {{ label(row.status) }}
+                  </span>
+                </div>
+                <div>
+                  <strong class="me-2">{{ row.count }}</strong>
+                  <span class="text-muted small">({{ statusPercentage(row.count, data.orders) }}%)</span>
+                </div>
+              </div>
+            }
+          }
+        </section>
+      </div>
+    }
+  

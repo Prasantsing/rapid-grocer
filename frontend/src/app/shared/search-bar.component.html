@@ -1,0 +1,138 @@
+    <div class="search-bar-wrap" #container>
+      <form class="search-bar-container" [class.focused]="isFocused()" (submit)="onSubmit($event)">
+        <!-- Name / Keyword Search Input -->
+        <div class="input-segment">
+          <i class="bi bi-search search-icon" aria-hidden="true"></i>
+          <input
+            #searchInput
+            type="text"
+            class="search-input"
+            [value]="searchTerm()"
+            (input)="onSearchInput($event)"
+            (focus)="onInputFocus()"
+            (keydown.escape)="closeDropdown()"
+            placeholder='Search "milk", "bananas", "atta", "chips"…'
+            aria-label="Search grocery items by name or keyword"
+            autocomplete="off"
+          />
+          @if (searchTerm()) {
+            <button
+              type="button"
+              class="clear-btn"
+              (click)="clearSearch()"
+              aria-label="Clear search query"
+            >
+              <i class="bi bi-x-circle-fill"></i>
+            </button>
+          }
+          <!-- Multi-Language Voice Search Mic Button -->
+          <button
+            type="button"
+            class="mic-btn"
+            (click)="openVoiceSearch($event)"
+            aria-label="Voice search in English, Hindi, Kannada, Tamil, etc."
+            title="Search with voice (English, Hindi, Kannada, Tamil, etc.)"
+          >
+            <i class="bi bi-mic-fill"></i>
+          </button>
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="submit-btn"
+          aria-label="Search"
+          title="Search grocery items"
+        >
+          <i class="bi bi-arrow-right"></i>
+        </button>
+      </form>
+
+      <!-- Multi-Language Voice Search Modal -->
+      @if (showVoiceModal()) {
+        <app-voice-search-modal
+          (querySelected)="onVoiceQuery($event)"
+          (closed)="showVoiceModal.set(false)"
+        />
+      }
+
+      <!-- Autocomplete & Quick Filter Dropdown -->
+      @if (isOpen() && (isSearching() || liveResults().length > 0 || (searchTerm().trim().length >= 2 && liveResults().length === 0))) {
+        <div class="search-dropdown-menu" (mousedown)="$event.preventDefault()">
+          @if (isSearching()) {
+            <div class="dropdown-header">
+              <span class="header-title">Checking the shelves…</span>
+              <span class="spinner-border spinner-border-sm text-success" role="status"></span>
+            </div>
+            <div class="dropdown-items-list" aria-label="Loading search items">
+              @for (row of [1, 2, 3, 4]; track row) {
+                <div class="dropdown-item-row skeleton-search-row">
+                  <div class="item-art skeleton-shimmer"></div>
+                  <div class="item-details">
+                    <div class="skeleton-shimmer mb-1" style="width: 70%; height: 13px; border-radius: 4px;"></div>
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="skeleton-shimmer" style="width: 50px; height: 10px; border-radius: 4px;"></div>
+                      <div class="skeleton-shimmer" style="width: 40px; height: 10px; border-radius: 4px;"></div>
+                    </div>
+                  </div>
+                  <div class="item-pricing">
+                    <div class="skeleton-shimmer ms-auto" style="width: 46px; height: 16px; border-radius: 4px;"></div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (liveResults().length > 0) {
+            <div class="dropdown-header">
+              <span class="header-title">Matching Items</span>
+              <span class="header-count">{{ liveResults().length }} available</span>
+            </div>
+            <div class="dropdown-items-list">
+              @for (item of liveResults(); track item.id) {
+                <a
+                  [routerLink]="['/p', item.slug]"
+                  (click)="onSelectProduct()"
+                  class="dropdown-item-row"
+                >
+                  <div class="item-art" [style.background]="item.tint">
+                    <span class="item-emoji">{{ item.emoji }}</span>
+                  </div>
+                  <div class="item-details">
+                    <div class="item-name">{{ item.name }}</div>
+                    <div class="item-meta">
+                      @if (getItemCategoryName(item)) {
+                        <span class="cat-tag">{{ getItemCategoryName(item) }}</span>
+                      }
+                      @if (item.brand) {
+                        <span class="meta-separator">·</span>
+                        <span class="brand-name">{{ item.brand }}</span>
+                      }
+                      <span class="meta-separator">·</span>
+                      <span class="unit-text">{{ item.unit }}</span>
+                    </div>
+                  </div>
+                  <div class="item-pricing">
+                    <span class="item-price">{{ item.price | inr }}</span>
+                    @if (item.discountPercent > 0) {
+                      <span class="item-badge">{{ item.discountPercent }}% off</span>
+                    }
+                  </div>
+                </a>
+              }
+            </div>
+            <div class="dropdown-footer">
+              <button type="button" class="view-all-btn" (click)="submitFilter()">
+                <span>View all {{ liveResults().length }} results for "<b>{{ searchTerm() }}</b>"</span>
+                <i class="bi bi-arrow-right ms-1"></i>
+              </button>
+            </div>
+          } @else if (searchTerm().trim().length >= 2) {
+            <div class="dropdown-state-empty">
+              <i class="bi bi-search empty-icon"></i>
+              <div class="empty-title">No grocery items found for "{{ searchTerm() }}"</div>
+              <p class="empty-hint">Try searching for "doodh", "aloo", "tamatar", "pyaaz", "dahi", or "bread".</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  
